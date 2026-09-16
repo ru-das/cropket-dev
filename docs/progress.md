@@ -10,7 +10,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M0 — Foundation
 - [x] 0.1 Repo skeleton: `app/` (Vite + React + TS + Tailwind v4 + shadcn/ui), `supabase init`, `ai-service/` with `GET /health`, `.env.example` files, `.gitignore`, ESLint (no hard-coded text rule), Prettier, Vitest, `ci.yml` (lint, typecheck, Vitest, pytest)
 - [x] 0.2 Design tokens (`tokens.css`), bundled fonts, `config.ts` with "Setup needed" screen
-- [ ] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
+- [x] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
 - [ ] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
 - [ ] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
 - [ ] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
@@ -121,6 +121,45 @@ Supabase values, default + bad `VITE_DEFAULT_LANG`). `pnpm lint && pnpm typechec
   functions" rule (`CLAUDE.md` §4) has nothing to match yet — pin `zod@4.6.5` there when the
   first Edge Function is created (milestone 1.3).
 - Next item: 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test.
+
+### 0.3 i18n + LanguageSwitch — 2026-09-16
+**What it does:** One i18next instance (`lib/i18n.ts`) with all three languages bundled as plain
+JSON imports, so text works offline like `SPEC.md` §1.3 asks. `t()` keys are type-checked against
+`en.json` — a typo or a key missing from one locale file now fails `pnpm typecheck`, not just
+the locales test. `LanguageSwitch` (`SPEC.md` §5.1) is the `EN | हि | मरा` header control: tap a
+language, every `t()` string updates immediately, the choice is remembered (`localStorage`) and
+survives reload, and it never navigates away from the current screen. Wired into the placeholder
+`App.tsx` so it's hand-testable before the real Welcome screen (0.4) exists.
+**Files:** `app/src/lib/i18n.ts` (new, the only file that configures i18next), `app/src/lib/i18next.d.ts`
+(new, types `t()` from `en.json`), `app/src/locales/{en,hi,mr}.json` (new), `app/src/components/shell/LanguageSwitch.tsx`
+(new), `app/src/App.tsx` (uses `t()` + `<LanguageSwitch/>` instead of hard-coded strings),
+`app/src/main.tsx` (`import "./lib/i18n"`), `app/tsconfig.app.json` (`resolveJsonModule: true`),
+`app/tests/unit/locales.test.ts` (new), `app/package.json` (`+i18next@26.4.2 +react-i18next@17.0.14`).
+**Mocked:** nothing. `hi`/`mr` copy is my own translation, not reviewed by a native speaker yet —
+flagged below.
+**Test by hand:**
+1. `pnpm dev`, DevTools at 360 px width. Tap `हि` → the card's text switches to Hindi; `मरा` →
+   Marathi; `EN` → English. The selected chip is filled green, not just a colour change.
+2. Reload the page → the language you picked stays selected (`localStorage["cropket.lang"]`).
+   `<html lang>` in the elements panel matches it.
+3. Clear `localStorage`, reload → falls back to `VITE_DEFAULT_LANG` (`mr` unless set otherwise).
+4. Devanagari renders in Mukta with no fallback-font boxes; nothing overflows at 360 px.
+**Tests:** `app/tests/unit/locales.test.ts` (en/hi/mr have exactly the same keys, no blank
+values, language endonyms identical across files). `pnpm lint && pnpm typecheck && pnpm test &&
+pnpm build` all pass.
+**Next / known gaps:**
+- **Naming gotcha for the team:** don't name a `.d.ts` file the same base name as a same-folder
+  `.ts` file (e.g. `i18n.ts` + `i18n.d.ts`) — TypeScript silently treats the `.d.ts` as a stale
+  build artifact of the `.ts` file and drops it from the compilation, so any `declare module`
+  augmentation inside it is never applied (no error, it just quietly doesn't type-check). Found
+  this via `tsc --listFiles` when the "reject an unknown t() key" check didn't actually fail.
+  That's why the augmentation file is `i18next.d.ts`, not `i18n.d.ts`.
+- `hi` and `mr` strings need a native-speaker review before the demo (translations are mine).
+- `providers.tsx` (wraps i18n + QueryClient together) comes in 0.6 with TanStack Query — for now
+  `main.tsx` imports `lib/i18n` directly for its side effect, which is enough since react-i18next
+  reads the global `i18next` instance.
+- Next item: 0.4 App shell (`AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome
+  screen) — this is where `LanguageSwitch` moves from `App.tsx` into `AppHeader` for real.
 
 ## 🔑 Keys and 🧰 tools still needed
 

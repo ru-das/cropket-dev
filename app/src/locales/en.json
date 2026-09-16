@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "Cropket",
+    "tagline": "Sahi daam. Surakshit paisa."
+  },
+  "lang": {
+    "switchLabel": "Change language",
+    "en": "English",
+    "hi": "हिंदी",
+    "mr": "मराठी",
+    "short": {
+      "en": "EN",
+      "hi": "हि",
+      "mr": "मरा"
+    }
+  },
+  "home": {
+    "todaysPrice": "Today's onion price",
+    "perQuintal": "per quintal, Lasalgaon mandi",
+    "seeAdvice": "See today's advice"
+  }
+}

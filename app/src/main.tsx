@@ -11,6 +11,7 @@ import "@fontsource/mukta/500.css";
 import "@fontsource/mukta/600.css";
 import "@fontsource-variable/baloo-2";
 import "./styles/globals.css";
+import "./lib/i18n";
 import { config } from "./lib/config";
 import SetupNeeded from "./app/SetupNeeded.tsx";
 import App from "./App.tsx";
