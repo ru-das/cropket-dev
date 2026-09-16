@@ -15,7 +15,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
 - [x] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
 - [x] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
-- [ ] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
+- [x] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
 
 ## M1 — Farmer core
 - [ ] 1.1 Chat-style onboarding (taps + GPS location)
@@ -424,6 +424,71 @@ library (new packages) to cover very little logic beyond what `speak.test.ts` al
 - `MicInput` (voice input, 1.1) and `VoiceConsent` (deal consent recording, 3.6) are separate
   components, not built here.
 - Next item: 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`.
+
+### 0.8 PWA install — 2026-09-16
+**What it does:** The web build is now installable and opens with no internet (`SPEC.md`
+§5.8, §9.2 Phase 0). `vite-plugin-pwa` generates a manifest (name, leaf-green theme colour,
+192/512/maskable icons) and a service worker that precaches the app shell (JS, CSS,
+`index.html`) plus every `.woff2` font file (`.woff` skipped on purpose - every browser that
+runs a service worker also reads `.woff2`, so caching both would double ~600 KB of fonts for
+nothing) and falls back to `index.html` for any route (`/farmer/khata` opens offline too, not
+just `/`). No Supabase/API caching was added - TanStack Query already persists server reads to
+IndexedDB (0.6a); a second SW-level cache of the same data could show stale content with no
+`<DataAge>` label, which `CLAUDE.md` §5's honesty rule doesn't allow. `lib/native.ts` (new -
+the file `CLAUDE.md` §3 reserves for platform checks) is the one place that answers "are we
+inside the Capacitor APK?"; `main.tsx` only registers the service worker and calls
+`navigator.storage.persist()` when the answer is no, matching `SPEC.md` §5.8 "the service
+worker is not registered in the APK." Updates are silent (`autoUpdate`) - no "new version"
+button to build for a demo.
+**A real gotcha, found by testing (not guessed):** `vite-plugin-pwa`'s `registerSW()` imports
+`workbox-window` from a virtual module that has no real file path, so pnpm's strict
+(non-hoisted) `node_modules` can't resolve it at build time - `pnpm build` failed with
+`Rolldown failed to resolve import "workbox-window"` until `workbox-window` was hoisted to
+the top of `node_modules`. This is `vite-plugin-pwa`'s own documented pnpm fix. It used to be
+a `.npmrc` line (`public-hoist-pattern[]=*workbox*`) but pnpm 11 (installed here) has moved
+hoist settings into `pnpm-workspace.yaml` - a plain `.npmrc` entry is silently ignored, no
+error, `pnpm config list` just shows nothing. Confirmed by checking
+`node_modules/.modules.yaml` (`publicHoistPattern: []`) before finding the right place.
+**Files:** `app/vite.config.ts` (`VitePWA` plugin: manifest + workbox options),
+`app/public/icons/{icon.svg,icon-maskable.svg,icon-192.png,icon-512.png,
+icon-maskable-512.png,apple-touch-icon.png}` (new - hand-drawn SVG wheat glyph on leaf-green,
+matching the 🌾 already used in `AppHeader`/`WelcomePage`; PNGs rendered once with
+`rsvg-convert`, already on this laptop, no new tool), `app/src/lib/native.ts` (new),
+`app/src/main.tsx` (registers the SW + `storage.persist()`, web-only), `app/src/vite-env.d.ts`
+(`vite-plugin-pwa/client` types), `app/index.html` (`theme-color`, `description`, favicon,
+apple-touch-icon meta/link tags), `app/pnpm-workspace.yaml` (`publicHoistPattern`),
+`app/tests/unit/native.test.ts` (new), `app/package.json` (`+vite-plugin-pwa@1.3.0` dev-only;
+`workbox-build`/`workbox-window@7.4.1` come along as its own dependencies, not separate
+installs).
+**Mocked:** nothing.
+**Test by hand:**
+1. `pnpm build && pnpm preview` → http://localhost:4173. DevTools → Application → Manifest:
+   name "Cropket", leaf-green theme colour, all three icons render. Service Workers: one
+   activated worker.
+2. Application → Cache Storage → `workbox-precache-*`: `index.html`, the JS/CSS files and the
+   `*-devanagari-*.woff2` fonts are listed; no `.woff` files.
+3. Network → Offline → hard reload on `/` and on `/farmer/khata` → both still render the real
+   app (not the browser's offline page), 🟧 banner shows, fonts and 🔊 still work.
+4. Chrome's install icon in the address bar → install → opens standalone (no URL bar),
+   correct icon + name in the launcher; repeat the offline reload inside that window.
+5. `pnpm dev` → Application → Service Workers is empty (no SW in dev, checked - the dev-mode
+   `registerSW` is a real no-op stub, not a crash).
+**Tests:** `app/tests/unit/native.test.ts` (2 cases: `isNativeApp()` true/false).
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (45 unit tests total, 9
+files). Also checked directly in the build output: the generated `dist/sw.js` precache list
+(27 entries) and its `NavigationRoute` fallback to `index.html` - both by inspecting the built
+file, since no browser/Playwright is available in this environment yet (Playwright arrives in
+M5). A person should still do the DevTools/real-device checks above before calling Phase 0
+demo-ready.
+**Next / known gaps:**
+- **M0 is done.** Next: **M1 Farmer core**, starting with 1.1 chat-style onboarding (taps +
+  GPS location) - `SPEC.md` §4.3 / Phase 1 table.
+- The 780 KB / 238 KB gzip single JS chunk (noted since 0.5/0.6) is still not split - still
+  the right call until M1 gives farmer routes real content to lazy-load.
+- No "Install app" button in the UI - Chrome/Android shows its own prompt and no `SPEC.md` §4
+  screen asks for one. Add one to the Me page only if a demo phone doesn't offer the prompt.
+- `vercel.json`'s no-cache header for `index.html`/`sw.js` (`SPEC.md` §8.1) is milestone 5.3,
+  not needed until the app is actually deployed.
 
 ## 🔑 Keys and 🧰 tools still needed
 

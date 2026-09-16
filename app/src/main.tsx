@@ -6,6 +6,7 @@
 // splitting the files would add real complexity to save a few KB.
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import "@fontsource/mukta/400.css";
 import "@fontsource/mukta/500.css";
 import "@fontsource/mukta/600.css";
@@ -13,9 +14,17 @@ import "@fontsource-variable/baloo-2";
 import "./styles/globals.css";
 import "./lib/i18n";
 import { config } from "./lib/config";
+import { isNativeApp } from "./lib/native";
 import SetupNeeded from "./app/SetupNeeded.tsx";
 import AppRouter from "./app/router.tsx";
 import { Providers } from "./app/providers.tsx";
+
+// Web only, not inside the Capacitor APK (SPEC.md §5.8) — the service worker
+// caches the app shell/fonts so the web app installs and opens offline.
+if (!isNativeApp()) {
+  registerSW({ immediate: true });
+  void navigator.storage?.persist(); // SPEC.md §5.8 rule 5 — ask Android not to clear our data
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

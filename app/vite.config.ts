@@ -9,13 +9,57 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
 
 const root = import.meta.dirname;
 const sharedDomainDir = path.resolve(root, "../supabase/functions/_shared/domain");
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Installable web app + offline app shell (SPEC.md §5.8, §9.2 Phase 0).
+    // Not registered inside the Capacitor APK — see lib/native.ts + main.tsx.
+    VitePWA({
+      registerType: "autoUpdate",
+      injectRegister: null, // we call registerSW() ourselves, web-only (main.tsx)
+      manifest: {
+        name: "Cropket",
+        short_name: "Cropket",
+        description: "Fair mandi prices and safe payments for farmers.",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "portrait",
+        theme_color: "#1F6B3A", // --leaf
+        background_color: "#F3F6F0", // --field
+        icons: [
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          {
+            src: "/icons/icon-maskable-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+      },
+      workbox: {
+        // Default globPatterns misses woff2 (Devanagari fonts) and mp3 (bundled
+        // voice clips land in 1.5). .woff is skipped on purpose: every browser
+        // that can run a service worker also reads woff2, so caching both would
+        // just double ~600 KB of fonts for nothing.
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2,mp3}"],
+        // So routes like /farmer/khata also open offline, not just "/".
+        navigateFallback: "index.html",
+        // No runtimeCaching here: TanStack Query already persists server reads
+        // to IndexedDB (offline/persist.ts). A second SW-level cache of the same
+        // Supabase responses could show stale data with no <DataAge> label next
+        // to it — the "never quietly switch to mock/stale" rule in CLAUDE.md §5.
+      },
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(root, "./src"),

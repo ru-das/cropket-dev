@@ -607,4 +607,4 @@ Example:
 - [2026-09-20] Run `supabase gen types` after every migration. (Why: app types went out of date and the build broke.)
 -->
 
-_(empty for now)_
+- [2026-09-16] To hoist a package for pnpm (needed once, for `vite-plugin-pwa`'s `workbox-window`), put `publicHoistPattern` in `app/pnpm-workspace.yaml`, not a `public-hoist-pattern[]=` line in `app/.npmrc`. (Why: pnpm 11 moved hoist settings to `pnpm-workspace.yaml`; the old `.npmrc` line is silently ignored — no error, `pnpm build` just fails later with "Rolldown failed to resolve import".)
