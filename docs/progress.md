@@ -11,7 +11,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.1 Repo skeleton: `app/` (Vite + React + TS + Tailwind v4 + shadcn/ui), `supabase init`, `ai-service/` with `GET /health`, `.env.example` files, `.gitignore`, ESLint (no hard-coded text rule), Prettier, Vitest, `ci.yml` (lint, typecheck, Vitest, pytest)
 - [x] 0.2 Design tokens (`tokens.css`), bundled fonts, `config.ts` with "Setup needed" screen
 - [x] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
-- [ ] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
+- [x] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
 - [ ] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
 - [ ] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
 - [ ] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
@@ -160,6 +160,55 @@ pnpm build` all pass.
   reads the global `i18next` instance.
 - Next item: 0.4 App shell (`AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome
   screen) — this is where `LanguageSwitch` moves from `App.tsx` into `AppHeader` for real.
+
+### 0.4 App shell — 2026-09-16
+**What it does:** Every screen from here on sits inside one frame instead of the placeholder
+card. `WelcomePage` (`/`) is the real first screen (SPEC.md §4.1): pick English / हिंदी / मराठी,
+which sets the language and moves on. Everything else renders inside `AppShell` — a sticky
+`AppHeader` (🌾 brand + `SyncStatus` + `LanguageSwitch`, moved out of the old `App.tsx`), the
+`NetworkBanner` 🟧 strip that only appears when the browser goes offline, the page content, and
+a sticky `BottomNav` with the four farmer tabs (Home / My lots / Khata / Me) that really
+navigate now (`react-router`, new dependency). The four tab routes are `PlaceholderPage` for
+now — one line each — until 0.5 gives them real content.
+**Files:** `app/src/app/router.tsx` (new), `app/src/components/shell/{AppShell,AppHeader,
+BottomNav,NetworkBanner,SyncStatus}.tsx` (new), `app/src/offline/network.ts` (new, `useOnline()`
+off `navigator.onLine` + the browser's online/offline events), `app/src/routes/welcome/
+WelcomePage.tsx` (new), `app/src/routes/PlaceholderPage.tsx` (new), `app/src/main.tsx` (renders
+`AppRouter` instead of the old `App`), `app/src/locales/{en,hi,mr}.json` (`nav.*`, `welcome.*`,
+`offline.*`, `sync.*`, `common.comingSoon` added; the old demo `home.*` keys removed with
+`App.tsx`), `app/package.json` (`+react-router@8.4.0`). Deleted `app/src/App.tsx` — its job
+(prove tokens + i18n work) is now done by real screens.
+**Mocked:** `SyncStatus` always renders nothing right now — `AppHeader` passes `pending=0,
+total=0` because the outbox it reads from doesn't exist until 0.6; the component itself is
+finished and just needs real numbers plumbed in. `useOnline()` only listens to browser
+online/offline events, not Capacitor's native `Network` plugin (Capacitor isn't installed
+until 5.4). Welcome sends you to `/farmer` instead of `/login`, since login doesn't exist yet.
+**Test by hand:**
+1. `pnpm dev` → `/` shows the Cropket wordmark, tagline, and three 56 px language buttons
+   (each showing its own name in its own script, all three languages, always).
+2. Tap a language → the whole app switches to it and you land on `/farmer` inside the shell
+   (header + bottom nav visible).
+3. Tap "My lots" / "Khata" / "Me" in the bottom nav → the URL changes, the tab turns leaf-green
+   with a top colour bar (never colour alone — check `aria-current="page"` in DevTools too),
+   and the placeholder page's title matches the tab. Browser back/forward and reloading on
+   `/farmer/khata` all work.
+4. DevTools → Network → offline → a 🟧 strip appears under the header within ~1 s; back online,
+   it disappears.
+5. Repeat 1–4 in English, Hindi and Marathi at 360 px and 320 px — nothing overflows, no
+   fallback-font boxes.
+6. `pnpm build && pnpm preview` — same behaviour from the production build.
+**Tests:** no new test file — this milestone is a router table and four presentational
+components with no branching logic worth a UI test (CLAUDE.md §6: "no UI snapshot tests").
+`app/tests/unit/locales.test.ts` already covers the new locale keys existing identically in
+all three languages. `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.
+**Next / known gaps:**
+- `PlaceholderPage` disappears one use at a time as 0.5 (auth + real farmer home), 1.6 (My
+  Lots), 4.4 (Khata) and 0.5/later (Me / profile) land; delete the file when the last use goes.
+- `hi`/`mr` translations for the new keys are mine, not a native speaker's — same open item as
+  0.3's handoff note, now larger. Needs review before the demo.
+- Next item: 0.5 `profiles` table + roles + RLS + phone OTP login + `RequireAuth`/`RequireRole`
+  + three different homes (farmer, buyer, FPO) + admin. This is where `WelcomePage` starts
+  going to `/login` instead of straight to `/farmer`.
 
 ## 🔑 Keys and 🧰 tools still needed
 

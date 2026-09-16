@@ -14,10 +14,10 @@ import "./styles/globals.css";
 import "./lib/i18n";
 import { config } from "./lib/config";
 import SetupNeeded from "./app/SetupNeeded.tsx";
-import App from "./App.tsx";
+import AppRouter from "./app/router.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {config.setupErrors.length > 0 ? <SetupNeeded missing={config.setupErrors} /> : <App />}
+    {config.setupErrors.length > 0 ? <SetupNeeded missing={config.setupErrors} /> : <AppRouter />}
   </StrictMode>,
 );

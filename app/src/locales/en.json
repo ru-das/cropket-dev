@@ -14,9 +14,23 @@
       "mr": "मरा"
     }
   },
-  "home": {
-    "todaysPrice": "Today's onion price",
-    "perQuintal": "per quintal, Lasalgaon mandi",
-    "seeAdvice": "See today's advice"
+  "nav": {
+    "home": "Home",
+    "lots": "My lots",
+    "khata": "Khata",
+    "me": "Me"
+  },
+  "welcome": {
+    "choose": "Choose your language"
+  },
+  "offline": {
+    "banner": "No internet. You can still scan and save lots."
+  },
+  "sync": {
+    "uploading": "Uploading {{done}} of {{total}}",
+    "allSaved": "All saved"
+  },
+  "common": {
+    "comingSoon": "This screen is coming soon."
   }
 }
