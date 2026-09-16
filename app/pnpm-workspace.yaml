@@ -1,0 +1,3 @@
+minimumReleaseAgeExclude:
+  - prettier@3.9.7
+  - '@types/node@22.20.3'

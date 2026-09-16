@@ -1,0 +1,15 @@
+
+# secrets (added by set-key.sh)
+.env
+
+node_modules/
+dist/
+coverage/
+.venv/
+__pycache__/
+.pytest_cache/
+playwright-report/
+test-results/
+.vercel/
+*.local
+*.tsbuildinfo

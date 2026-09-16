@@ -66,6 +66,12 @@ if have node; then
   fi
 fi
 
+if have pnpm && ! pnpm -v >/dev/null 2>&1; then
+  echo "⚠️  pnpm is installed but won't run (likely Node too old for this pnpm build)."
+  echo "    Try: sudo pacman -S nodejs-lts-jod"
+  now_missing=1
+fi
+
 if have uv; then
   if uv python find 3.12 >/dev/null 2>&1; then
     echo "✅  Python 3.12 (via uv)"
