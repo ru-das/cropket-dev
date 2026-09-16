@@ -9,7 +9,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M0 — Foundation
 - [x] 0.1 Repo skeleton: `app/` (Vite + React + TS + Tailwind v4 + shadcn/ui), `supabase init`, `ai-service/` with `GET /health`, `.env.example` files, `.gitignore`, ESLint (no hard-coded text rule), Prettier, Vitest, `ci.yml` (lint, typecheck, Vitest, pytest)
-- [ ] 0.2 Design tokens (`tokens.css`), bundled fonts, `config.ts` with "Setup needed" screen
+- [x] 0.2 Design tokens (`tokens.css`), bundled fonts, `config.ts` with "Setup needed" screen
 - [ ] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
 - [ ] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
 - [ ] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
@@ -88,6 +88,39 @@ Claude Code adds one block per finished item, newest at the bottom. Keep it shor
 - Node 20 → 22 was needed on this laptop for pnpm 11 to run at all (`sudo pacman -S nodejs-lts-jod`, done). `check-tools.sh` now catches this by actually running `pnpm -v`, not just checking the binary exists.
 - TypeScript is pinned to 6.0.3, not the newest 7.0.2 — `typescript-eslint` doesn't support TS 7 yet (`typescript >=4.8.4 <6.1.0` in every published version incl. canary). Revisit when it does.
 - Next item: 0.2 Design tokens + `config.ts` "Setup needed" screen.
+
+### 0.2 Design tokens, fonts, config — 2026-09-16
+**What it does:** All the colours, fonts, text sizes and radii from `SPEC.md` §6.2–6.4 are now
+Tailwind utilities (`bg-leaf`, `text-hero`, `rounded-card`, …) — no component ever needs a raw
+hex value. Mukta and Baloo 2 (variable) are bundled, no font CDN. `lib/config.ts` is now the
+only file that reads `import.meta.env`: it checks every `VITE_*` value with zod and never
+throws. If `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is missing or invalid,
+`main.tsx` renders `<SetupNeeded/>` (lists the missing names in dev, one calm sentence in
+prod) instead of a white screen or a crash.
+**Files:** `app/src/styles/tokens.css` (new), `app/src/styles/globals.css`, `app/src/lib/config.ts`
+(new), `app/src/app/SetupNeeded.tsx` (new), `app/src/main.tsx`, `app/src/App.tsx` (restyled
+placeholder — real Welcome screen comes in 0.4), `app/tests/unit/config.test.ts` (new),
+`app/package.json` (`+zod@4.6.5 +@fontsource/mukta@5.3.0 +@fontsource-variable/baloo-2@5.3.0`).
+Also: `SPEC.md` §6.2 and `CLAUDE.md` §4 now note tokens are declared as `--color-*` in
+Tailwind's `@theme` (not bare `--leaf`) — the only way Tailwind v4 generates `bg-leaf` etc.
+**Mocked:** nothing.
+**Test by hand:**
+1. `pnpm dev` → 360 px width: green-tinted background, white card, hero number in Baloo 2,
+   body text in Mukta, one 56 px green button. Tab through → 3 px indigo focus ring.
+2. Temporarily set `VITE_SUPABASE_URL=` in `app/.env` and reload → "Setup needed" screen
+   listing the missing name, not a white page. Put the real value back afterwards.
+3. `pnpm build && pnpm preview` — same look, fonts load from `/assets/*.woff2`.
+**Tests:** `app/tests/unit/config.test.ts` (4 cases: full env, missing optional keys, missing/blank
+Supabase values, default + bad `VITE_DEFAULT_LANG`). `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.
+**Next / known gaps:**
+- Fontsource doesn't ship a latin+devanagari-only build for either font, so Mukta also carries
+  a small latin-ext file and the Baloo 2 variable file also carries vietnamese (~40 KB total
+  extra, one-time load). Documented in `main.tsx`; revisit only if bundle size becomes a
+  real problem.
+- `supabase/functions/deno.json` doesn't exist yet, so the "same zod version in app and
+  functions" rule (`CLAUDE.md` §4) has nothing to match yet — pin `zod@4.6.5` there when the
+  first Edge Function is created (milestone 1.3).
+- Next item: 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test.
 
 ## 🔑 Keys and 🧰 tools still needed
 

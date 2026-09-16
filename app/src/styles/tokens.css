@@ -1,0 +1,52 @@
+/* Design tokens from SPEC.md §6.2-6.4. Everything a screen needs (colour,
+   font, text size, radius) is declared here once and used as a Tailwind
+   utility (bg-leaf, font-display, text-hero, rounded-card ...). Components
+   must never use a raw hex value or an ad-hoc font-size — see CLAUDE.md §4
+   "UI rules". No dark mode (SPEC.md §6.2: farmers use phones in sunlight). */
+@theme {
+  /* Base palette (SPEC.md §6.2) */
+  --color-leaf: #1f6b3a; /* brand, primary buttons, links */
+  --color-leaf-dark: #154d2a; /* pressed state, header text */
+  --color-field: #f3f6f0; /* app background */
+  --color-surface: #ffffff; /* cards, sheets */
+  --color-soil: #5a4632; /* secondary text accents, salvage board */
+  --color-ink: #1b2420; /* main text */
+  --color-ink-muted: #5b6660; /* secondary text, still AA on --field */
+  --color-line: #d9e0d6; /* borders, dividers */
+
+  /* Meaning colours - same everywhere: Khata, badges, banners, map.
+     Each has a "-text" pair for AA-contrast text/icons on its own fill. */
+  --color-haldi: #f2b705; /* 🟡 money locked safely */
+  --color-haldi-text: #7a5a00;
+  --color-neel: #2f5da8; /* 🔵 goods on the way */
+  --color-neel-text: #1e3f75;
+  --color-pass: #2e9e4f; /* 🟢 paid / done / good */
+  --color-pass-text: #1d6b34;
+  --color-mirchi: #c8302b; /* 🔴 problem / below floor */
+  --color-mirchi-text: #9a231f;
+  --color-kesar: #e07b1f; /* 🟧 offline / needs attention */
+  --color-kesar-text: #8a4a0f;
+
+  /* Fonts (SPEC.md §6.3). Bundled via @fontsource, imported in main.tsx.
+     "Baloo 2 Variable" is the family name the variable font package
+     registers itself under - not "Baloo 2". */
+  --font-body: Mukta, "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-display: "Baloo 2 Variable", Mukta, "Noto Sans Devanagari", system-ui, sans-serif;
+
+  /* Type scale, size/line-height (SPEC.md §6.3) */
+  --text-hero: 40px; /* price, grade, ₹ */
+  --text-hero--line-height: 44px;
+  --text-title: 24px; /* screen title */
+  --text-title--line-height: 30px;
+  --text-card: 20px; /* card title */
+  --text-card--line-height: 28px;
+  --text-body: 18px; /* body - base size, not 16 */
+  --text-body--line-height: 28px;
+  --text-meta: 15px; /* small / meta */
+  --text-meta--line-height: 22px;
+
+  /* Radius by hierarchy, not one radius everywhere (SPEC.md §6.4) */
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 24px; /* top corners of bottom sheets */
+}

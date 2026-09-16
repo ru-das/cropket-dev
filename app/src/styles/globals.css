@@ -1,3 +1,37 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
-/* Design tokens (--leaf, --haldi, --neel ...) are added in milestone 0.2. */
+/* Base look every screen inherits (SPEC.md §6). Kept tiny on purpose -
+   per-screen styling belongs in components, not here. */
+@layer base {
+  body {
+    background-color: var(--color-field);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 1.56; /* Devanagari needs extra height, SPEC.md §6.3 */
+  }
+
+  /* Visible focus ring for kiosk / keyboard use (SPEC.md §6.6) */
+  :focus-visible {
+    outline: 3px solid var(--color-neel);
+    outline-offset: 2px;
+  }
+
+  /* Tables show numbers, numbers line up (SPEC.md §6.3) */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Very little motion, and none at all if the user asked for that
+     (SPEC.md §6.1) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

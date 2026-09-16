@@ -1188,6 +1188,11 @@ Rules:
 
 ### 6.2 Colours (tokens)
 
+In code these are declared as `--color-leaf`, `--color-haldi`, … inside Tailwind v4's
+`@theme` block (`app/src/styles/tokens.css`), which is what Tailwind needs to generate
+`bg-leaf`, `text-ink`, `border-line` utilities. The short names below (`--leaf`, `--ink`, …)
+are how this doc refers to them; add the `--color-` prefix in CSS/Tailwind classes.
+
 Base palette:
 
 | Token | Hex | Use |

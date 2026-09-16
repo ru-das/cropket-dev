@@ -432,7 +432,7 @@ cropket/
 - Farmer routes are lazy-loaded. First screen JS < 200 KB. Photos compressed to ≤ 300 KB.
 
 ### UI rules (from `SPEC.md` §6)
-- Use colour tokens from `styles/tokens.css` (`--leaf`, `--haldi`, `--neel`, `--pass`, `--mirchi`, `--kesar` …). **No raw hex values in components.**
+- Use colour tokens from `styles/tokens.css` (`--leaf`, `--haldi`, `--neel`, `--pass`, `--mirchi`, `--kesar` …), declared as `--color-*` in Tailwind's `@theme` and used as `bg-leaf` / `text-ink` utilities. **No raw hex values in components.**
 - Meaning colours are the same everywhere: 🟡 money locked · 🔵 on the way · 🟢 paid · 🔴 problem · 🟧 offline.
 - Primary tap targets ≥ 56 × 56 px, secondary ≥ 48 × 48 px. Body text 18 px. Works at 320 px width.
 - One main action per screen, at the bottom. Icon + word + 🔊 together. Never colour alone.
