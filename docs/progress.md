@@ -13,7 +13,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
 - [x] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
 - [x] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
-- [ ] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
+- [x] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
 - [ ] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
 - [ ] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
 
@@ -283,6 +283,95 @@ test file.
 - Next item: 0.6 Offline base (TanStack Query persistence, Dexie schema, outbox runner,
   `DataAge`). The `ponytail:`-marked localStorage profile cache in `app/src/app/providers.tsx`
   is a stand-in for that and should be replaced then, not built alongside it.
+
+### 0.6a Offline reads: query cache + DataAge — 2026-09-16
+**What it does:** The profile is now a TanStack Query (`useMyProfile()`), persisted to
+IndexedDB instead of the hand-rolled `localStorage` cache the `ponytail:` comment in 0.5's
+handoff flagged for replacement. `offline/db.ts` opens one Dexie database (`cropket`) with a
+`cache` table; `offline/persist.ts` plugs that table into `persistQueryClient` as the
+storage (kept 7 days - SPEC.md §5.8). `app/providers.tsx` is now `Providers` (persistence +
+auth) - it treats "still restoring the IndexedDB cache" and "first fetch with nothing cached
+yet" both as `status: "loading"`, so a signed-in farmer never flashes onboarding while the
+cache loads. Sign-out calls `queryClient.clear()` so a second person on the same phone/kiosk
+never sees the first person's cached profile. `DataAge` (`lib/dataAge.ts` +
+`components/common/DataAge.tsx`) shows "7 hours ago" / "2 days ago" style text once data is
+older than 6 hours (SPEC.md §4.22), in the active language via `Intl.RelativeTimeFormat` - no
+date library needed, `en`/`hi`/`mr` are all built in to the JS engine.
+**Files:** `app/src/offline/db.ts`, `app/src/offline/persist.ts` (new), `app/src/lib/dataAge.ts`
+(new), `app/src/components/common/DataAge.tsx` (new), `app/src/app/providers.tsx` (rewritten -
+`AuthProvider` no longer owns the profile cache), `app/src/services/profiles.ts` (`profileKeys`,
+`useMyProfile`), `app/src/main.tsx` (renders `<Providers>`), `app/src/locales/{en,hi,mr}.json`
+(`dataAge.from`), `app/tests/unit/dataAge.test.ts` (new), `app/package.json`
+(`+@tanstack/react-query@5.103.1 +@tanstack/react-query-persist-client@5.103.1
++@tanstack/query-async-storage-persister@5.103.1 +dexie@4.4.6`).
+**Mocked:** nothing.
+**Test by hand:** at 360 px, in all three languages -
+1. `pnpm dev`, sign in as the farmer test number → `/farmer`.
+2. DevTools → Application → IndexedDB → `cropket` → `cache`: one row (the dehydrated query
+   cache). Local Storage no longer has `cropket.profile` (the Supabase session key stays).
+3. Network → Offline → reload → `/farmer` still shows "Namaste, {name}" with the 🟧 banner,
+   now served from IndexedDB, not `localStorage`.
+4. Sign out → sign in as the buyer test number → `/buyer`, no trace of the farmer's name
+   (`queryClient.clear()` on sign-out).
+5. `pnpm build && pnpm preview` → repeat step 3 on the production build.
+**Tests:** `app/tests/unit/dataAge.test.ts` (9 cases: staleness boundary at 5/6/7 h, ISO-string
+input, hour vs. day wording, non-empty Devanagari output for `hi`/`mr`).
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (29 unit tests total).
+**Next / known gaps:**
+- Production bundle is now 236 KB gzip (was 193 KB before TanStack Query + Dexie), further over
+  the 200 KB first-screen budget (`CLAUDE.md` §4). Still not the moment to add `React.lazy()`
+  per route - most routes are placeholders - but M1 gives farmer routes real content, and that's
+  the right moment. Noted again so it isn't lost.
+- Next: 0.6b (Dexie outbox + sync runner), same milestone, next commit.
+
+### 0.6b Offline writes: Dexie outbox + sync runner — 2026-09-16
+**What it does:** `offline/outbox.ts` adds the `drafts`/`blobs`/`outbox` tables to the same
+Dexie database (version 2) and the write queue itself: `enqueue()` (money/trading kinds are
+rejected by `assertAllowedKind` even from an untyped caller - CLAUDE.md §3), and the pure
+retry policy (`pickNext`, `afterFailure`, `nextTryDelayMs`) that decides order and backoff
+(5 s → 30 s → 2 min → 10 min → every 30 min, `failed` after 10 tries - SPEC.md §5.8 rule 4).
+`offline/sync.ts` is the runner: `startSync()` runs on app start, on the browser's `online`
+event, and every 60 s, sending ready items in order until it hits one whose kind has no
+handler yet - `handlers` is an empty map today, since nothing produces a real job until 1.7
+(offline scan) registers `upload_blob`/`create_lot`. `AppHeader` now reads a live pending
+count from `useOutboxStatus()` instead of the hard-coded `pending={0} total={0}`.
+**A conflict fixed in the same change (CLAUDE.md §0 rule 3):** `SPEC.md` §5.8 listed a `"done"`
+outbox status, but a sent item is deleted from the table, not kept - nothing can ever hold that
+value with this design (deleting is simpler than an extra state plus a cleanup sweep). Fixed
+the line in `SPEC.md`, not the code.
+**Files:** `app/src/offline/db.ts` (version 2: `drafts`, `blobs`, `outbox`), `app/src/offline/
+outbox.ts` (new), `app/src/offline/sync.ts` (new), `app/src/app/providers.tsx` (`startSync()`
+in one `useEffect`), `app/src/components/shell/AppHeader.tsx` (real counts),
+`app/src/components/shell/SyncStatus.tsx` (comment only), `app/tests/unit/offline/outbox.test.ts`
+(new), `SPEC.md` §5.8 (the `"done"` fix above). No new package - reuses `dexie` from 0.6a.
+**Mocked:** nothing is mocked, but there is genuinely nothing to send yet - the runner has no
+registered handler until 1.7, so this milestone is wiring plus the tested policy, not an
+end-to-end offline write. Honestly nothing else to demo here yet.
+**Simplified on purpose (not in the original plan, found while building):**
+- The header's `pending`/`total` numbers are the same count (unresolved items only) - there's
+  no per-batch "done so far" tracking, since nothing produces a real multi-item batch yet.
+  Marked with a `ponytail:` comment on `unresolvedCount` in `outbox.ts`; add a session total if
+  "Uploading 2 of 3" needs to actually count up once 1.7 lands.
+- Didn't add the `sync.failed` locale key from the original plan - a failed item isn't shown in
+  the header at all yet (same reason as above), so an unused translation would just be dead
+  weight. Add it in 1.7/My Lots alongside the real "Try again" button.
+- `tripQueue` (SPEC.md §5.8) isn't created - it's only needed by the driver page, milestone 4.7.
+**Test by hand:** this is a wiring check (no real job registered yet) -
+1. `pnpm dev` → DevTools → Application → IndexedDB → `cropket`: now version 2, with `drafts`,
+   `blobs`, `outbox` tables alongside `cache`.
+2. The header shows no sync text (0 items in the outbox = nothing to sync, correct).
+3. Everything from 0.6a's hand-test steps still passes.
+**Tests:** `app/tests/unit/offline/outbox.test.ts` (9 cases: the exact backoff schedule,
+pending→failed at try 10, oldest-first ordering / photo-before-lot, skips a not-yet-due or
+failed item, rejects `escrow_pay`/`accept_bid`/`place_bid`).
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (38 unit tests total).
+**Next / known gaps:**
+- No "Try again" button for `failed` items yet, and no 24 h "waiting too long" warning
+  (SPEC.md §5.8 rule 8) - both belong on the first screen that shows outbox items, milestone
+  1.7 (My Lots) / 1.2 (photos).
+- Blob cleanup after 7 days (SPEC.md §5.8 rule 6) - add when 1.2 starts putting real photos
+  into `blobs`.
+- Next item: 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`).
 
 ## 🔑 Keys and 🧰 tools still needed
 

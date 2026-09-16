@@ -12,6 +12,7 @@ import { AuthContext, type AuthState } from "./authContext";
 import { getSession, onAuthChange } from "@/services/auth";
 import { profileKeys, useMyProfile } from "@/services/profiles";
 import { queryClient, persistOptions } from "@/offline/persist";
+import { startSync } from "@/offline/sync";
 
 type SessionState = "loading" | "signedOut" | "signedIn";
 
@@ -73,6 +74,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
+  useEffect(() => startSync(), []);
+
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <AuthProvider>{children}</AuthProvider>

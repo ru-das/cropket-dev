@@ -1143,8 +1143,9 @@ Dexie tables:
 ```ts
 drafts:   id, kind ("lot" | "grade"), payload, createdAt
 blobs:    id, draftId, kind ("photo" | "audio"), data (Blob), uploadedPath?
-outbox:   id, kind, payload, status ("pending" | "sending" | "done" | "failed"),
+outbox:   id, kind, payload, status ("pending" | "sending" | "failed"),
           tries, nextTryAt, lastError, createdAt
+          -- a sent item is deleted, not kept as "done" (docs/progress.md 0.6 handoff note)
 tripQueue: id, token, kind ("location" | "weigh" | "pod"), payload, blobId?, status, tries
 ```
 

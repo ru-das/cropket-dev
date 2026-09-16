@@ -1,6 +1,6 @@
-// Small sync status in the header (SPEC.md §4.22, §5.1). Props-only for now -
-// the real counts come from the outbox built in milestone 0.6; until then
-// AppHeader passes total=0, so this renders nothing (correct: nothing to sync).
+// Small sync status in the header (SPEC.md §4.22, §5.1). Props-only - the
+// counts come from offline/outbox.ts via AppHeader. Renders nothing when
+// total is 0 (nothing queued).
 import { useTranslation } from "react-i18next";
 
 type SyncStatusProps = {
