@@ -12,7 +12,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.2 Design tokens (`tokens.css`), bundled fonts, `config.ts` with "Setup needed" screen
 - [x] 0.3 i18n (`en`, `hi`, `mr`) + `LanguageSwitch` + locales test
 - [x] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
-- [ ] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
+- [x] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
 - [ ] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
 - [ ] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
 - [ ] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
@@ -209,6 +209,80 @@ all three languages. `pnpm lint && pnpm typecheck && pnpm test && pnpm build` al
 - Next item: 0.5 `profiles` table + roles + RLS + phone OTP login + `RequireAuth`/`RequireRole`
   + three different homes (farmer, buyer, FPO) + admin. This is where `WelcomePage` starts
   going to `/login` instead of straight to `/farmer`.
+
+### 0.5 profiles + roles + RLS + phone OTP login — 2026-09-16
+**What it does:** `WelcomePage` now sends everyone to `/login` (SPEC.md §4.2): +91 prefix, a
+10-digit number, Send OTP, then one 6-digit code field (not six boxes - SPEC.md §4.2 updated
+in this change, autofills from SMS, ~40 fewer lines). First-time sign-in lands on `/onboarding`
+(SPEC.md §4.3 cut down to what 0.5 needs: pick 🧑‍🌾/🏢/👥, then a name - milestone 1.1 extends
+the same screen with village, crops and GPS). That creates the caller's own `profiles` row -
+RLS lets a user insert/select/update only their own row, and never pick `admin`/`nbfc` for
+themselves (those accounts are made by the team by hand, SPEC.md §4.3) or touch their own
+`role`/`kyc_status`/`banned`/`phone`/`trust_score`/`strikes` afterwards (column grants, not just
+a policy check). `RequireAuth` (session) and `RequireRole` (profile + role, and "no profile yet"
+→ `/onboarding`) guard every route; each of the four roles lands on its own home
+(`/farmer`, `/buyer`, `/fpo`, `/admin`) with its own bottom nav (buyer/FPO/admin have only one
+real screen so far, so no nav bar yet - a nav needs two places to go). The session (and a cached
+copy of the profile) persists to `localStorage`, so a signed-in farmer's home screen still
+renders offline (SPEC.md §9.2 Phase 0 "Done when").
+**A real gotcha, found by testing against cropket-dev directly (not guessed):** the test phone
+numbers configured in the Supabase dashboard are matched as **bare 10-digit strings, no +91**
+(confirmed with `curl` against `/auth/v1/otp` and `/auth/v1/verify` - sending `+919090910001`
+tried to reach real Twilio and failed; sending `9090910001` matched the test OTP and returned
+`200`). So `sendOtp`/`verifyOtp` in `services/auth.ts` send the bare number - "+91" in the UI is
+a display-only prefix. Documented on `Phone10` in the shared schema so nobody "fixes" this back
+to E.164 later without knowing why.
+**Files:** `supabase/migrations/20260916164928_profiles.sql` (table + RLS + column grants),
+`supabase/tests/rls_profiles.sql` (8 checks: RLS-on-every-table, own-row insert, blocked
+self-promotion to admin, blocked insert for another id, select isolation, blocked role/banned
+update, allowed name update), `supabase/functions/_shared/domain/schemas/profile.ts` (`Role`,
+`SignupRole`, `Phone10`, `ProfileInput` - first file in `_shared/domain/`),
+`app/src/lib/{supabase,errors,roles}.ts` (new), `app/src/services/{auth,profiles}.ts` (new),
+`app/src/app/{authContext,providers,guards}.tsx` (new - `AuthProvider` wraps the router in
+`main.tsx`), `app/src/routes/login/LoginPage.tsx`, `app/src/routes/onboarding/OnboardingPage.tsx`,
+`app/src/routes/{farmer/FarmerHome,farmer/MePage,buyer/BuyerHome,fpo/FpoHome,admin/AdminHome}.tsx`
+(new), `app/src/components/common/BigTile.tsx` (new), `app/src/components/shell/BottomNav.tsx`
+(role-aware tabs), `app/src/app/router.tsx`, `app/src/routes/{welcome/WelcomePage,PlaceholderPage}.tsx`,
+`app/src/locales/{en,hi,mr}.json` (`login.*`, `onboarding.*`, `role.*`, `home.*`, `me.*`,
+`errors.*`, `common.loading`), `app/vite.config.ts` + `app/tsconfig.app.json` (alias `zod` to
+`app/node_modules/zod` for both the bundler and `tsc`, since `_shared/domain/` lives outside
+`app/` and can't find it by walking up its own folder), `app/src/lib/database.types.ts` +
+`supabase/functions/_shared/database.types.ts` (generated), `app/package.json`
+(`+@supabase/supabase-js@2.116.0`).
+**Mocked:** nothing - phone OTP is real (test numbers), RLS is real and tested against
+cropket-dev directly with `curl` (send OTP → verify → insert own profile → confirmed 403 on
+self-promoting to admin and on updating own role → read own profile back), not just the SQL
+test file.
+**Test by hand:** at 360 px, in all three languages -
+1. `/` → pick a language → `/login` (not `/farmer`).
+2. Farmer test number `9090910001`, OTP `910001` → first time lands on `/onboarding`; pick
+   🧑‍🌾 + a name → `/farmer` shows "Namaste, {name}" and the four tiles.
+3. A wrong OTP shows a calm translated line, never raw Supabase text. Resend counts 0:30 → 0:00.
+4. Reload → still logged in, straight to `/farmer` (session in `localStorage`).
+5. Type `/buyer` in the URL as a farmer → bounced back to `/farmer`. Same for `/admin`.
+6. Me tab → Sign out → `/login`; typing `/farmer` now bounces to `/login`.
+7. Buyer test number `9090920001` / OTP `920001` → `/buyer`, a different home, no bottom nav yet
+   (buyer/FPO/admin each have their own Sign out button on the home screen for now). FPO
+   `9090930001` / `930001` the same way.
+8. Admin: onboarding only offers farmer/buyer/fpo, so log in with `9090940001` / `940001`, pick
+   any role once, then by hand: `update profiles set role='admin' where phone='9090940001';` →
+   sign out and back in → `/admin`.
+9. DevTools → Offline → reload → the home screen still renders from the cached profile, with the
+   🟧 banner. `pnpm build && pnpm preview` - repeat 1-8 on the production build (done; `curl` on
+   `/` and `/login` both returned `200` from the built `dist/`).
+**Tests:** `supabase/tests/rls_profiles.sql` (8/8, `bash scripts/test-sql.sh rls`),
+`app/tests/unit/domain/schemas/profile.test.ts`, `app/tests/unit/roles.test.ts`.
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (25 unit tests total).
+**Next / known gaps:**
+- The production bundle is 661 KB / 193 KB gzip in one chunk - over the "first screen JS <
+  200 KB" budget in CLAUDE.md §4. No route is lazy-loaded yet. Worth fixing with
+  `React.lazy()` per route once there's more than a placeholder behind most of them (M1
+  onward) rather than splitting now for near-empty screens.
+- `hi`/`mr` translations for the new keys are mine, not a native speaker's - same open item
+  as 0.3/0.4, now larger.
+- Next item: 0.6 Offline base (TanStack Query persistence, Dexie schema, outbox runner,
+  `DataAge`). The `ponytail:`-marked localStorage profile cache in `app/src/app/providers.tsx`
+  is a stand-in for that and should be replaced then, not built alongside it.
 
 ## 🔑 Keys and 🧰 tools still needed
 

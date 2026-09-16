@@ -1,9 +1,16 @@
-// All routes (SPEC.md §3.1). Real farmer/buyer/fpo pages arrive in 0.5-0.7
-// and replace PlaceholderPage one at a time. No loaders - server data comes
-// from TanStack Query in services/*, not from the router (SPEC.md §3.2).
+// All routes (SPEC.md §3.1). RequireAuth checks the session; RequireRole
+// checks profile + role (see guards.tsx for why they're split that way).
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import AppShell from "@/components/shell/AppShell";
+import { RequireAuth, RequireRole } from "./guards";
 import WelcomePage from "@/routes/welcome/WelcomePage";
+import LoginPage from "@/routes/login/LoginPage";
+import OnboardingPage from "@/routes/onboarding/OnboardingPage";
+import FarmerHome from "@/routes/farmer/FarmerHome";
+import MePage from "@/routes/farmer/MePage";
+import BuyerHome from "@/routes/buyer/BuyerHome";
+import FpoHome from "@/routes/fpo/FpoHome";
+import AdminHome from "@/routes/admin/AdminHome";
 import PlaceholderPage from "@/routes/PlaceholderPage";
 
 export default function AppRouter() {
@@ -11,12 +18,44 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<WelcomePage />} />
-        <Route element={<AppShell />}>
-          <Route path="/farmer" element={<PlaceholderPage titleKey="nav.home" />} />
-          <Route path="/farmer/lots" element={<PlaceholderPage titleKey="nav.lots" />} />
-          <Route path="/farmer/khata" element={<PlaceholderPage titleKey="nav.khata" />} />
-          <Route path="/farmer/me" element={<PlaceholderPage titleKey="nav.me" />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route element={<RequireAuth />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+
+          <Route element={<RequireRole roles={["farmer"]} />}>
+            <Route element={<AppShell />}>
+              <Route path="/farmer" element={<FarmerHome />} />
+              <Route path="/farmer/lots" element={<PlaceholderPage titleKey="nav.lots" />} />
+              <Route path="/farmer/scan" element={<PlaceholderPage titleKey="home.scanCrop" />} />
+              <Route
+                path="/farmer/prices"
+                element={<PlaceholderPage titleKey="home.todaysPrice" />}
+              />
+              <Route path="/farmer/khata" element={<PlaceholderPage titleKey="nav.khata" />} />
+              <Route path="/farmer/me" element={<MePage />} />
+            </Route>
+          </Route>
+
+          <Route element={<RequireRole roles={["buyer"]} />}>
+            <Route element={<AppShell />}>
+              <Route path="/buyer" element={<BuyerHome />} />
+            </Route>
+          </Route>
+
+          <Route element={<RequireRole roles={["fpo"]} />}>
+            <Route element={<AppShell />}>
+              <Route path="/fpo" element={<FpoHome />} />
+            </Route>
+          </Route>
+
+          <Route element={<RequireRole roles={["admin", "nbfc"]} />}>
+            <Route element={<AppShell />}>
+              <Route path="/admin" element={<AdminHome />} />
+            </Route>
+          </Route>
         </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

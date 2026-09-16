@@ -386,10 +386,16 @@ Every farmer screen has: language switch + 🔊 at the top, one main action, big
 │  └────────────────────────────┘  │
 │                                  │
 │  Enter the 6-digit code          │
-│  [ _ ][ _ ][ _ ][ _ ][ _ ][ _ ]  │
+│  ┌────────────────────────────┐  │
+│  │        4 1 2 8 0 6          │  │
+│  └────────────────────────────┘  │
 │  Resend in 0:28                  │
 └──────────────────────────────────┘
 ```
+One 6-digit field, not six separate boxes (built in milestone 0.5): a single
+`inputMode="numeric"` input with wide letter-spacing autofills from SMS and
+needs no per-box focus/paste handling. "+91" is a display-only prefix - the
+app sends the bare 10-digit number to Supabase auth (see `_shared/domain/schemas/profile.ts`).
 
 ### 4.3 Onboarding (chat style, one question at a time)
 ```

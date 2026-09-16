@@ -25,7 +25,8 @@
 
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../supabase/functions/_shared/domain/*"]
+      "@shared/*": ["../supabase/functions/_shared/domain/*"],
+      "zod": ["./node_modules/zod"]
     }
   },
   "include": ["src", "tests"]

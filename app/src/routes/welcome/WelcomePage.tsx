@@ -1,7 +1,6 @@
 // First screen anyone sees (SPEC.md §4.1). No header/bottom nav here - the
 // shell only wraps logged-in screens. Picking a language also moves on, since
 // there is nothing else to do on this screen.
-// TODO(0.5): "/farmer" below is a stand-in for "/login", which doesn't exist yet.
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "@/lib/i18n";
@@ -14,7 +13,7 @@ export default function WelcomePage() {
 
   function choose(lang: Lang) {
     setLang(lang);
-    navigate("/farmer");
+    navigate("/login");
   }
 
   return (

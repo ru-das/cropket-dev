@@ -23,6 +23,39 @@
   "welcome": {
     "choose": "Choose your language"
   },
+  "login": {
+    "phoneLabel": "Your mobile number",
+    "phonePlaceholder": "98765 43210",
+    "sendOtp": "Send OTP",
+    "otpLabel": "Enter the 6-digit code",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "resendIn": "Resend in {{time}}",
+    "back": "Back"
+  },
+  "onboarding": {
+    "whoAreYou": "Who are you?",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Type your name",
+    "continue": "Continue"
+  },
+  "role": {
+    "farmer": "Farmer",
+    "buyer": "Buyer",
+    "fpo": "FPO",
+    "admin": "Admin",
+    "nbfc": "NBFC"
+  },
+  "home": {
+    "greeting": "Namaste, {{name}}",
+    "scanCrop": "Scan crop",
+    "myLots": "My lots",
+    "todaysPrice": "Today's price",
+    "myKhata": "My khata"
+  },
+  "me": {
+    "signOut": "Sign out"
+  },
   "offline": {
     "banner": "No internet. You can still scan and save lots."
   },
@@ -31,6 +64,15 @@
     "allSaved": "All saved"
   },
   "common": {
-    "comingSoon": "This screen is coming soon."
+    "comingSoon": "This screen is coming soon.",
+    "loading": "Loading…"
+  },
+  "errors": {
+    "otpInvalid": "That code is not right. Try again.",
+    "otpExpired": "This code has expired. Send a new one.",
+    "rateLimited": "Too many tries. Wait a bit and try again.",
+    "network": "No internet. Check your connection and try again.",
+    "profileNotFound": "We could not find your profile. Try signing in again.",
+    "unknown": "Something went wrong. Try again."
   }
 }

@@ -1,0 +1,29 @@
+// Shapes for a `profiles` row (SPEC.md §5.6) and the login/onboarding
+// inputs. Pure TypeScript + zod only (CLAUDE.md §4 "shared domain code") -
+// used by the app and, later, by Edge Functions that touch profiles.
+import { z } from "zod";
+
+export const Role = z.enum(["farmer", "buyer", "fpo", "admin", "nbfc"]);
+export type Role = z.infer<typeof Role>;
+
+// Only these three can be picked at onboarding (SPEC.md §4.3) - admin and
+// nbfc accounts are made by the team by hand.
+export const SignupRole = z.enum(["farmer", "buyer", "fpo"]);
+export type SignupRole = z.infer<typeof SignupRole>;
+
+// A 10-digit Indian mobile number, no +91, no spaces - what the login form
+// collects, and also what cropket-dev's Supabase test phone numbers are
+// keyed by (checked directly against the project: the test OTP allowlist
+// matches the exact string sent to auth, and that string is the bare
+// 10-digit number, not E.164 - "+91" in the UI is a display-only prefix).
+// First digit 6-9 per TRAI numbering.
+export const Phone10 = z
+  .string()
+  .regex(/^[6-9]\d{9}$/, "Enter a 10-digit mobile number");
+export type Phone10 = z.infer<typeof Phone10>;
+
+export const ProfileInput = z.object({
+  name: z.string().trim().min(1).max(80),
+  role: SignupRole,
+});
+export type ProfileInput = z.infer<typeof ProfileInput>;

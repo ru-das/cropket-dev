@@ -15,9 +15,16 @@ import "./lib/i18n";
 import { config } from "./lib/config";
 import SetupNeeded from "./app/SetupNeeded.tsx";
 import AppRouter from "./app/router.tsx";
+import { AuthProvider } from "./app/providers.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {config.setupErrors.length > 0 ? <SetupNeeded missing={config.setupErrors} /> : <AppRouter />}
+    {config.setupErrors.length > 0 ? (
+      <SetupNeeded missing={config.setupErrors} />
+    ) : (
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    )}
   </StrictMode>,
 );

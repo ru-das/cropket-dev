@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 
 type PlaceholderPageProps = {
   /** i18n key for the screen title, e.g. "nav.lots". */
-  titleKey: "nav.home" | "nav.lots" | "nav.khata" | "nav.me";
+  titleKey: "nav.lots" | "nav.khata" | "home.scanCrop" | "home.todaysPrice";
 };
 
 export default function PlaceholderPage({ titleKey }: PlaceholderPageProps) {
