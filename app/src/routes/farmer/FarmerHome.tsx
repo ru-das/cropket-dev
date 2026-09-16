@@ -4,16 +4,19 @@ import { useTranslation } from "react-i18next";
 import { Camera, Package, TrendingUp, BookText } from "lucide-react";
 import { useAuth } from "@/app/authContext";
 import BigTile from "@/components/common/BigTile";
+import VoiceButton from "@/components/voice/VoiceButton";
 
 export default function FarmerHome() {
   const { t } = useTranslation();
   const { profile } = useAuth();
+  const name = profile?.name ?? "";
 
   return (
     <div>
-      <p className="text-title font-display text-ink">
-        {t("home.greeting", { name: profile?.name ?? "" })}
-      </p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-title font-display text-ink">{t("home.greeting", { name })}</p>
+        <VoiceButton textKey="home.greeting" values={{ name }} />
+      </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <BigTile icon={Camera} labelKey="home.scanCrop" href="/farmer/scan" />

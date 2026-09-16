@@ -4,6 +4,7 @@
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "@/lib/i18n";
+import VoiceButton from "@/components/voice/VoiceButton";
 
 const LANGS: Lang[] = ["en", "hi", "mr"];
 
@@ -33,6 +34,10 @@ export default function WelcomePage() {
               {t(`lang.${lang}`)}
             </button>
           ))}
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <VoiceButton textKey="welcome.choose" />
         </div>
       </div>
     </div>

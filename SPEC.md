@@ -1167,17 +1167,24 @@ Sync rules:
 
 ### 5.9 Voice helper (3 layers)
 
+`app/src/lib/voice/speak.ts` takes already-translated text, not a key — `VoiceButton` calls
+`i18n.t()` itself and passes the result in, so `speak.ts` stays plain TypeScript with no
+i18next import (easier to unit test, one file one job):
+
 ```ts
 // app/src/lib/voice/speak.ts
-export async function speak({ key, values, clipId, lang }: SpeakInput) {
-  if (clipId && await playClip(`/audio/${lang}/${clipId}.mp3`)) return; // 1. bundled clip (offline)
-  const text = i18n.t(key, { lng: lang, ...values });
-  if (navigator.onLine && await playTts(text, lang)) return;            // 2. `tts` Edge Function (Bhashini, cached)
-  browserSpeak(text, lang);                                              // 3. speechSynthesis
+export async function speak({ text, lang }: SpeakInput): Promise<boolean> {
+  // 1. bundled clip (offline) — lands in milestone 1.5 with the first real clips
+  // 2. `tts` Edge Function (Bhashini, cached) — P1, not in the prototype
+  return browserSpeak(text, lang);                                    // 3. speechSynthesis (built in 0.7)
 }
 ```
-- Only one sound plays at a time.
-- `scripts/make-voice-clips.ts` generates bundled clips for: all tile labels, grades A/B/C, advice templates ("Sell now", "Hold for N days" for N = 1–5), Khata statuses, offline and error messages, and numbers 0–100 plus hundred/thousand/lakh for reading amounts.
+- Only one sound plays at a time: every `speak()` cancels whatever the browser is currently
+  speaking before starting the next utterance.
+- `mr` borrows an `hi` system voice when no Marathi voice is installed (same script, close
+  enough to understand); `en` never borrows another language's voice. No matching voice at all →
+  `speak()` resolves `false` and the `VoiceButton` shows a muted icon instead of guessing.
+- `scripts/make-voice-clips.ts` generates bundled clips for: all tile labels, grades A/B/C, advice templates ("Sell now", "Hold for N days" for N = 1–5), Khata statuses, offline and error messages, and numbers 0–100 plus hundred/thousand/lakh for reading amounts. Not built yet — prototype scope (`CLAUDE.md` §9.5) ships layer 3 only in 0.7; layers 1 and 2 are added later.
 
 ---
 

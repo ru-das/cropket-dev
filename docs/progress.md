@@ -14,7 +14,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.4 App shell: `AppHeader`, `BottomNav`, `NetworkBanner`, `SyncStatus`, Welcome screen
 - [x] 0.5 `profiles` table + roles + RLS + RLS test; phone OTP login (test numbers); role pick; `RequireAuth` / `RequireRole`; three different homes (farmer, buyer, FPO) + admin
 - [x] 0.6 Offline base: TanStack Query persistence, Dexie schema, outbox runner, `DataAge`
-- [ ] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
+- [x] 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`)
 - [ ] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
 
 ## M1 — Farmer core
@@ -372,6 +372,58 @@ failed item, rejects `escrow_pay`/`accept_bid`/`place_bid`).
 - Blob cleanup after 7 days (SPEC.md §5.8 rule 6) - add when 1.2 starts putting real photos
   into `blobs`.
 - Next item: 0.7 `VoiceButton` (browser voice + a few clips in `public/audio/`).
+
+### 0.7 VoiceButton — 2026-09-16
+**What it does:** A 🔊 button any screen can drop in to read a translated string aloud
+(`SPEC.md` §5.1, §6.1 "icon + word + 🔊 together"). `lib/voice/speak.ts` is the only file that
+touches `speechSynthesis`: it picks a system voice for the current language, falling back from
+Marathi to a Hindi voice when no Marathi voice is installed (same script, close enough - most
+Android phones have no `mr-IN` voice), and never borrows an English voice for either. If no
+usable voice exists it resolves `false` instead of guessing, and `VoiceButton` shows a muted
+icon ("Voice not available on this phone") rather than staying silently broken. Every call
+cancels whatever is currently speaking first, so only one sound plays at a time (`SPEC.md`
+§5.9). Wired into the two 🔊 marks that exist in built screens today: the Welcome screen
+("Choose your language") and farmer home (the greeting, plus one on each of the 4 `BigTile`s).
+**A conflict fixed in the same change (CLAUDE.md §0 rule 3):** `SPEC.md` §5.9's `speak()`
+signature took `{key, values, clipId, lang}` and called `i18n.t()` itself - but `speak.ts` has
+no i18next import (kept plain TS so it's easy to unit-test without a DOM). `VoiceButton` calls
+`t()` and passes the already-translated `text` in. Fixed the snippet in `SPEC.md`.
+**Files:** `app/src/lib/voice/speak.ts` (new), `app/src/components/voice/VoiceButton.tsx` (new),
+`app/src/components/common/BigTile.tsx` (Link now covers the whole card so the VoiceButton can
+sit next to it instead of nesting a `<button>` inside an `<a>`), `app/src/routes/welcome/
+WelcomePage.tsx`, `app/src/routes/farmer/FarmerHome.tsx`, `app/src/locales/{en,hi,mr}.json`
+(`voice.listen`, `voice.unavailable`), `app/tests/unit/voice/speak.test.ts` (new), `SPEC.md`
+§5.9 (signature fix above). No new package - `speechSynthesis` is a browser API.
+**Mocked:** nothing - the phone's own voice is real, no `<DemoDataTag>` needed. Bundled clips
+(`SPEC.md` §5.9 layer 1) and the `tts` function (layer 2) are simply **not built yet**, not
+mocked - `CLAUDE.md` §9.5 keeps the `tts` function and `make-voice-clips.ts` out of the
+prototype; clips arrive in 1.5 with the first real clip content (grades A/B/C).
+**Test by hand:**
+1. `pnpm dev` at 360 px → Welcome screen, tap 🔊 under the language buttons → hears "Choose
+   your language" (English by default); the icon pulses while speaking, stops at the end.
+2. Log in → farmer home → tap the greeting 🔊 and a tile's 🔊 → each reads its own text;
+   starting one while another is playing cuts the first off (only one at a time). Tapping a
+   tile's body still navigates; tapping its 🔊 does not.
+3. Switch to हिंदी and मराठी (top-right switch or re-pick on Welcome) → same taps read
+   Devanagari text. Marathi uses a Hindi system voice on machines with no Marathi voice
+   installed - expected, not a bug. On a machine with no Devanagari voice at all, the button
+   shows muted with "Voice not available on this phone" instead of reading it in English.
+4. DevTools → Network → Offline → 🔊 still works (system voices need no network).
+**Tests:** `app/tests/unit/voice/speak.test.ts` (6 cases: exact-language voice picked first,
+`mr` falls back to `hi`, `mr`/`hi` never fall back to `en`, no usable voice → resolves `false`
+and speaks nothing, a new `speak()` call cancels whatever was playing). No component test for
+`VoiceButton` itself - `CLAUDE.md` §6 "no UI snapshot tests"; it would need jsdom + testing-
+library (new packages) to cover very little logic beyond what `speak.test.ts` already proves.
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (49 unit tests total).
+**Next / known gaps:**
+- Bundled clips (`SPEC.md` §5.9 layer 1, `public/audio/{en,hi,mr}/`) and the `tts` Edge
+  Function (layer 2, Bhashini) aren't built - browser voice is the only layer in the
+  prototype. Add clips in 1.5 alongside the AI grading screen.
+- No 🔊 yet on Login, role pick, buyer/FPO homes or Me - those screens' copy isn't settled;
+  add their 🔊 buttons when each screen is built for real, same as every other screen so far.
+- `MicInput` (voice input, 1.1) and `VoiceConsent` (deal consent recording, 3.6) are separate
+  components, not built here.
+- Next item: 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`.
 
 ## 🔑 Keys and 🧰 tools still needed
 

@@ -56,6 +56,10 @@
   "me": {
     "signOut": "Sign out"
   },
+  "voice": {
+    "listen": "Listen",
+    "unavailable": "Voice not available on this phone"
+  },
   "offline": {
     "banner": "No internet. You can still scan and save lots."
   },
