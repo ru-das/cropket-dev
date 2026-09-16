@@ -1,6 +1,7 @@
 // Reads/writes the caller's own `profiles` row (CLAUDE.md §3 "data access
 // from the app goes through services/*"). RLS (supabase/migrations/*_profiles.sql)
 // already stops anyone from touching another user's row or picking admin.
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toAppError, AppError } from "@/lib/errors";
 import { type ProfileInput } from "@shared/schemas/profile.ts";
@@ -13,6 +14,23 @@ export async function getMyProfile(): Promise<Profile | null> {
   const { data, error } = await supabase.from("profiles").select("*").maybeSingle();
   if (error) throw toAppError(error);
   return data;
+}
+
+export const profileKeys = {
+  mine: () => ["profile", "mine"] as const,
+};
+
+/**
+ * The signed-in user's profile, persisted to IndexedDB (offline/persist.ts)
+ * so a farmer's home screen still renders with no internet (SPEC.md §5.8).
+ * Only enabled once there is a session - app/providers.tsx passes that in.
+ */
+export function useMyProfile(enabled: boolean) {
+  return useQuery({
+    queryKey: profileKeys.mine(),
+    queryFn: getMyProfile,
+    enabled,
+  });
 }
 
 export async function createMyProfile(input: ProfileInput): Promise<Profile> {

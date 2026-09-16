@@ -63,6 +63,9 @@
     "uploading": "Uploading {{done}} of {{total}}",
     "allSaved": "All saved"
   },
+  "dataAge": {
+    "from": "{{ago}}"
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…"

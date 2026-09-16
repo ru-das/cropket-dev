@@ -63,6 +63,9 @@
     "uploading": "{{total}} पैकी {{done}} अपलोड होत आहे",
     "allSaved": "सर्व सेव्ह झाले"
   },
+  "dataAge": {
+    "from": "{{ago}}"
+  },
   "common": {
     "comingSoon": "ही स्क्रीन लवकरच येईल.",
     "loading": "लोड होत आहे…"

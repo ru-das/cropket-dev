@@ -63,6 +63,9 @@
     "uploading": "{{total}} में से {{done}} अपलोड हो रहे हैं",
     "allSaved": "सब सेव हो गया"
   },
+  "dataAge": {
+    "from": "{{ago}}"
+  },
   "common": {
     "comingSoon": "यह स्क्रीन जल्द आएगी।",
     "loading": "लोड हो रहा है…"
