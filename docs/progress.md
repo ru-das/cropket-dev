@@ -566,11 +566,48 @@ pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (69 unit tests, 1
 - The GPS point is stored but nothing reads it back yet (Net-₹ road distance, mandi heatmap
   distance sort) - that starts in M2.
 - District/state stay fixed at "Nashik"/"Maharashtra" for every farmer in the prototype (single
-  pilot area, per `SPEC.md`) - reverse geocoding from the GPS point is out of scope; if the
-  pilot ever needs farmers outside Nashik district, this default will need revisiting.
+  pilot area, per `SPEC.md`) - server-side reverse geocoding into those two columns is still out
+  of scope (see the 2026-09-17 fix note below for the client-side village autofill that *is*
+  built); if the pilot ever needs farmers outside Nashik district, this default will need
+  revisiting.
 - Browser geolocation needs HTTPS or `localhost`; on a real phone over USB use
   `adb reverse tcp:5173 tcp:5173` and open `http://localhost:5173`, not the LAN IP. Inside the
   APK it needs the Capacitor Geolocation plugin + Android fine-location permission - milestone 5.4.
+
+### 1.1 fix — "Use my location" alone couldn't pass the village step — 2026-09-17
+**Bug (found by hand-testing):** tapping "Use my location" on the village step saved GPS fine,
+but Continue stayed disabled with no explanation - `canAdvance` for that step only checked
+`village.trim().length > 0`, and nothing filled `village` from a GPS fix, so the farmer had to
+type a name anyway with no hint why.
+**What changed:** (1) a saved GPS point alone now unlocks Continue -
+`village.trim().length > 0 || locationStatus === "saved"`; (2) `handleUseLocation` also calls
+MapTiler's geocoding API directly from the browser (same public `VITE_MAPTILER_KEY` the map
+already uses, no new secret/Edge Function) to autofill `village` - best-effort only, never
+overwrites text the farmer already typed, and quietly does nothing if the key is missing or the
+call fails/times out; (3) a disabled step now shows *why* ("Type a village name, or use your
+location.") the same way the last step already explains "Needs internet to finish"; (4)
+`ProfileInput.village` is now optional - a blank value becomes `null` (not `""`) so it's a real
+"no village on file" instead of an empty string, matching the fallback `NewLotPage.tsx` already
+had (`profile?.village ?? locationUnknown`).
+**Mocked:** nothing new. The MapTiler geocoding call is real when the key is set (same key as the
+map); with no key it just skips the autofill, same as the map itself falling back to `MandiList`.
+**Files:** `app/src/lib/geocode.ts` (new - `reverseGeocodeVillage()`),
+`app/src/routes/onboarding/{OnboardingPage.tsx, StepInputs.tsx}`,
+`supabase/functions/_shared/domain/schemas/profile.ts` (`village` optional, blank → `null`),
+`app/src/locales/{en,hi,mr}.json` (`onboarding.placeNeeded`).
+**Test by hand:** `pnpm dev`, farmer test number `9090910001` / OTP `910001` → at the village
+question, tap "Use my location" without typing anything → Continue enables as soon as "📍
+Location saved" shows, and (if `VITE_MAPTILER_KEY` is set) the text field fills with a name you
+can still edit. With the key unset, the field stays empty but Continue still enables.
+**Tests:** `app/tests/unit/geocode.test.ts` (new - good response, empty features, non-200,
+network failure, malformed body, and no-key-skips-fetch, 6 cases),
+`domain/schemas/profile.test.ts` (blank/missing village now asserted to become `null`). All pass:
+`pnpm lint && pnpm typecheck && pnpm test` (32 files, 242 tests). No migration touched (`village`
+was already a nullable DB column), so `test-sql.sh` wasn't re-run.
+**Next / known gaps:** rural Maharashtra villages are often thin in commercial geocoders (MapTiler
+is OSM-backed), so the autofilled name can be the nearest town/taluka rather than the exact
+village - that's exactly why it stays editable rather than locking the field. District/state
+autofill from the GPS point is still not built (see the bullet above).
 
 ### 1.2 SmartFrameCamera + upload to crop-photos — 2026-09-17
 **What it does:** Farmer home → "Scan crop" now opens a real camera (`SPEC.md` §4.5). A guide

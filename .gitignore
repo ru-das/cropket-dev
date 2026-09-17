@@ -13,3 +13,4 @@ test-results/
 .vercel/
 *.local
 *.tsbuildinfo
+guide-to-test-app.txt

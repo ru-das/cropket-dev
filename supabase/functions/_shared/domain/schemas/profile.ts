@@ -28,12 +28,22 @@ export type Phone10 = z.infer<typeof Phone10>;
 // then village + GPS for everyone and crops only for farmer/FPO (a buyer
 // doesn't grow anything - SPEC.md §9.2 Phase 1 table). `location` is
 // nullable because GPS can be denied or time out; the screen still lets the
-// farmer finish (SPEC.md §6.7 "advisory, never blocks").
+// farmer finish (SPEC.md §6.7 "advisory, never blocks"). `village` is a
+// display label, not a location fix - a saved GPS point is on its own
+// enough to finish onboarding, so a blank village becomes null (not ""),
+// matching the `profile?.village ?? locationUnknown` fallback the app
+// already uses (NewLotPage.tsx).
 export const ProfileInput = z
   .object({
     name: z.string().trim().min(1).max(80),
     role: SignupRole,
-    village: z.string().trim().min(1).max(80),
+    village: z
+      .string()
+      .trim()
+      .max(80)
+      .optional()
+      .default("")
+      .transform((v) => (v === "" ? null : v)),
     crops: z.array(Crop).default([]),
     location: LatLng.nullable().default(null),
   })

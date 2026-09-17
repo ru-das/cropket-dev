@@ -12,6 +12,7 @@ import { useAuth } from "@/app/authContext";
 import { homeFor } from "@/lib/roles";
 import { createMyProfile } from "@/services/profiles";
 import { getCurrentLocation, type Coordinates } from "@/lib/native";
+import { reverseGeocodeVillage } from "@/lib/geocode";
 import { toAppError } from "@/lib/errors";
 import { useOnline } from "@/offline/network";
 import VoiceButton from "@/components/voice/VoiceButton";
@@ -66,7 +67,7 @@ export default function OnboardingPage() {
       : currentStep === "name"
         ? name.trim().length > 0
         : currentStep === "place"
-          ? village.trim().length > 0
+          ? village.trim().length > 0 || locationStatus === "saved"
           : crops.length > 0;
 
   function toggleCrop(crop: Crop) {
@@ -77,8 +78,13 @@ export default function OnboardingPage() {
     setLocationStatus("loading");
     setLocationErrorMessage(null);
     try {
-      setLocation(await getCurrentLocation());
+      const coords = await getCurrentLocation();
+      setLocation(coords);
       setLocationStatus("saved");
+      // Best-effort autofill only - never overwrite a name the farmer
+      // already typed, including one typed while this call was in flight.
+      const guess = await reverseGeocodeVillage(coords);
+      if (guess) setVillage((current) => (current.trim() ? current : guess));
     } catch (err) {
       setLocation(null);
       setLocationStatus("error");
@@ -104,7 +110,7 @@ export default function OnboardingPage() {
       const profile = await createMyProfile({
         name: name.trim(),
         role: parsedRole.data,
-        village: village.trim(),
+        village: village.trim() || null,
         // A buyer's crops (if any survive a Back-and-switch-role) are never
         // sent - a buyer row never carries crops (SPEC.md §9.2 Phase 1).
         crops: parsedRole.data === "buyer" ? [] : crops,
@@ -132,7 +138,9 @@ export default function OnboardingPage() {
       case "name":
         return name;
       case "place":
-        return locationStatus === "saved" ? `${village} · 📍` : village;
+        return locationStatus === "saved"
+          ? [village.trim(), "📍"].filter(Boolean).join(" · ")
+          : village;
       case "crops":
         return crops.map((c) => `${CROP_ICON[c]} ${t(`crop.${c}`)}`).join("  ");
     }

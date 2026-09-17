@@ -130,6 +130,10 @@ export default function StepInput({
             </button>
           </div>
         )}
+
+        {village.trim().length === 0 && locationStatus !== "saved" && (
+          <p className="mt-3 text-meta text-ink-muted">{t("onboarding.placeNeeded")}</p>
+        )}
       </div>
     );
   }

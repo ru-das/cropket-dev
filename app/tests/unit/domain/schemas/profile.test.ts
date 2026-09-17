@@ -58,10 +58,25 @@ describe("ProfileInput", () => {
     ).toBe(false);
   });
 
-  it("rejects a blank village", () => {
-    expect(
-      ProfileInput.safeParse({ ...base, village: "  ", role: "farmer", crops: ["onion"] }).success,
-    ).toBe(false);
+  it("turns a blank village into null - it's a display label, a saved GPS point is enough", () => {
+    const result = ProfileInput.safeParse({
+      ...base,
+      village: "  ",
+      role: "farmer",
+      crops: ["onion"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.village).toBeNull();
+  });
+
+  it("turns a missing village into null", () => {
+    const result = ProfileInput.safeParse({
+      name: "Ramesh",
+      role: "farmer",
+      crops: ["onion"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.village).toBeNull();
   });
 
   it("rejects an unknown crop", () => {
