@@ -39,6 +39,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      crop_rules: {
+        Row: {
+          crop: string
+          floor_method: string
+          has_msp: boolean
+          max_hold_days: number
+          msp_per_quintal_paise: number | null
+          perishability: number
+          transit_loss_pct: number
+        }
+        Insert: {
+          crop: string
+          floor_method: string
+          has_msp?: boolean
+          max_hold_days: number
+          msp_per_quintal_paise?: number | null
+          perishability: number
+          transit_loss_pct: number
+        }
+        Update: {
+          crop?: string
+          floor_method?: string
+          has_msp?: boolean
+          max_hold_days?: number
+          msp_per_quintal_paise?: number | null
+          perishability?: number
+          transit_loss_pct?: number
+        }
+        Relationships: []
+      }
       grade_results: {
         Row: {
           client_created_at: string | null
@@ -158,6 +188,106 @@ export type Database = {
           },
         ]
       }
+      mandi_heat: {
+        Row: {
+          colour: string
+          crop: string
+          date: string
+          mandi_id: string
+          ratio: number
+        }
+        Insert: {
+          colour: string
+          crop: string
+          date: string
+          mandi_id: string
+          ratio: number
+        }
+        Update: {
+          colour?: string
+          crop?: string
+          date?: string
+          mandi_id?: string
+          ratio?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandi_heat_mandi_id_fkey"
+            columns: ["mandi_id"]
+            isOneToOne: false
+            referencedRelation: "mandis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandi_prices: {
+        Row: {
+          arrivals_tonnes: number
+          crop: string
+          date: string
+          mandi_id: string
+          max_price_paise: number
+          min_price_paise: number
+          modal_price_paise: number
+          source: string
+        }
+        Insert: {
+          arrivals_tonnes: number
+          crop: string
+          date: string
+          mandi_id: string
+          max_price_paise: number
+          min_price_paise: number
+          modal_price_paise: number
+          source: string
+        }
+        Update: {
+          arrivals_tonnes?: number
+          crop?: string
+          date?: string
+          mandi_id?: string
+          max_price_paise?: number
+          min_price_paise?: number
+          modal_price_paise?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mandi_prices_mandi_id_fkey"
+            columns: ["mandi_id"]
+            isOneToOne: false
+            referencedRelation: "mandis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mandis: {
+        Row: {
+          agmarknet_name: string | null
+          district: string
+          id: string
+          location: unknown
+          name: string
+          state: string
+        }
+        Insert: {
+          agmarknet_name?: string | null
+          district?: string
+          id: string
+          location: unknown
+          name: string
+          state?: string
+        }
+        Update: {
+          agmarknet_name?: string | null
+          district?: string
+          id?: string
+          location?: unknown
+          name?: string
+          state?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           banned: boolean
@@ -209,6 +339,51 @@ export type Database = {
           strikes?: number
           trust_score?: number
           village?: string | null
+        }
+        Relationships: []
+      }
+      transporters: {
+        Row: {
+          id: string
+          name: string
+          phone: string
+          rate_per_km_paise: number
+        }
+        Insert: {
+          id: string
+          name: string
+          phone: string
+          rate_per_km_paise: number
+        }
+        Update: {
+          id?: string
+          name?: string
+          phone?: string
+          rate_per_km_paise?: number
+        }
+        Relationships: []
+      }
+      weather_daily: {
+        Row: {
+          date: string
+          district: string
+          fetched_at: string
+          rain_mm: number
+          temp_max: number | null
+        }
+        Insert: {
+          date: string
+          district: string
+          fetched_at?: string
+          rain_mm: number
+          temp_max?: number | null
+        }
+        Update: {
+          date?: string
+          district?: string
+          fetched_at?: string
+          rain_mm?: number
+          temp_max?: number | null
         }
         Relationships: []
       }

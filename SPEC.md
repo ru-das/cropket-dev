@@ -986,13 +986,13 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 | Table | Key columns |
 |---|---|
 | `profiles` | id (= auth user), phone, name, role, language, village, district (default "Nashik"), state (default "Maharashtra"), `location geography(Point)`, `crops[]` (onion/tomato/potato, farmer/FPO only), kyc_status, trust_score, strikes, banned, created_at |
-| `crop_rules` | crop (pk), perishability, max_hold_days, transit_loss_pct, has_msp, msp_per_quintal, floor_method |
+| `crop_rules` | crop (pk), perishability, max_hold_days, transit_loss_pct, has_msp, msp_per_quintal_paise, floor_method |
 | `grade_results` | id, farmer_id, crop, status (pending/done/failed), grade, confidence, size_label, colour_pct, damage_pct, photo_paths[], kind (indicative/assured), needs_human_check |
 | `lots` | id, farmer_id, crop, quantity_kg, grade_result_id, grade, `location`, status, qr_code, client_created_at, created_at |
 | `crates` | id, lot_id, qr_code, weight_kg, status |
 | `mega_lots` / `mega_lot_items` | id, crop, grade, total_kg, fpo_id, `location`, status / mega_lot_id, lot_id, farmer_id, quantity_kg |
 | `mandis` | id, name, district, state, `location`, agmarknet_name |
-| `mandi_prices` | mandi_id, crop, date, min_price, max_price, modal_price, arrivals_tonnes, source · unique(mandi_id, crop, date) |
+| `mandi_prices` | mandi_id, crop, date, min_price_paise, max_price_paise, modal_price_paise, arrivals_tonnes, source · pk(mandi_id, crop, date) |
 | `mandi_heat` | mandi_id, crop, date, ratio, colour |
 | `buyer_kyc` | buyer_id, business_name, gst_number, pan_last4, status, verified_at, source |
 | `bids` | id, lot_id / mega_lot_id, buyer_id, price_per_quintal, status, created_at |

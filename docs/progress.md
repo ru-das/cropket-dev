@@ -28,7 +28,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
       round-trip test (saving a lot offline itself landed in 1.6, not here - see its handoff note)
 
 ## M2 — Market intelligence
-- [ ] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
+- [x] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
 - [ ] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
 - [ ] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
 - [ ] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
@@ -1066,6 +1066,84 @@ error in the console; then repeat with DevTools Network set to Offline and confi
 instead of failing.
 **Next:** redeploy `grade` (`supabase functions deploy grade --use-api --import-map
 supabase/functions/deno.json`) and re-run `check-functions.sh` to confirm the live checks pass.
+
+### 2.1 Market data tables + seed — 2026-09-17
+**What it does:** The six read-only reference tables M2 needs are in `cropket-dev`:
+`crop_rules` (the 3 SPEC.md §2.3 rows, unchanged), `mandis` (5 real Nashik-district
+markets: Lasalgaon, Pimpalgaon Baswant, Niphad, Yeola, Chandvad), `mandi_prices`
+(60 days × 5 mandis × 3 crops = 900 rows), `mandi_heat` (today's colour for each
+mandi/crop, computed from those 900 rows with the real SPEC.md §2.4 ratio formula,
+not hand-picked), `weather_daily` (60 days past + 3 days forecast, Nashik district),
+and `transporters` (6 seeded mock 3PL companies). None of these tables can be
+written by a client - RLS is a flat "any authenticated user may select" (this is
+shared reference data, not per-user rows like `profiles`/`lots`), and there is no
+insert/update/delete grant at all; only `seed.sql` (table owner) and, later,
+`cron-fetch-prices`/`shipments-create` (2.3/4.7, service role) ever write them.
+`transporters` additionally only grants the columns the app needs
+(`id, name, rate_per_km_paise`) - the driver's phone number is never selectable by
+a client, tested directly (`rls_market.sql` #10).
+**A money-rule fix, asked about and confirmed (CLAUDE.md §0 rule 6):** `SPEC.md`
+§5.6 named the price columns `min_price`/`max_price`/`modal_price`/`msp_per_quintal`
+with no unit, but `CLAUDE.md` §4 says money is always whole paise. Asked the user;
+confirmed **paise** - so the DB columns are `min_price_paise`/`max_price_paise`/
+`modal_price_paise`/`msp_per_quintal_paise` (bigint), matching every other money
+column in the system (`deals.total_paise`, `payouts.amount_paise`,
+`transporters.rate_per_km_paise`). `SPEC.md` §5.6 fixed in the same commit.
+**Seed data is generated, not hand-typed:** `supabase/seed.sql` builds the 900 price
+rows and the weather rows in SQL from a handful of per-mandi/per-crop numbers, using
+`hashtext(...)` (not `random()`) for the day-to-day wiggle, so re-running the file on
+the same calendar date always produces the same numbers - and running it twice
+changes nothing (every insert ends `on conflict do nothing`, checked by hand: the
+second run inserted 0 rows everywhere). Checked against `cropket-dev` directly: today's
+onion prices land in a believable ₹1,500-2,300/quintal range with `min < modal < max`
+at every mandi; the 7-day average price is above the 30-day average (a real "price
+rising" signal for 2.2's advice, not forced); and today's heat colours came out
+🔴 Lasalgaon · 🟡 Pimpalgaon/Yeola/Chandvad · 🟢 Niphad, matching the `SPEC.md` §4.8
+wireframe. Every seeded price row is `source = 'seed'`, so 2.4's price screen will
+show the grey "Demo data" tag on it (`CLAUDE.md` §5 honesty rule) - it is realistic
+demo data, not a real Agmarknet report.
+**Files:** `supabase/migrations/20260917113709_market_data.sql` (new - all six
+tables + RLS + grants), `supabase/seed.sql` (new file - market part only; M5's 5.1
+will extend it with demo users/buyers/FPO), `supabase/tests/rls_market.sql` (new,
+14 checks: select works for every table, write is blocked on all six, the
+`transporters` column grant, and the `mandi_prices`/`mandi_heat` check constraints -
+duplicate key, bad colour, negative price, `min > modal` ordering), `app/src/lib/
+database.types.ts` + `supabase/functions/_shared/database.types.ts` (regenerated),
+`SPEC.md` §5.6 (price columns renamed to `*_paise`, `mandi_prices`' unique constraint
+note changed to `pk(mandi_id, crop, date)` matching the migration's composite key).
+**Mocked:** nothing is mocked - this is real seed data, clearly labelled
+`source = 'seed'`, not pretending to be a live Agmarknet report.
+**Test by hand:**
+1. `bash scripts/test-sql.sh` → all 5 files pass (41 checks total, `rls_market.sql`
+   is 14/14).
+2. `psql "$(bash scripts/set-key.sh --get SUPABASE_DB_URL)" -c "select count(*) from
+   mandi_prices;"` → 900.
+3. `psql ... -c "select m.name, h.colour, h.ratio from mandi_heat h join mandis m on
+   m.id = h.mandi_id where h.crop='onion' and h.date = (now() at time zone
+   'Asia/Kolkata')::date order by m.name;"` → Chandvad/Pimpalgaon/Yeola yellow,
+   Lasalgaon red, Niphad green.
+4. `psql ... -f supabase/seed.sql` a second time → every `INSERT 0 0` (nothing
+   duplicated).
+5. `cd app && pnpm lint && pnpm typecheck && pnpm test` → all pass (153 tests, 23
+   files) - the regenerated `database.types.ts` didn't break anything already built.
+**Tests:** `supabase/tests/rls_market.sql` (14/14, self-contained - doesn't depend on
+`seed.sql` having been run first). No new Vitest file - 2.1 added no TypeScript, so
+there is no pure logic yet for Vitest to cover (the domain formulas that read this
+data are 2.2, next).
+**Next / known gaps:**
+- No zod schema for these tables yet, on purpose - nothing reads them from the app
+  until 2.2/2.4, and each of those items will define the shape it actually needs
+  (`_shared/domain/schemas/market.ts` lands with its first reader), not before.
+- `mandis.agmarknet_name` is a best-guess spelling ("Lasalgaon", "Pimpalgaon",
+  "Niphad", "Yeola", "Chandwad") - not yet checked against a real data.gov.in
+  response. Re-check it when 2.3 (`cron-fetch-prices`) is built, since that is the
+  exact string the daily fetch has to match a returned market name against.
+- `DATA_GOV_API_KEY` / `AGMARKNET_RESOURCE_ID` are still missing (see 🔑 below) -
+  fine for now, since 2.1 is exactly the "seeded 60 days" half of §9.5's
+  "Seeded 60 days + real data.gov.in if key is set" line; 2.3 is where the real key
+  starts mattering.
+- Next item: **2.2** domain formulas + tests - `money.ts`, `advice.ts` (tomato ≤ 2
+  days), `heat.ts`, `floor.ts`, `netRupee.ts` (`SPEC.md` §2.4).
 
 ## 🔑 Keys and 🧰 tools still needed
 
