@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { toAppError, AppError } from "@/lib/errors";
+import { callFunction } from "@/lib/callFunction";
 import { db } from "@/offline/db";
 import { enqueue } from "@/offline/outbox";
 import { GradeRequest } from "@shared/schemas/grade.ts";
@@ -77,10 +78,6 @@ export function buildGradeRequest(
   return GradeRequest.parse({ gradeResultId, crop, photoPaths });
 }
 
-type FunctionReply =
-  | { ok: true; data: unknown }
-  | { ok: false; error: { code: string } };
-
 /**
  * Sends one queued "request_grade" job. The draft's own id IS the
  * gradeResultId (SPEC.md §5.6 "made on the phone") - photos.ts only needs to
@@ -100,17 +97,5 @@ export async function requestGrade(payload: unknown): Promise<void> {
     blobs,
   );
 
-  const { data, error, response } = await supabase.functions.invoke<FunctionReply>("grade", {
-    body: input,
-  });
-
-  if (error) {
-    // The grade function always answers with our own {ok:false,error:{code}}
-    // body even on 4xx/5xx (CLAUDE.md §5) - supabase-js still treats a
-    // non-2xx as a thrown error, so the code is read back out of the raw
-    // response it attaches instead of out of `data`.
-    const body = (await response?.json().catch(() => null)) as { error?: { code?: string } } | null;
-    throw new AppError(body?.error?.code ?? "AI_UNAVAILABLE");
-  }
-  if (data && !data.ok) throw new AppError(data.error.code);
+  await callFunction("grade", input);
 }

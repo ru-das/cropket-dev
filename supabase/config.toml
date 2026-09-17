@@ -413,3 +413,13 @@ enabled = true
 # formatted with uppercase keywords, indent 2, max width 180, trailing commas,
 # and column/key alignment. Set to "null" to emit raw, unformatted SQL.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+# Every function the browser calls needs its own [functions.<name>] block:
+# verify_jwt = false (the function checks the caller itself - requireRole()
+# or requireCronSecret(), see _shared/auth.ts) and the shared import map
+# (CLAUDE.md §7 Learned Rules, 2026-09-17). scripts/check-functions.sh fails
+# if a function is missing here, so add the block in the same change that
+# runs `supabase functions new <name>`.
+[functions.grade]
+verify_jwt = false
+import_map = "./functions/deno.json"

@@ -15,6 +15,7 @@ import {
 import { uploadCropPhoto } from "@/services/photos";
 import { requestGrade } from "@/services/grading";
 import { insertLot } from "@/services/lots";
+import { AppError } from "@/lib/errors";
 
 type Handler = (payload: unknown) => Promise<void>;
 
@@ -30,7 +31,8 @@ async function sendOne(item: OutboxItem, handler: Handler): Promise<void> {
     await handler(item.payload);
     await db.outbox.delete(item.id);
   } catch (err) {
-    const patch = afterFailure(item, Date.now());
+    const code = err instanceof AppError ? err.code : "UNKNOWN";
+    const patch = afterFailure(item, Date.now(), code);
     await db.outbox.update(item.id, {
       ...patch,
       lastError: err instanceof Error ? err.message : String(err),

@@ -261,6 +261,7 @@ cropket/
 │       │   └── network.ts         ← online/offline state (Capacitor Network + browser)
 │       ├── lib/
 │       │   ├── supabase.ts        ← client with Capacitor Preferences storage in APK
+│       │   ├── callFunction.ts    ← the one way services/* call an Edge Function → AppError
 │       │   ├── i18n.ts
 │       │   ├── native.ts          ← isNative(), camera, geolocation, share wrappers
 │       │   ├── voice/  speak.ts  listen.ts
@@ -271,7 +272,7 @@ cropket/
 │   └── tests/  unit/  e2e/
 │
 ├── supabase/
-│   ├── config.toml                ← includes verify_jwt=false for webhook/cron/trip functions
+│   ├── config.toml                ← one [functions.<name>] block per function, verify_jwt=false for all
 │   ├── migrations/                ← numbered SQL files, one feature each
 │   ├── seed.sql                   ← demo users, mandis, cold storages, transporters, prices
 │   ├── tests/                     ← SQL tests: escrow transitions, RLS on every table
@@ -284,8 +285,8 @@ cropket/
 │       │   ├── integrations/      ← mode.ts + one folder per outside service
 │       │   │   └── cashfree/ agmarknet/ ors/ bhashini/ fcm/ sms/ weather/
 │       │   │       agristack/ digilocker/ uli/ cersai/ enwr/ transport/ whatsapp/ krishi_dss/
-│       │   ├── http.ts            ← json(), error(), CORS, idempotency helper
-│       │   ├── auth.ts            ← getUser(), requireRole()
+│       │   ├── http.ts            ← handle() answers OPTIONS + stamps CORS on every reply, json(), error()
+│       │   ├── auth.ts            ← requireRole() (verifies the JWT itself), requireCronSecret()
 │       │   └── db.ts              ← service-role client (server only)
 │       ├── grade/  route-distance/  kyc-verify/  tts/
 │       ├── escrow-pay/  cashfree-webhook/  escrow-release/  escrow-skip-timer/
@@ -311,6 +312,7 @@ cropket/
     ├── set-key.sh                 ← asks for API keys and saves them (list of all keys)
     ├── check-tools.sh             ← shows missing tools + install commands
     ├── test-sql.sh                ← runs supabase/tests/*.sql on the dev project
+    ├── check-functions.sh         ← config.toml + CORS/auth wiring check, run before every deploy
     ├── import-agmarknet-csv.ts
     ├── make-voice-clips.ts        ← generates app/public/audio/* once
     └── demo-reset.ts              ← restores the demo database state
@@ -902,6 +904,7 @@ Draft item:  dashed border + tag               "On phone only"
 - Money-related calls take an `Idempotency-Key` header. A repeated call returns the first result.
 - Rate limits live in Postgres (`rate_limits`): OTP 5 tries per escrow, bids 10 per minute per buyer, grading 20 per hour per farmer.
 - Functions for webhooks, cron and the driver link set `verify_jwt = false` in `config.toml` and check their own secret (signature, `CRON_SECRET`, or trip token).
+- **Every function sets `verify_jwt = false`** in its own `[functions.<name>]` block in `config.toml` and checks the caller itself - `requireRole()` (verifies the JWT with `auth.getUser()`, reads the role from `profiles`) or `requireCronSecret()`. Supabase's own gateway would otherwise reject the browser's CORS pre-flight (`OPTIONS`, which carries no `Authorization` header) with `401` before the function runs at all. `handle()` in `_shared/http.ts` answers `OPTIONS` and stamps CORS headers on every reply for every function; `ALLOWED_ORIGINS` (§7.2) restricts which origins get a real `access-control-allow-origin` back. `scripts/check-functions.sh` checks all of this, and must pass before a deploy.
 - **Money and trading calls are online-only.** The app never queues them.
 
 ### 5.3 Postgres functions (called with `supabase.rpc`)
@@ -1155,7 +1158,7 @@ Sync rules:
 1. IDs are made on the phone. The server uses `insert … on conflict (id) do nothing`, so re-sending is safe.
 2. Items are sent in order. A photo upload must finish before the lot or grade request that uses it.
 3. Sync runs on app start, when the network comes back, and every 60 s while items are pending.
-4. Retries use backoff (5 s, 30 s, 2 min, 10 min, then every 30 min). After 10 failures an item is marked `failed` and shown to the user with a "Try again" button.
+4. Retries use backoff (5 s, 30 s, 2 min, 10 min, then every 30 min). After 10 failures an item is marked `failed` and shown to the user with a "Try again" button. Only a transient failure gets the backoff at all: `isRetryable()` (`offline/outbox.ts`) checks the thrown `AppError`'s code and only retries `NETWORK_ERROR`, `UPLOAD_FAILED` (a photo still mid-upload, see rule 2) and `AI_UNAVAILABLE` (the AI service asleep). Anything else - a bad token, wrong role, bad input - goes straight to `failed` on the first try, since it will fail the exact same way every time (CLAUDE.md §5 "Honesty rule").
 5. The app calls `navigator.storage.persist()` so Android does not clear saved data.
 6. Photos are compressed before saving (≤ 300 KB each). Uploaded blobs are deleted from the phone after 7 days.
 7. The server is the owner of data. A saved copy is replaced by fresh server data on refresh, except items still in the outbox, which stay marked "On phone only".
@@ -1324,6 +1327,7 @@ Rules:
 | `CRON_SECRET` | all `cron-*` functions |
 | `OTP_PEPPER` | delivery OTP hashing |
 | `INTEGRATIONS_MOCK` | e.g. `agristack,digilocker,uli,cersai,enwr,transport,sms,whatsapp,krishi_dss` (add `cashfree` if sandbox split is not enabled) |
+| `ALLOWED_ORIGINS` | Comma-separated web origins allowed to call functions from a browser (§5.2). Unset = every origin allowed; set it to the Vercel URL + dev/APK origins at the web deploy (§8, M5) |
 | `ALLOW_SIMPLE_DISPATCH` | `true` until full logistics is built |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | `whatsapp-webhook` |
 

@@ -210,6 +210,7 @@ supabase functions deploy <function-name> --use-api --import-map supabase/functi
 supabase functions deploy --use-api --import-map supabase/functions/deno.json   # all functions
 supabase secrets set --env-file supabase/functions/.env # after keys change
 supabase secrets list                                   # names only
+bash scripts/check-functions.sh                         # run before every deploy - see §7 Learned Rules
 
 # Call a function by hand
 curl -X POST "$(bash scripts/set-key.sh --get SUPABASE_URL)/functions/v1/cron-auto-settle" \
@@ -218,6 +219,7 @@ curl -X POST "$(bash scripts/set-key.sh --get SUPABASE_URL)/functions/v1/cron-au
 - Function logs: Supabase dashboard → Edge Functions → pick the function → Logs.
 - Deploying to `cropket-dev` is fine during normal work. Say which functions you deployed.
 - If `--use-api` is not supported by the installed CLI, ask the user to update `supabase-bin`, or deploy from the dashboard.
+- Every function needs its own `[functions.<name>]` block in `config.toml` (`bash scripts/check-functions.sh` checks this) - see §7 Learned Rules for why.
 
 ### App (run inside `app/`)
 ```bash
@@ -613,3 +615,5 @@ Example:
 
 - [2026-09-16] To hoist a package for pnpm (needed once, for `vite-plugin-pwa`'s `workbox-window`), put `publicHoistPattern` in `app/pnpm-workspace.yaml`, not a `public-hoist-pattern[]=` line in `app/.npmrc`. (Why: pnpm 11 moved hoist settings to `pnpm-workspace.yaml`; the old `.npmrc` line is silently ignored — no error, `pnpm build` just fails later with "Rolldown failed to resolve import".)
 - [2026-09-17] `supabase functions deploy` needs `--import-map supabase/functions/deno.json` - the shared import map is not auto-discovered by the installed CLI (2.117.0). Also delete the per-function `deno.json` that `supabase functions new <name>` scaffolds (it shadows the shared one and has no `zod` entry). (Why: without the flag, deploy fails with `Relative import path "zod" not prefixed with / or ./ or ../`.)
+- [2026-09-17] Every Edge Function the browser calls needs `verify_jwt = false` in its own `[functions.<name>]` block in `config.toml`, must answer `OPTIONS` with CORS headers before doing anything else, and must check the caller itself - `requireRole()` (verifies the JWT with `auth.getUser()`) or `requireCronSecret()` for cron/webhook/driver-link functions with no user JWT at all. `handle()` in `_shared/http.ts` does the CORS/OPTIONS part for every function automatically; `ALLOWED_ORIGINS` (comma-separated, `scripts/set-key.sh`) restricts which origins get a real `access-control-allow-origin` back, unset = `*`. Run `bash scripts/check-functions.sh` before every deploy - it fails if a function is missing its config block, has a stray per-function `deno.json`, or (once deployed) doesn't answer its own pre-flight / auth. (Why: Supabase's gateway rejected the browser's pre-flight with 401 before the function ever ran, so grading looked "offline"; the app's outbox then burned all 10 retries on what was really a permanent rejection, since it retried every failure the same way. `isRetryable()` in `offline/outbox.ts` now only retries `NETWORK_ERROR` / `UPLOAD_FAILED` / `AI_UNAVAILABLE` - an auth or validation error fails on the first try instead.)
+

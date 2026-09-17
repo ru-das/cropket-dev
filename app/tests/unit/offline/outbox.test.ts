@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   afterFailure,
   assertAllowedKind,
+  isRetryable,
   MAX_TRIES,
   nextTryDelayMs,
   pickNext,
@@ -36,18 +37,38 @@ describe("nextTryDelayMs", () => {
   });
 });
 
+describe("isRetryable", () => {
+  it("retries the transient codes: offline, mid-upload, AI service asleep", () => {
+    for (const code of ["NETWORK_ERROR", "UPLOAD_FAILED", "AI_UNAVAILABLE"]) {
+      expect(isRetryable(code)).toBe(true);
+    }
+  });
+
+  it("never retries an auth, role or validation rejection - it fails the same way every time", () => {
+    for (const code of ["UNAUTHENTICATED", "FORBIDDEN", "VALIDATION_FAILED", "UNKNOWN"]) {
+      expect(isRetryable(code)).toBe(false);
+    }
+  });
+});
+
 describe("afterFailure", () => {
-  it("stays pending with a growing nextTryAt before try 10", () => {
-    const result = afterFailure(item({ tries: 8, nextTryAt: 0 }), 1_000);
+  it("stays pending with a growing nextTryAt before try 10, for a retryable code", () => {
+    const result = afterFailure(item({ tries: 8, nextTryAt: 0 }), 1_000, "NETWORK_ERROR");
     expect(result.status).toBe("pending");
     expect(result.tries).toBe(9);
     expect(result.nextTryAt).toBe(1_000 + nextTryDelayMs(9));
   });
 
   it("becomes failed at the 10th try", () => {
-    const result = afterFailure(item({ tries: MAX_TRIES - 1 }), 1_000);
+    const result = afterFailure(item({ tries: MAX_TRIES - 1 }), 1_000, "NETWORK_ERROR");
     expect(result.status).toBe("failed");
     expect(result.tries).toBe(MAX_TRIES);
+  });
+
+  it("becomes failed on the very first try for a non-retryable code", () => {
+    const result = afterFailure(item({ tries: 0 }), 1_000, "FORBIDDEN");
+    expect(result.status).toBe("failed");
+    expect(result.tries).toBe(1);
   });
 });
 

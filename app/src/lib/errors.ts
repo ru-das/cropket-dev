@@ -33,9 +33,24 @@ export class AppError extends Error {
   }
 }
 
+// The message a browser's fetch() throws when the request never reached a
+// server (offline, DNS, blocked CORS pre-flight) - matched on top of the
+// navigator.onLine check below, since that flag is only ever a hint (a
+// captive portal or a blocked pre-flight still reports "online"). Checked
+// on both a thrown Error and a plain { message } object, because Supabase's
+// PostgrestError isn't an Error instance.
+const FETCH_FAILURE_RE = /Failed to fetch|NetworkError|Load failed|Network request failed/;
+
+function isFetchFailure(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : (err as { message?: unknown } | null)?.message;
+  return typeof message === "string" && FETCH_FAILURE_RE.test(message);
+}
+
 /** Wraps any thrown value as an AppError, so services never leak raw errors. */
 export function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
-  if (err instanceof Error && !navigator.onLine) return new AppError("NETWORK_ERROR", err.message);
+  if (!navigator.onLine || isFetchFailure(err)) {
+    return new AppError("NETWORK_ERROR", err instanceof Error ? err.message : String(err));
+  }
   return new AppError("UNKNOWN", err instanceof Error ? err.message : String(err));
 }

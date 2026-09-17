@@ -1042,6 +1042,31 @@ or `ai-service/` change this round, so `test-sql.sh`/`pytest` are unchanged sinc
 - No per-item retry (only "retry everything that's failed") - fine while a farmer normally has at
   most one or two lots stuck at once; revisit if My Lots ever needs to single out one failed item.
 
+### Edge Function auth + CORS fix (cross-cutting, not a milestone item) — 2026-09-17
+
+**What it does:** Milestone 1.3's `grade` function silently failed from the browser - Supabase's
+gateway rejected the CORS pre-flight (`OPTIONS`, no `Authorization` header) with `401` before the
+function ever ran, and the outbox read that as "offline" and burned all 10 retries on a call that
+was never going to succeed. This makes the fix apply to every function, not just `grade`:
+`verify_jwt = false` per function in `config.toml` (checked by the new `check-functions.sh`),
+`handle()` (`_shared/http.ts`) now answers `OPTIONS` and stamps CORS headers on every reply,
+`requireRole()`'s header comment says out loud that it's now the only auth check that runs, and a
+new `requireCronSecret()` sits next to it for cron/webhook/driver-link functions. On the app side,
+`app/src/lib/callFunction.ts` is the one way `services/*` calls a function (`grading.ts` is the
+first to use it); `offline/outbox.ts`'s `isRetryable()` only backs off `NETWORK_ERROR` /
+`UPLOAD_FAILED` / `AI_UNAVAILABLE` now - an auth/validation rejection goes to `failed` on the first
+try instead of ten.
+**Files touched:** `supabase/functions/_shared/http.ts`, `_shared/auth.ts`, `supabase/config.toml`;
+`app/src/lib/callFunction.ts` (new), `app/src/lib/errors.ts`, `app/src/offline/outbox.ts`,
+`app/src/offline/sync.ts`, `app/src/services/grading.ts`; `scripts/check-functions.sh` (new),
+`scripts/set-key.sh`, `supabase/functions/.env.example`; `CLAUDE.md` §2/§7, `SPEC.md` §3/§5.2/§5.8/§7.2.
+**Mocked:** nothing. **How to test by hand:** `bash scripts/check-functions.sh` (fails until `grade`
+is redeployed with the new `handle()`); after deploying, scan a crop on `pnpm dev` with no CORS
+error in the console; then repeat with DevTools Network set to Offline and confirm it queues
+instead of failing.
+**Next:** redeploy `grade` (`supabase functions deploy grade --use-api --import-map
+supabase/functions/deno.json`) and re-run `check-functions.sh` to confirm the live checks pass.
+
 ## 🔑 Keys and 🧰 tools still needed
 
 <!-- Claude Code keeps this list current. Remove a line when it's done. -->
@@ -1053,3 +1078,6 @@ or `ai-service/` change this round, so `test-sql.sh`/`pytest` are unchanged sinc
   `bash scripts/set-key.sh AI_SERVICE_URL` (the value saved on this laptop from 1.3 is stale).
   Once that's done, remove `ai` from `INTEGRATIONS_MOCK` (or clear it) so grading uses the real
   `/grade` route built in 1.4 instead of the mock.
+- `ALLOWED_ORIGINS` — not set yet, so every origin can call the functions from a browser. Fine for
+  now (see the auth/CORS fix above); set it to the real web URL(s) at the M5 web deploy with
+  `bash scripts/set-key.sh ALLOWED_ORIGINS`.

@@ -50,6 +50,19 @@ export function nextTryDelayMs(tries: number): number {
   return RETRY_DELAYS_MS[tries - 1] ?? REPEAT_DELAY_MS;
 }
 
+// A retry can only ever fix something that was actually transient - being
+// offline, a photo still mid-upload (SPEC.md §5.8 rule 2's ordering wait),
+// or an AI service asleep (a free Hugging Face Space, 502). Everything else
+// - a bad token, wrong role, bad input - will fail the exact same way on
+// try 10 as it did on try 1, so burning 10 backoff rounds on it only makes
+// a real rejection (CLAUDE.md §5 "Honesty rule") look like bad signal.
+const RETRYABLE_CODES = new Set(["NETWORK_ERROR", "UPLOAD_FAILED", "AI_UNAVAILABLE"]);
+
+/** True if `code` (an AppError code, or "UNKNOWN") is worth a retry. */
+export function isRetryable(code: string): boolean {
+  return RETRYABLE_CODES.has(code);
+}
+
 /**
  * The oldest ready item (status "pending", due now), or null. Ordering by
  * `createdAt` is what keeps a photo ahead of the lot that uses it (SPEC.md
@@ -61,13 +74,21 @@ export function pickNext(items: OutboxItem[], now: number): OutboxItem | null {
   return ready[0] ?? null;
 }
 
-/** What an item's row should become after a failed send attempt. */
+/**
+ * What an item's row should become after a failed send attempt. `code` is
+ * the AppError code the handler threw (or "UNKNOWN") - a non-retryable code
+ * goes straight to "failed" on the very first try, same as hitting
+ * MAX_TRIES, instead of waiting out the whole backoff schedule first.
+ */
 export function afterFailure(
   item: OutboxItem,
   now: number,
+  code: string,
 ): Pick<OutboxItem, "status" | "tries" | "nextTryAt"> {
   const tries = item.tries + 1;
-  if (tries >= MAX_TRIES) return { status: "failed", tries, nextTryAt: item.nextTryAt };
+  if (tries >= MAX_TRIES || !isRetryable(code)) {
+    return { status: "failed", tries, nextTryAt: item.nextTryAt };
+  }
   return { status: "pending", tries, nextTryAt: now + nextTryDelayMs(tries) };
 }
 
