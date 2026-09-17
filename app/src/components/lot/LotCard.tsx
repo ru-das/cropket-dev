@@ -24,8 +24,12 @@ export default function LotCard({ lot }: { lot: LotView }) {
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
         {lot.grade && <GradeBadge grade={lot.grade} kind="indicative" size="sm" />}
-        {lot.pending && (
-          <span className="text-meta font-semibold text-kesar-text">{t("lots.onPhoneOnly")}</span>
+        {lot.syncFailed ? (
+          <span className="text-meta font-semibold text-mirchi-text">{t("lots.notSaved")}</span>
+        ) : (
+          lot.pending && (
+            <span className="text-meta font-semibold text-kesar-text">{t("lots.onPhoneOnly")}</span>
+          )
         )}
       </div>
     </Link>

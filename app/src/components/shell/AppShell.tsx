@@ -3,6 +3,7 @@
 import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import NetworkBanner from "./NetworkBanner";
+import SyncTrouble from "./SyncTrouble";
 import BottomNav from "./BottomNav";
 
 export default function AppShell() {
@@ -10,6 +11,7 @@ export default function AppShell() {
     <div className="flex min-h-screen flex-col bg-field">
       <AppHeader />
       <NetworkBanner />
+      <SyncTrouble />
       <main className="flex-1 p-4">
         <Outlet />
       </main>

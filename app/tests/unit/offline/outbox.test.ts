@@ -8,6 +8,7 @@ import {
   MAX_TRIES,
   nextTryDelayMs,
   pickNext,
+  summarizeOutbox,
   type OutboxItem,
 } from "@/offline/outbox";
 
@@ -70,6 +71,29 @@ describe("pickNext", () => {
 
   it("returns null for an empty queue", () => {
     expect(pickNext([], 100)).toBeNull();
+  });
+});
+
+describe("summarizeOutbox", () => {
+  it("is all zeros for an empty queue", () => {
+    expect(summarizeOutbox([])).toEqual({ unresolved: 0, failed: 0, oldestPendingAt: null });
+  });
+
+  it("counts sending as unresolved, alongside pending", () => {
+    const snapshot = summarizeOutbox([
+      item({ id: "a", status: "pending", createdAt: 5 }),
+      item({ id: "b", status: "sending", createdAt: 2 }),
+    ]);
+    expect(snapshot.unresolved).toBe(2);
+    expect(snapshot.oldestPendingAt).toBe(2);
+  });
+
+  it("counts failed separately, excluded from unresolved and from oldestPendingAt", () => {
+    const snapshot = summarizeOutbox([
+      item({ id: "a", status: "pending", createdAt: 10 }),
+      item({ id: "b", status: "failed", createdAt: 1 }), // older, but must not win oldestPendingAt
+    ]);
+    expect(snapshot).toEqual({ unresolved: 1, failed: 1, oldestPendingAt: 10 });
   });
 });
 

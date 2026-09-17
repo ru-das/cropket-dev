@@ -83,32 +83,77 @@ export async function enqueue(
   await refreshOutboxSnapshot();
 }
 
-// --- live "how many still need to go" count, for the header (SyncStatus) ---
+// --- live outbox snapshot, for the header (SyncStatus) and the shared
+// "something needs attention" strip (SyncTrouble, milestone 1.7) ---
 
-// ponytail: counts only unresolved (pending/sending) items - a failed item
-// drops out of this count and isn't shown in the header at all yet. A
-// "Try again" button for failed items belongs on the screen where they're
-// actually visible (My Lots etc.), which lands with the first real job in
-// milestone 1.7 - add it there, not here.
-let unresolvedCount = 0;
+export type OutboxSnapshot = {
+  /** pending + sending - what SyncStatus already showed before 1.7. */
+  unresolved: number;
+  /** gave up after MAX_TRIES - SyncTrouble's "Try again" button. */
+  failed: number;
+  /** createdAt of the oldest unresolved item, or null if none - the 24 h warning. */
+  oldestPendingAt: number | null;
+};
+
+const EMPTY_SNAPSHOT: OutboxSnapshot = { unresolved: 0, failed: 0, oldestPendingAt: null };
+
+/** Pure - builds the whole snapshot from a plain array, no Dexie needed to test it. */
+export function summarizeOutbox(items: OutboxItem[]): OutboxSnapshot {
+  let unresolved = 0;
+  let failed = 0;
+  let oldestPendingAt: number | null = null;
+  for (const item of items) {
+    if (item.status === "failed") {
+      failed++;
+    } else {
+      unresolved++;
+      if (oldestPendingAt === null || item.createdAt < oldestPendingAt) {
+        oldestPendingAt = item.createdAt;
+      }
+    }
+  }
+  return { unresolved, failed, oldestPendingAt };
+}
+
+// ponytail: no count survives past this snapshot (SyncStatus/SyncTrouble show
+// plain words like "Some things did not save", not "2 things") - a session
+// running total ("Uploading 2 of 3" that actually counts up) was dropped back
+// in 0.6b for the same reason: nothing needed it yet. summarizeOutbox already
+// counts everything, so add the display later with no new plumbing.
+let snapshot: OutboxSnapshot = EMPTY_SNAPSHOT;
 const listeners = new Set<() => void>();
 
+function sameSnapshot(a: OutboxSnapshot, b: OutboxSnapshot): boolean {
+  return a.unresolved === b.unresolved && a.failed === b.failed && a.oldestPendingAt === b.oldestPendingAt;
+}
+
 export async function refreshOutboxSnapshot(): Promise<void> {
-  const next = await db.outbox.where("status").anyOf("pending", "sending").count();
-  if (next === unresolvedCount) return;
-  unresolvedCount = next;
+  const next = summarizeOutbox(await db.outbox.toArray());
+  if (sameSnapshot(next, snapshot)) return;
+  snapshot = next;
   listeners.forEach((listener) => listener());
 }
 
-/** Items still waiting to reach the server. 0 means nothing to sync. */
-export function useOutboxStatus(): number {
+/** The live outbox snapshot. `unresolved === 0 && failed === 0` means nothing to show. */
+export function useOutboxStatus(): OutboxSnapshot {
   return useSyncExternalStore(
     (callback) => {
       listeners.add(callback);
       return () => listeners.delete(callback);
     },
-    () => unresolvedCount,
+    () => snapshot,
   );
+}
+
+/**
+ * Re-queues every failed item (SPEC.md §5.8 rule 4 "shown to the user with a
+ * 'Try again' button") - back to pending, tries reset, due now. The existing
+ * subscribeOutbox -> runOutboxOnce() wiring (1.6) means sending restarts
+ * right away once something is online to send it.
+ */
+export async function retryFailed(): Promise<void> {
+  await db.outbox.where("status").equals("failed").modify({ status: "pending", tries: 0, nextTryAt: Date.now() });
+  await refreshOutboxSnapshot();
 }
 
 /**

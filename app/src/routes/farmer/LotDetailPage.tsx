@@ -39,8 +39,12 @@ export default function LotDetailPage() {
         <VoiceButton textKey="lots.detailTitle" values={{ code: lot.qrCode }} />
       </div>
 
-      {lot.pending && (
-        <p className="mt-2 text-meta font-semibold text-kesar-text">{t("lots.onPhoneOnly")}</p>
+      {lot.syncFailed ? (
+        <p className="mt-2 text-meta font-semibold text-mirchi-text">{t("lots.notSaved")}</p>
+      ) : (
+        lot.pending && (
+          <p className="mt-2 text-meta font-semibold text-kesar-text">{t("lots.onPhoneOnly")}</p>
+        )
       )}
 
       <div className="mt-4 flex items-center gap-3">

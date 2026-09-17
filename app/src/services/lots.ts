@@ -38,12 +38,16 @@ export type LotView = {
   status: LotStatus;
   qrCode: string;
   pending: boolean;
+  /** The create_lot outbox job gave up after 10 tries (milestone 1.7) - never true for a server row. */
+  syncFailed: boolean;
   createdAt: string;
 };
 
 export const lotKeys = {
   mine: () => ["lots", "mine"] as const,
-  pending: (unresolvedCount: number) => ["lots", "pending", unresolvedCount] as const,
+  // Both counts, so the list re-runs the moment an item flips to "failed",
+  // not only when the unresolved count moves.
+  pending: (unresolved: number, failed: number) => ["lots", "pending", unresolved, failed] as const,
   byId: (id: string) => ["lot", id] as const,
   photo: (gradeResultId: string) => ["lotPhoto", gradeResultId] as const,
 };
@@ -61,11 +65,12 @@ function toServerLotView(row: LotRow): LotView {
     status: row.status,
     qrCode: row.qr_code,
     pending: false,
+    syncFailed: false,
     createdAt: row.created_at,
   };
 }
 
-function toPendingLotView(input: LotInput, createdAtMs: number): LotView {
+function toPendingLotView(input: LotInput, createdAtMs: number, syncFailed: boolean): LotView {
   return {
     id: input.id,
     crop: input.crop,
@@ -75,6 +80,7 @@ function toPendingLotView(input: LotInput, createdAtMs: number): LotView {
     status: "draft",
     qrCode: lotCode(input.id),
     pending: true,
+    syncFailed,
     createdAt: new Date(createdAtMs).toISOString(),
   };
 }
@@ -101,7 +107,9 @@ async function listPendingLots(): Promise<LotView[]> {
   return items
     .map((item) => {
       const parsed = LotInput.safeParse(item.payload);
-      return parsed.success ? toPendingLotView(parsed.data, item.createdAt) : null;
+      return parsed.success
+        ? toPendingLotView(parsed.data, item.createdAt, item.status === "failed")
+        : null;
     })
     .filter((view): view is LotView => view !== null)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -109,9 +117,9 @@ async function listPendingLots(): Promise<LotView[]> {
 
 /** Lots still on the phone, not yet on the server. Empty once everything has synced. */
 export function usePendingLots() {
-  const unresolvedCount = useOutboxStatus();
+  const { unresolved, failed } = useOutboxStatus();
   return useQuery({
-    queryKey: lotKeys.pending(unresolvedCount),
+    queryKey: lotKeys.pending(unresolved, failed),
     queryFn: listPendingLots,
   });
 }
@@ -122,7 +130,9 @@ async function getLot(id: string): Promise<LotView | null> {
   const pendingItem = await db.outbox.get(id);
   if (pendingItem?.kind === "create_lot") {
     const parsed = LotInput.safeParse(pendingItem.payload);
-    if (parsed.success) return toPendingLotView(parsed.data, pendingItem.createdAt);
+    if (parsed.success) {
+      return toPendingLotView(parsed.data, pendingItem.createdAt, pendingItem.status === "failed");
+    }
   }
 
   const { data, error } = await supabase.from("lots").select("*").eq("id", id).maybeSingle();

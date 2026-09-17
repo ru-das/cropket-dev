@@ -127,6 +127,7 @@
     "empty": "You have no lots yet.",
     "emptyAction": "Scan crop",
     "onPhoneOnly": "On phone only",
+    "notSaved": "Not saved",
     "detailTitle": "Lot {{code}}",
     "notFound": "This lot was not found.",
     "status": {
@@ -152,7 +153,10 @@
   },
   "sync": {
     "uploading": "Uploading {{done}} of {{total}}",
-    "allSaved": "All saved"
+    "allSaved": "All saved",
+    "notSaved": "Some things did not save.",
+    "tryAgain": "Try again",
+    "waitingLong": "Some things are still waiting to save. Check your internet."
   },
   "dataAge": {
     "from": "{{ago}}"

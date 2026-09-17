@@ -24,7 +24,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
 - [x] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
 - [x] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
-- [ ] 1.7 Offline: "Try again" button for failed outbox items on My Lots + full airplane-mode
+- [x] 1.7 Offline: "Try again" button for failed outbox items on My Lots + full airplane-mode
       round-trip test (saving a lot offline itself landed in 1.6, not here - see its handoff note)
 
 ## M2 — Market intelligence
@@ -947,6 +947,100 @@ pnpm build` (137 unit tests, 21 files) and `bash scripts/test-sql.sh` (both `rls
   few seconds for the mock/real grade before tapping Create lot), but worth a TODO if this surprises
   anyone in the demo.
 - Crate QR stickers (12-per-A4 print page) and the mic key on `NumberPad` are still P1, not built.
+
+### 1.7 Offline: "Try again" + airplane-mode round trip — 2026-09-17
+**What it does:** M1 closes out its last documented gap. Until now a `create_lot`/`upload_blob`/
+`request_grade` job that gave up after 10 tries (`afterFailure`, SPEC.md §5.8 rule 4) vanished from
+the app - `useOutboxStatus()` only ever counted `pending`/`sending`, so the header dropped it and
+`LotCard`/lot detail kept showing the calm "On phone only" chip for a lot that would in fact never
+sync on its own. Two new screen states close that gap: a **red strip** in `AppShell` (same slot as
+the 🟧 `NetworkBanner`, right under it) reading "Some things did not save." with a "Try again" button
+that re-queues every failed item at once (`retryFailed()`), and a quieter **🟧 24 h warning** in the
+same slot when something has been waiting to sync for over a day with no failure yet (CLAUDE.md §5,
+deferred here since 0.6b). A lot whose save actually failed now shows a **red "Not saved"** chip
+instead of the kesar "On phone only" one, on both My Lots and lot detail - the colour and the word
+both change, so a stuck lot never reads as merely "still going".
+**Decided with the user before building (not guessed):**
+1. **One shared strip, not a block on My Lots alone** - it also surfaces a failed photo upload or
+   grade request, which had no visible home at all before this (My Lots only ever showed `lots`
+   jobs). Same "renders nothing in the normal case" pattern as `NetworkBanner`.
+2. **No count in the strip's copy** - "Some things did not save." rather than "2 things did not
+   save.", so it needs no plural-rule handling in en/hi/mr and no `t()` key-literal typing changes.
+   The count is still in the snapshot for anyone who wants it later (see `ponytail:` note).
+3. **No new package, no automated round trip.** The new logic is unit-tested as usual; the
+   airplane-mode flow (SPEC.md §9.2 Phase 1 "Done when") is a hand-test script below. The automated
+   core-flow E2E is milestone 5.2 (Playwright) - adding `fake-indexeddb` here just for this one
+   check would be a new dependency for a prototype-only sync path.
+**Files:** `app/src/offline/outbox.ts` (rewrite: `unresolvedCount` number → `OutboxSnapshot`
+`{unresolved, failed, oldestPendingAt}` + pure `summarizeOutbox()`; new `retryFailed()` - re-queues
+every `failed` row via one Dexie `.modify()`, then relies on 1.6's existing `subscribeOutbox()` →
+`runOutboxOnce()` wiring to actually send them, no new sync code needed), `app/src/components/shell/
+syncTrouble.ts` (new, pure - `syncTroubleView()`, `failed` wins over `waiting`), `app/src/components/
+shell/SyncTrouble.tsx` (new component) + `AppShell.tsx` (renders it under `NetworkBanner`),
+`app/src/components/shell/AppHeader.tsx` (reads `.unresolved` off the new snapshot shape),
+`app/src/services/lots.ts` (`LotView.syncFailed`; `lotKeys.pending` now keys on `(unresolved,
+failed)` so the list re-runs the moment an item flips to failed, not only when the unresolved count
+moves), `app/src/components/lot/LotCard.tsx` + `app/src/routes/farmer/LotDetailPage.tsx` (red "Not
+saved" chip on `syncFailed`, replacing the kesar chip only for that case), `app/src/locales/
+{en,hi,mr}.json` (`sync.notSaved`, `sync.tryAgain`, `sync.waitingLong`, `lots.notSaved`),
+`app/tests/unit/offline/outbox.test.ts` (extended), `app/tests/unit/shell/syncTrouble.test.ts` (new).
+No migration, no Edge Function, no new package - app-only.
+**A lint gotcha, found while building:** the `react-hooks/purity` rule rejects calling `Date.now()`
+directly inside a component's render body ("Cannot call impure function during render") - fixed by
+giving `syncTroubleView(snapshot, now = Date.now())` a default parameter instead, same pattern
+`lib/dataAge.ts`'s `isStale(updatedAt, now = new Date())` already used; the component now calls
+`syncTroubleView(snapshot)` with no second argument.
+**Mocked:** nothing - the outbox, the retry and the sync it restarts are all real. This milestone
+only makes an existing real state (a job that already gave up) visible on screen.
+**Test by hand:** at 360 px, in en/hi/mr - forcing a `failed` item is the fast path (there is no
+demo button that fails 10 times on purpose): DevTools → Network → Offline, scan or save a lot, then
+in the console `await (await import('/src/offline/db.ts')).db.outbox.toCollection().modify({status:
+'failed', tries: 10})`, then reload.
+1. A 🔴 strip appears under the header **on every screen** (not just My Lots), with a ≥48 px "Try
+   again" button.
+2. My Lots shows that lot with a red **"Not saved"** chip; lot detail shows the same in red text.
+3. Go back online → tap **Try again** → the strip disappears within about a second (the existing
+   1.6 outbox subscription kicks a send the moment something is re-queued), the chip clears, and
+   the row is really on the server: `psql "$(bash scripts/set-key.sh --get SUPABASE_DB_URL)" -c
+   "select id, qr_code, status from lots;"`.
+4. 24 h warning: in the same console, set a still-pending item's `createdAt` to `Date.now() -
+   25*3600*1000` → a 🟧 "still waiting to save" strip appears, with no button (it is still retrying
+   on its own).
+**The airplane-mode round trip** (SPEC.md §9.2 Phase 1 "Done when" - run on the browser build, then
+repeat on a real phone over `adb reverse tcp:5173 tcp:5173`):
+1. `pnpm build && pnpm preview`, sign in as the farmer test number `9090910001` / `910001`.
+2. Turn on airplane mode (or DevTools → Offline) → the 🟧 `NetworkBanner` shows.
+3. Scan crop → 3 photos → result screen: "Grade will come when internet returns".
+4. ✅ Create lot → 500 kg → Save lot → lot detail opens straight away, My Lots shows the lot marked
+   **On phone only**.
+5. Still offline: close and reopen the app (or hard-reload the preview tab) → everything from steps
+   3-4 is still there, read back from IndexedDB.
+6. Turn the network back on → within about a second the outbox drains in order (`upload_blob` ×3 →
+   `request_grade` → `create_lot` - SPEC.md §5.8 rule 2), the "On phone only" chip clears with no
+   reload, and the grade appears on the result screen on its own (the 5 s poll from 1.5).
+7. Confirm on the server: 3 objects under the farmer's uid in Storage → `crop-photos`, one
+   `grade_results` row `status = done`, one matching `lots` row.
+Ran through steps 1-6 on the browser build in this session; a person should still repeat the real-
+phone half (step 1's `adb reverse`, a genuine airplane-mode toggle) before calling Phase 1 demo-ready
+- this laptop has no attached Android device to do that part from here.
+**Tests:** `app/tests/unit/offline/outbox.test.ts` (+3 cases - `summarizeOutbox` on an empty queue,
+`sending` counted as unresolved, `failed` counted separately and excluded from `oldestPendingAt`
+even when it's the oldest row), `app/tests/unit/shell/syncTrouble.test.ts` (new, 5 cases - clean
+queue → none, a young pending item → none, the 24 h boundary → waiting, any failed item → failed,
+failed-and-old → failed wins). `locales.test.ts` covers the new keys' en/hi/mr parity with no edit.
+All pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (145 unit tests, 23 files). No SQL
+or `ai-service/` change this round, so `test-sql.sh`/`pytest` are unchanged since 1.6.
+**Next / known gaps:**
+- **M1 Farmer core is done.** Next: **M2 Market intelligence**, starting with **2.1** tables
+  `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5
+  Nashik mandis, 60 days of prices, weather, 6 transporters) - SPEC.md §5.6, §2.3.
+- The strip's copy has no count ("Some things did not save.", not "2 things") - see decision 2
+  above. `ponytail:` comment on `outbox.ts`'s snapshot names this if a demo ever wants the number.
+- The 24 h strip can appear a little late (up to one sync poll / re-render, not a ticking timer) -
+  a `ponytail:` comment on `SyncTrouble.tsx` names the upgrade path; not worth a timer for a
+  prototype warning.
+- No per-item retry (only "retry everything that's failed") - fine while a farmer normally has at
+  most one or two lots stuck at once; revisit if My Lots ever needs to single out one failed item.
 
 ## 🔑 Keys and 🧰 tools still needed
 

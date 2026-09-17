@@ -8,7 +8,7 @@ import SyncStatus from "./SyncStatus";
 
 export default function AppHeader() {
   const { t } = useTranslation();
-  const pending = useOutboxStatus();
+  const { unresolved } = useOutboxStatus();
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2">
@@ -17,8 +17,8 @@ export default function AppHeader() {
       </span>
       <div className="flex items-center gap-3">
         {/* pending===total: nothing tracks a per-batch "done" count yet -
-            see the ponytail note on outbox.ts's unresolvedCount. */}
-        <SyncStatus pending={pending} total={pending} />
+            see the ponytail note on outbox.ts's snapshot. */}
+        <SyncStatus pending={unresolved} total={unresolved} />
         <LanguageSwitch />
       </div>
     </header>
