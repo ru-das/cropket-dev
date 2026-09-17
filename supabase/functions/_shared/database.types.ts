@@ -39,6 +39,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      grade_results: {
+        Row: {
+          client_created_at: string | null
+          colour_pct: number | null
+          confidence: number | null
+          created_at: string
+          crop: string
+          damage_pct: number | null
+          farmer_id: string
+          grade: string | null
+          id: string
+          kind: string
+          needs_human_check: boolean
+          photo_paths: string[]
+          size_label: string | null
+          source: string | null
+          status: string
+        }
+        Insert: {
+          client_created_at?: string | null
+          colour_pct?: number | null
+          confidence?: number | null
+          created_at?: string
+          crop: string
+          damage_pct?: number | null
+          farmer_id: string
+          grade?: string | null
+          id: string
+          kind?: string
+          needs_human_check?: boolean
+          photo_paths: string[]
+          size_label?: string | null
+          source?: string | null
+          status?: string
+        }
+        Update: {
+          client_created_at?: string | null
+          colour_pct?: number | null
+          confidence?: number | null
+          created_at?: string
+          crop?: string
+          damage_pct?: number | null
+          farmer_id?: string
+          grade?: string | null
+          id?: string
+          kind?: string
+          needs_human_check?: boolean
+          photo_paths?: string[]
+          size_label?: string | null
+          source?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grade_results_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           banned: boolean
