@@ -174,7 +174,13 @@ export async function checkLien(parcelId: string): Promise<LienCheckResult> {
 ```
 gross      = price_per_quintal × quantity_kg / 100
 transport  = route_km × rate_per_km(vehicle)            (ORS distance)
-fees       = mandi commission % × gross  (0 for Cropket, farmer pays ₹0)
+fees       = commission % × gross + flat_charge_per_quintal × quantity_kg / 100
+             (0 for Cropket, farmer pays ₹0; a mandi charge has both parts -
+             an APMC rate chart is % of sale value (commission, market fee,
+             supervision) plus flat per-quintal charges (hamali, tolai) - a
+             single blended % drifts as price swings. Excludes the ~6.5%
+             broker's commission (adat): Maharashtra's 2016 F&V deregulation
+             puts that on the trader, not the farmer.)
 loss       = transit_loss % (crop_rules) × gross
 damage     = route_risk_score × damage_factor × gross    (P2, smart routing)
 you_keep   = gross − transport − fees − loss − damage

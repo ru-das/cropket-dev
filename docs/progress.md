@@ -29,7 +29,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M2 — Market intelligence
 - [x] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
-- [ ] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
+- [x] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
 - [ ] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
 - [ ] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
 - [ ] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
@@ -1144,6 +1144,65 @@ data are 2.2, next).
   starts mattering.
 - Next item: **2.2** domain formulas + tests - `money.ts`, `advice.ts` (tomato ≤ 2
   days), `heat.ts`, `floor.ts`, `netRupee.ts` (`SPEC.md` §2.4).
+
+### 2.2 Domain formulas + tests — 2026-09-17
+**What it does:** Five pure TypeScript files in `_shared/domain/` turn the 2.1 tables
+into the five numbers M2's screens need, so 2.4 (prices screen) and 2.5 (Net-₹
+comparator) will be thin components over these, and 2.3's `cron-fetch-prices` will
+recompute `mandi_heat` with the same `heat.ts` the app uses. `money.ts` (paise↔rupee
+conversion, the one rounding rule, `formatRupees` with Indian grouping). `floor.ts`
+(Reference Floor Price, `SPEC.md` §2.3 - p20 of 30-day modal prices or MSP; `null`
+when there's no data, never a warning with no data - advisory, never blocks).
+`heat.ts` (mandi heatmap colour, thresholds copied exactly from `seed.sql`'s SQL
+version of the same formula). `netRupee.ts` (`SPEC.md` §2.4 you-keep formula).
+`advice.ts` (sell/hold v1 - `null` with under 7 days of history rather than guessing).
+**A money rule fixed, asked about and confirmed (`CLAUDE.md` §0 rule 6):** `SPEC.md`
+§2.4 said `fees = mandi commission % × gross` with no number anywhere, and 2.1's
+`mandis` table has no commission column. A real APMC rate chart is actually two
+things - a % of sale value (commission, market fee, supervision) and flat per-quintal
+charges (hamali, tolai) - so a single blended % drifts by about a percentage point as
+Nashik onion prices swing, in the one screen whose job is an honest comparison. Asked
+the user; confirmed the two-term shape, sourced from one exported constant today
+(`MANDI_CHARGES` in `netRupee.ts`: 1.05% market fee + supervision, ₹12/quintal
+hamali + tolai, from the APMC Vashi rate chart - no published Lasalgaon chart was
+found) with a `ponytail:` comment naming the upgrade path (a per-mandi DB column once
+the team has each real APMC's chart). Also confirmed the ~6.5% adat (broker's
+commission) is **not** charged to the farmer - Maharashtra's 2016 F&V deregulation
+puts that on the trader. `SPEC.md` §2.4 updated in the same commit.
+**A second gap, asked about and confirmed:** `SPEC.md` §5.1 gives `AdviceCard` a
+`pctChange?` prop and the §4.8 wireframe shows "Price may rise about 10%", but §2.4's
+advice rules never define how to compute one and there's no forecast model until the
+P2 v2 model. Confirmed `advise()` returns no `pctChange` in v1 - the prop stays
+optional and undefined; the card shows "Hold for N days" + the Why list only, nothing
+that reads as a forecast we don't have (`SPEC.md` §10.7 honesty rule).
+**Files:** `supabase/functions/_shared/domain/{money,floor,heat,netRupee,advice}.ts`
+(new), `app/tests/unit/domain/{money,floor,heat,netRupee,advice}.test.ts` (new, 39
+tests), `SPEC.md` §2.4 (fees formula rewritten to the two-term shape + the adat note).
+**Mocked:** nothing - these are pure formulas over real 2.1 seed data.
+**Test by hand:**
+1. `cd app && pnpm lint && pnpm typecheck && pnpm test` → all pass (192 tests, 28
+   files, up from 153/23 before this item).
+2. Cross-checked `heatColour()` against today's real `mandi_heat` rows in
+   `cropket-dev` (`psql ... where crop='onion' and date = today`): Lasalgaon
+   1.495→red, Niphad 0.549→green, the other three (0.848, 1.022, 1.087)→yellow -
+   every row's TypeScript colour matched the SQL-computed colour already stored.
+**Tests:** all 5 files above. `advice.test.ts` proves the two CLAUDE.md §6
+requirements directly: tomato (`maxHoldDays` 2) with all 3 up-signals holds 2 days,
+never 5; a loop over onion/potato/tomato × up/down history × with/without rain proves
+`holdDays` never exceeds `maxHoldDays`. `netRupee.test.ts` proves parts sum exactly to
+`youKeep` to the paisa, and a tiny lot sent far is **not** clamped at ₹0 (a real loss,
+shown plainly - that's the comparator's point).
+**Next / known gaps:**
+- `MANDI_CHARGES` is one blended rate for every mandi, sourced from the APMC Vashi
+  chart (no Lasalgaon chart was found published) - flagged with a `ponytail:` comment
+  in `netRupee.ts`. Re-check against a real Nashik/Lasalgaon rate chart before the
+  demo if the team can get one; until then this is a labelled estimate, not a
+  confirmed local rate.
+- `heat.ts`'s thresholds (`> 1.3` red, `< 0.8` green) are duplicated in `seed.sql`
+  (SQL can't import TypeScript) - if either ever changes, check both. 2.3
+  (`cron-fetch-prices`) will be the second place that matters.
+- Next item: **2.3** `cron-fetch-prices` (real data.gov.in if key set) - run by
+  hand; recompute `mandi_heat`.
 
 ## 🔑 Keys and 🧰 tools still needed
 
