@@ -16,10 +16,7 @@ import { buildLotInput, saveLot } from "@/services/lots";
 import { getCurrentLocation, type Coordinates } from "@/lib/native";
 import { toAppError, type AppError } from "@/lib/errors";
 import type { Grade } from "@shared/schemas/grade.ts";
-
-// Onion is the only crop the prototype grades (ScanPage.tsx makes the same
-// choice) - P2 adds tomato/potato (SPEC.md §9.2 Phase 1 table).
-const CROP = "onion" as const;
+import type { Crop } from "@shared/crops.ts";
 
 export default function NewLotPage() {
   const { t } = useTranslation();
@@ -30,6 +27,15 @@ export default function NewLotPage() {
 
   const { data: gradeRow } = useGradeResult(gradeResultId ?? undefined);
   const grade: Grade | null = gradeRow && isDoneGrade(gradeRow) ? (gradeRow.grade as Grade) : null;
+
+  // grade_results.crop is what ScanPage actually saved this scan's photos
+  // under (the `grade` Edge Function writes it from the same draft, before
+  // it even calls the AI service) - prefer it so the lot can never disagree
+  // with its own photos. Only missing when the grade request hasn't reached
+  // the server yet (fully offline); the farmer's own crop list is the same
+  // best-effort fallback ScanPage itself would have used.
+  const crops = (profile?.crops ?? []) as Crop[];
+  const crop: Crop = (gradeRow?.crop as Crop | undefined) ?? crops[0] ?? "onion";
 
   const [kg, setKg] = useState("0");
   const [location, setLocation] = useState<Coordinates | null>(null);
@@ -57,7 +63,7 @@ export default function NewLotPage() {
     try {
       const input = buildLotInput({
         id: crypto.randomUUID(),
-        crop: CROP,
+        crop,
         quantityKg,
         gradeResultId,
         grade,
@@ -71,7 +77,7 @@ export default function NewLotPage() {
     }
   }
 
-  const cropLabel = t(`crop.${CROP}`);
+  const cropLabel = t(`crop.${crop}`);
   const locationLine = location
     ? t("lots.location", { place: profile?.village ?? "" })
     : (profile?.village ?? t("lots.locationUnknown"));

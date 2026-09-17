@@ -21,6 +21,10 @@ export default function ScanResultPage() {
   const online = useOnline();
   const { data, isLoading } = useGradeResult(id);
   const view = gradeView(data, isLoading, online);
+  // The AI service only grades onion today (ai-service/app/main.py CROP_NOT_SUPPORTED).
+  // A "failed" tomato/potato scan would otherwise retry forever with no way
+  // forward - offer to save it ungraded instead, same as the waiting states do.
+  const notGradeable = data?.crop !== undefined && data.crop !== "onion";
 
   return (
     <div>
@@ -65,15 +69,24 @@ export default function ScanResultPage() {
         {view === "failed" && (
           <>
             <p className="w-full rounded-card border border-line bg-surface p-4 text-body text-mirchi-text">
-              {t("grade.failed")}
+              {t(notGradeable ? "grade.notGradeable" : "grade.failed")}
             </p>
-            <button
-              type="button"
-              onClick={() => id && void retryGrade(id)}
-              className="h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white"
-            >
-              {t("grade.tryAgain")}
-            </button>
+            {notGradeable ? (
+              <Link
+                to={id ? `/farmer/lots/new?grade=${id}` : "#"}
+                className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              >
+                ✅ {t("grade.createLot")}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() => id && void retryGrade(id)}
+                className="h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              >
+                {t("grade.tryAgain")}
+              </button>
+            )}
           </>
         )}
 

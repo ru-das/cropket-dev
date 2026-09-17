@@ -114,6 +114,7 @@
     "hear": "Hear the result",
     "spoken": "Grade {{grade}}. The AI is {{confidence}} percent sure. Size {{size}}, colour {{colour}}, damage {{damage}} percent.",
     "failed": "The grade check did not work.",
+    "notGradeable": "We can only check onions right now. You can still save this lot.",
     "tryAgain": "Try again",
     "createLot": "Create lot"
   },
