@@ -141,6 +141,39 @@
       "salvage": "बचाव बिक्री के लिए"
     }
   },
+  "prices": {
+    "title": "{{crop}} का आज का भाव",
+    "perQuintal": "प्रति क्विंटल",
+    "atMandi": "{{mandi}} मंडी",
+    "whyBestPrice": "आज सबसे अच्छा भाव",
+    "whyNearest": "सबसे नज़दीकी मंडी",
+    "hear": "भाव सुनें",
+    "spoken": "{{mandi}} में {{price}} प्रति क्विंटल - {{why}}.",
+    "you": "आप",
+    "mapLabel": "पास की मंडियों का नक्शा, फसल कितनी आ रही है उसके हिसाब से रंगा हुआ"
+  },
+  "advice": {
+    "holdDays": "{{days}} दिन रुकें",
+    "sellNow": "अभी बेचें",
+    "why": "क्यों: {{reasons}}.",
+    "spoken": "{{headline}}. क्यों: {{reasons}}.",
+    "reason": {
+      "priceRising": "भाव बढ़ रहा है",
+      "priceFalling": "भाव गिर रहा है",
+      "rainExpected": "बारिश की संभावना है",
+      "noRain": "बारिश की संभावना नहीं है",
+      "arrivalsFalling": "कम ट्रक आ रहे हैं",
+      "arrivalsRising": "ज्यादा ट्रक आ रहे हैं"
+    }
+  },
+  "floor": {
+    "belowFloor": "यह भाव सामान्य न्यूनतम {{floor}} से कम है। आप फिर भी बेच सकते हैं, पर तय करने से पहले जांच लें।"
+  },
+  "heat": {
+    "red": "फसल बहुत ज्यादा",
+    "yellow": "सामान्य",
+    "green": "फसल की जरूरत है"
+  },
   "me": {
     "signOut": "साइन आउट करें"
   },

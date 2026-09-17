@@ -3,7 +3,7 @@
 // this file exists to catch is lng/lat swapped, which silently moves a
 // Nashik farmer's pin into the sea.
 import { describe, expect, it } from "vitest";
-import { LatLng, toPointWKT } from "@shared/geo.ts";
+import { LatLng, haversineKm, toPointWKT } from "@shared/geo.ts";
 
 describe("toPointWKT", () => {
   it("puts longitude before latitude, as PostGIS expects", () => {
@@ -37,5 +37,25 @@ describe("LatLng", () => {
 
   it("rejects a longitude below -180", () => {
     expect(LatLng.safeParse({ lat: 0, lng: -180.1 }).success).toBe(false);
+  });
+});
+
+describe("haversineKm", () => {
+  it("is zero for the same point", () => {
+    expect(haversineKm({ lat: 20.0847, lng: 74.1116 }, { lat: 20.0847, lng: 74.1116 })).toBe(0);
+  });
+
+  it("matches the known straight-line distance between two Nashik mandis", () => {
+    // Lasalgaon (20.1462, 74.2340) to Niphad (20.0847, 74.1116) -
+    // Google Earth's ruler gives ~13.5 km for this pair.
+    const km = haversineKm({ lat: 20.1462, lng: 74.234 }, { lat: 20.0847, lng: 74.1116 });
+    expect(km).toBeGreaterThan(12);
+    expect(km).toBeLessThan(15);
+  });
+
+  it("is symmetric", () => {
+    const a = { lat: 20.1462, lng: 74.234 };
+    const b = { lat: 20.0433, lng: 74.4864 };
+    expect(haversineKm(a, b)).toBeCloseTo(haversineKm(b, a), 10);
   });
 });

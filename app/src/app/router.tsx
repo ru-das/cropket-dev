@@ -13,6 +13,7 @@ import ScanResultPage from "@/routes/farmer/ScanResultPage";
 import LotsPage from "@/routes/farmer/LotsPage";
 import NewLotPage from "@/routes/farmer/NewLotPage";
 import LotDetailPage from "@/routes/farmer/LotDetailPage";
+import PricesPage from "@/routes/farmer/PricesPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
@@ -36,10 +37,7 @@ export default function AppRouter() {
               <Route path="/farmer/lots/:id" element={<LotDetailPage />} />
               <Route path="/farmer/scan" element={<ScanPage />} />
               <Route path="/farmer/scan/result/:id" element={<ScanResultPage />} />
-              <Route
-                path="/farmer/prices"
-                element={<PlaceholderPage titleKey="home.todaysPrice" />}
-              />
+              <Route path="/farmer/prices" element={<PricesPage />} />
               <Route path="/farmer/khata" element={<PlaceholderPage titleKey="nav.khata" />} />
               <Route path="/farmer/me" element={<MePage />} />
             </Route>

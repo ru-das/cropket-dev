@@ -31,7 +31,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
 - [x] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
 - [x] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
-- [ ] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
+- [x] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
 - [ ] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
 
 ## M3 — Buyer marketplace
@@ -1272,6 +1272,83 @@ mandi/crop is left out entirely; `authenticated` can't call the function directl
 - Next item: **2.4** Prices screen (`PriceHero`, `AdviceCard`, `FloorWarning`,
   `MandiList`, `MandiHeatmap`, `DataAge`) - the first screen that actually reads what
   this item writes.
+
+### 2.4 Prices screen — 2026-09-17
+**What it does:** the farmer-facing screen at `/farmer/prices` (was a placeholder) that shows
+everything 2.1-2.3 built: today's headline price, a mandi heat map (or a coloured list offline /
+with no MapTiler key), sell/hold advice with its "Why" reasons, and the reference-floor warning.
+No new formulas - `advise()`, `referenceFloorPaise()`, `isBelowFloor()`, `heatColour()` were all
+already built and tested in 2.2/2.3; this item is data plumbing (`services/prices.ts`) plus UI.
+**The one new decision:** which mandi is the headline price (SPEC.md's wireframe shows one
+number, not five). A highly perishable crop (tomato, `crop_rules.perishability` = 9) shows the
+**nearest** mandi - time in a truck is the risk, not the price. Onion/potato (perishability 3)
+show the **best price today**. No saved farmer GPS -> always best price, never a guessed
+"nearest" (`pickHeroMandi()` in `services/prices.ts`). Distance is straight-line km
+(`geo.ts`'s new `haversineKm()`) - marked `ponytail:` for 2.5's real ORS travel time to replace.
+**A SPEC/CLAUDE conflict found and fixed:** SPEC.md §9.2 Phase 2 listed the advice "Why?" reasons
+as **P1**, but §2.4 ("Show the Why? line from the signals that fired") and the §4.8 wireframe both
+put it in the P0 advice card. Kept it P0 (built it) and fixed the §9.2 row to read "30-day price
+chart" only, in the same commit (CLAUDE.md §0 rule 3).
+**A `seed.sql` idempotency bug found and fixed along the way:** re-running `supabase/seed.sql`
+after `cron-fetch-prices` (2.3) had already written a real, null-arrivals `agmarknet` price for
+today crashed the seed's own `mandi_heat` insert (`ratio` computed on a null, hitting the
+not-null column check) - `seed.sql`'s hand-rolled heat formula pre-dates 2.3's `mandi_heat_inputs()`
+SQL function and was missing the same `arrivals_tonnes is not null` guard that function already
+has. Added it to both sides of `seed.sql`'s query (today's row and the 30-day average), matching
+`mandi_heat_inputs()` exactly. Without this, `CLAUDE.md`'s "seed data must be safe to run twice"
+rule was silently broken the moment the real cron ran once.
+**Files:** `supabase/migrations/20260917133249_mandi_latlng.sql` (new - generated `lat`/`lng`
+columns on `mandis` and `profiles`, decoding PostGIS's `geography` type into plain numbers
+PostgREST/MapLibre can use), `supabase/seed.sql` (the idempotency fix above),
+`supabase/functions/_shared/domain/geo.ts` (+ `haversineKm()`), `app/tests/unit/domain/geo.test.ts`
+(+3 tests), `app/src/services/prices.ts` (new - `useMarketData()` + `pickHeroMandi()`,
+`buildAdviceInput()`, `latestPerMandi()`, `isDemoPrice()`), `app/tests/unit/services/prices.test.ts`
+(new, 10 tests), `app/src/components/market/{PriceHero,AdviceCard,FloorWarning,MandiList,
+MandiHeatmap}.tsx` (new), `app/src/routes/farmer/PricesPage.tsx` (new, replaces the
+`PlaceholderPage` route), `app/src/app/router.tsx`, `app/src/locales/{en,hi,mr}.json`
+(+`prices.*`, `advice.*`, `floor.*`, `heat.*`), `app/package.json` (+`maplibre-gl@6.10.0`, exact
+version, approved by the user before installing), `app/src/lib/database.types.ts` +
+`supabase/functions/_shared/database.types.ts` (regenerated).
+**Mocked:** the rain signal in `AdviceCard` always shows `<DemoDataTag>` - `weather_daily` is
+seeded, not a live forecast (the weather cron is out of prototype scope, CLAUDE.md §9.5).
+`PriceHero`/`MandiList` show `<DemoDataTag>` only for a mandi/day whose price row is
+`source != 'agmarknet'` (seeded history, or a keyless mock day) - a real `cron-fetch-prices` row
+shows with no tag, per the honesty rule. The map and today's onion prices are real (MapTiler and
+data.gov.in keys are both set on this laptop).
+**Test by hand:**
+1. `pnpm dev`, sign in as a seeded farmer, open "Today's price" from the home screen.
+2. Onion: hero shows the highest-priced Nashik mandi today, with a ⬆/⬇ vs that mandi's own
+   yesterday; the map shows 5 coloured markers + 📍; the list below repeats the same colours
+   with the legend.
+3. Tomato: hero shows the *closest* mandi to the farmer's saved location and says so; the advice
+   card never offers more than 2 hold days (`crop_rules.max_hold_days = 2`).
+4. Floor warning: in `psql`, inside a transaction, drop one mandi's today price below the 30-day
+   p20 and reload - the warning appears; `rollback` after. The app never blocks the sale either way.
+5. Offline: `pnpm build && pnpm preview`, DevTools → Offline, reload `/farmer/prices` - the map
+   is replaced by the list, everything else renders from IndexedDB, and `<DataAge>` shows once
+   the cached snapshot is older than 6 hours.
+6. 360 px width, all three languages - no clipping, no missing translation.
+**Tests:** `app/tests/unit/services/prices.test.ts` (`latestPerMandi`, `pickHeroMandi` - best
+price for onion, nearest for tomato, best price when GPS is missing even for tomato,
+`buildAdviceInput` ordering + null-arrivals handling, `isDemoPrice`), `app/tests/unit/domain/geo.test.ts`
+(+`haversineKm`: zero for the same point, a known ~13.5 km Nashik pair, symmetric),
+`app/tests/unit/locales.test.ts` (already covers the new keys - all pass).
+**Bundle size note (not fixed here, pre-existing):** the main JS chunk was already 866.6 kB raw /
+257.4 kB gzip *before* this item (checked with `git stash`) - well over CLAUDE.md's 200 KB
+first-screen budget, from earlier milestones' dependencies. This item adds only ~14 kB raw
+(~4 kB gzip) to that chunk; `maplibre-gl` (~1 MB) is `React.lazy`-loaded into its own chunk that
+only downloads when the map actually renders (online + MapTiler key set), so it doesn't add to
+the number above. The pre-existing overage is a separate, cross-cutting cleanup (likely
+`@supabase/supabase-js`, full `lucide-react`, `dexie`, `qrcode.react`) - flagging it here rather
+than fixing it silently, since it's outside this item's scope.
+**Next / known gaps:**
+- "Nearest mandi" is straight-line distance. **Next item: 2.5** `route-distance` (real ORS travel
+  time when the key is set, else straight-line × 1.3) - swap `pickHeroMandi()`'s ranking key from
+  `haversineKm` to real travel time there if a short bad road ever needs to beat a long good one,
+  and build the Net-₹ comparator screen this same service data feeds into.
+- No 30-day price chart (SPEC.md §9.2 Phase 2, now correctly marked P1).
+- The main bundle's pre-existing 200 KB overage (above) - worth a dedicated look, not part of
+  this item.
 
 ## 🔑 Keys and 🧰 tools still needed
 

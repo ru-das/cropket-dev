@@ -4,6 +4,8 @@
 // and Net-₹ (M2) later for the same column shape.
 import { z } from "zod";
 
+const EARTH_RADIUS_KM = 6371;
+
 export const LatLng = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
@@ -18,4 +20,25 @@ export type LatLng = z.infer<typeof LatLng>;
  */
 export function toPointWKT({ lat, lng }: LatLng): string {
   return `SRID=4326;POINT(${lng} ${lat})`;
+}
+
+/**
+ * Straight-line distance between two points, in km (SPEC.md §2.4 the mock
+ * Net-₹ transport distance is "straight line × 1.3" when ORS has no key -
+ * this is that straight line). Used by the prices screen (2.4) to rank
+ * mandis by distance for a perishable crop's "nearest" hero pick.
+ *
+ * ponytail: straight-line km, not road time - a short bad road can take
+ * longer than a long good one. `route-distance` (2.5) is real road distance
+ * from ORS; swap the ranking key there if travel time ever needs to beat
+ * straight-line distance for picking the hero mandi.
+ */
+export function haversineKm(a: LatLng, b: LatLng): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h = sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }

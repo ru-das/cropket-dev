@@ -141,6 +141,39 @@
       "salvage": "For salvage"
     }
   },
+  "prices": {
+    "title": "{{crop}} price today",
+    "perQuintal": "per quintal",
+    "atMandi": "{{mandi}} mandi",
+    "whyBestPrice": "best price today",
+    "whyNearest": "closest mandi",
+    "hear": "Hear price",
+    "spoken": "{{price}} per quintal at {{mandi}} - {{why}}.",
+    "you": "You",
+    "mapLabel": "Map of nearby mandis, coloured by how much crop is arriving"
+  },
+  "advice": {
+    "holdDays": "Hold for {{days}} days",
+    "sellNow": "Sell now",
+    "why": "Why: {{reasons}}.",
+    "spoken": "{{headline}}. Why: {{reasons}}.",
+    "reason": {
+      "priceRising": "price rising",
+      "priceFalling": "price falling",
+      "rainExpected": "rain expected",
+      "noRain": "no rain expected",
+      "arrivalsFalling": "fewer trucks arriving",
+      "arrivalsRising": "more trucks arriving"
+    }
+  },
+  "floor": {
+    "belowFloor": "This price is below the usual floor of {{floor}}. You can still sell, but check before you decide."
+  },
+  "heat": {
+    "red": "Too much crop",
+    "yellow": "Normal",
+    "green": "Crop needed"
+  },
   "me": {
     "signOut": "Sign out"
   },

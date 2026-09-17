@@ -1484,7 +1484,7 @@ Build the phases in order. Inside a phase, finish P0 items before P1 items. Neve
 | Reference floor price warning | P0 |
 | Net-₹ comparator (distance-based transport, fees, transit loss) | P0 |
 | All of the above readable offline with `DataAge` | P0 |
-| 30-day price chart, "Why?" reasons, weather signal | P1 |
+| 30-day price chart | P1 |
 | Forecast model v2 | P2 |
 | Risk-aware route scoring in Net-₹ | P2 |
 | Glut Radar (pre-sowing crop warning, mock data) | P3 |

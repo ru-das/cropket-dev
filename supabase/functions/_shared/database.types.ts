@@ -267,6 +267,8 @@ export type Database = {
           agmarknet_name: string | null
           district: string
           id: string
+          lat: number | null
+          lng: number | null
           location: unknown
           name: string
           state: string
@@ -276,6 +278,8 @@ export type Database = {
           agmarknet_name?: string | null
           district?: string
           id: string
+          lat?: number | null
+          lng?: number | null
           location: unknown
           name: string
           state?: string
@@ -285,6 +289,8 @@ export type Database = {
           agmarknet_name?: string | null
           district?: string
           id?: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
           name?: string
           state?: string
@@ -300,6 +306,8 @@ export type Database = {
           id: string
           kyc_status: string
           language: string
+          lat: number | null
+          lng: number | null
           location: unknown
           name: string | null
           phone: string
@@ -317,6 +325,8 @@ export type Database = {
           id: string
           kyc_status?: string
           language?: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
           name?: string | null
           phone?: string
@@ -334,6 +344,8 @@ export type Database = {
           id?: string
           kyc_status?: string
           language?: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
           name?: string | null
           phone?: string

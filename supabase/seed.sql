@@ -138,8 +138,16 @@ on conflict (mandi_id, crop, date) do nothing;
 -- Today's mandi_heat, computed from the arrivals just inserted above -
 -- the real SPEC.md §2.4 formula (today / 30-day trailing average), not a
 -- hand-picked colour. `cron-fetch-prices` (2.3) recomputes this the same
--- way every day; this seed just gives day one a value before that cron
--- exists.
+-- way every day (via the `mandi_heat_inputs()` SQL function added in
+-- 20260917125931_agmarknet_link.sql); this seed just gives day one a value
+-- before that cron has run.
+--
+-- `arrivals_tonnes is not null` on both sides mirrors that function's own
+-- guard: once a real `agmarknet` price has landed for today with unknown
+-- arrivals (data.gov.in has no arrivals column), skipping it here is what
+-- keeps this insert safe to run twice (CLAUDE.md §2 "seed data must be safe
+-- to run twice") - without it, `mp.arrivals_tonnes / avg_30.avg_arrivals`
+-- computes on a null and the not-null `ratio` column rejects the row.
 -- ---------------------------------------------------------------------
 insert into mandi_heat (mandi_id, crop, date, ratio, colour)
 select
@@ -160,8 +168,10 @@ join lateral (
     and hist.crop = mp.crop
     and hist.date < mp.date
     and hist.date >= mp.date - 30
+    and hist.arrivals_tonnes is not null
 ) avg_30 on true
 where mp.date = (now() at time zone 'Asia/Kolkata')::date
+  and mp.arrivals_tonnes is not null
 on conflict (mandi_id, crop, date) do nothing;
 
 -- ---------------------------------------------------------------------
