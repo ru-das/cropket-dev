@@ -35,13 +35,83 @@ describe("SignupRole", () => {
 });
 
 describe("ProfileInput", () => {
-  it("accepts a trimmed name and a signup role", () => {
-    const result = ProfileInput.safeParse({ name: "  Ramesh  ", role: "farmer" });
+  const base = { name: "Ramesh", village: "Niphad" };
+
+  it("accepts a trimmed name and village, with a signup role and a crop", () => {
+    const result = ProfileInput.safeParse({
+      ...base,
+      name: "  Ramesh  ",
+      village: "  Niphad  ",
+      role: "farmer",
+      crops: ["onion"],
+    });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.name).toBe("Ramesh");
+    if (result.success) {
+      expect(result.data.name).toBe("Ramesh");
+      expect(result.data.village).toBe("Niphad");
+    }
   });
 
   it("rejects a blank name", () => {
-    expect(ProfileInput.safeParse({ name: "   ", role: "farmer" }).success).toBe(false);
+    expect(
+      ProfileInput.safeParse({ ...base, name: "   ", role: "farmer", crops: ["onion"] }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a blank village", () => {
+    expect(
+      ProfileInput.safeParse({ ...base, village: "  ", role: "farmer", crops: ["onion"] }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an unknown crop", () => {
+    expect(ProfileInput.safeParse({ ...base, role: "farmer", crops: ["wheat"] }).success).toBe(
+      false,
+    );
+  });
+
+  it("requires a farmer to pick at least one crop", () => {
+    expect(ProfileInput.safeParse({ ...base, role: "farmer", crops: [] }).success).toBe(false);
+  });
+
+  it("requires an FPO to pick at least one crop", () => {
+    expect(ProfileInput.safeParse({ ...base, role: "fpo", crops: [] }).success).toBe(false);
+  });
+
+  it("does not require a buyer to pick a crop", () => {
+    expect(ProfileInput.safeParse({ ...base, role: "buyer" }).success).toBe(true);
+  });
+
+  it("defaults crops to empty when omitted", () => {
+    const result = ProfileInput.safeParse({ ...base, role: "buyer" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.crops).toEqual([]);
+  });
+
+  it("defaults location to null when omitted", () => {
+    const result = ProfileInput.safeParse({ ...base, role: "buyer" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.location).toBeNull();
+  });
+
+  it("accepts a real GPS point", () => {
+    const result = ProfileInput.safeParse({
+      ...base,
+      role: "farmer",
+      crops: ["onion"],
+      location: { lat: 20.0, lng: 73.79 },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a latitude out of range", () => {
+    expect(
+      ProfileInput.safeParse({
+        ...base,
+        role: "farmer",
+        crops: ["onion"],
+        location: { lat: 200, lng: 73.79 },
+      }).success,
+    ).toBe(false);
   });
 });

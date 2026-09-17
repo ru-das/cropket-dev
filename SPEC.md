@@ -982,7 +982,7 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 
 | Table | Key columns |
 |---|---|
-| `profiles` | id (= auth user), phone, name, role, language, village, district, state, `location geography(Point)`, kyc_status, trust_score, strikes, banned, created_at |
+| `profiles` | id (= auth user), phone, name, role, language, village, district (default "Nashik"), state (default "Maharashtra"), `location geography(Point)`, `crops[]` (onion/tomato/potato, farmer/FPO only), kyc_status, trust_score, strikes, banned, created_at |
 | `crop_rules` | crop (pk), perishability, max_hold_days, transit_loss_pct, has_msp, msp_per_quintal, floor_method |
 | `grade_results` | id, farmer_id, crop, status (pending/done/failed), grade, confidence, size_label, colour_pct, damage_pct, photo_paths[], kind (indicative/assured), needs_human_check |
 | `lots` | id, farmer_id, crop, quantity_kg, grade_result_id, grade, `location`, status, qr_code, client_created_at, created_at |

@@ -43,6 +43,7 @@ export type Database = {
         Row: {
           banned: boolean
           created_at: string
+          crops: string[]
           district: string | null
           id: string
           kyc_status: string
@@ -59,6 +60,7 @@ export type Database = {
         Insert: {
           banned?: boolean
           created_at?: string
+          crops?: string[]
           district?: string | null
           id: string
           kyc_status?: string
@@ -75,6 +77,7 @@ export type Database = {
         Update: {
           banned?: boolean
           created_at?: string
+          crops?: string[]
           district?: string | null
           id?: string
           kyc_status?: string

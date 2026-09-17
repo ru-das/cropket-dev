@@ -7,6 +7,8 @@ const CODE_TO_MESSAGE_KEY = {
   RATE_LIMITED: "errors.rateLimited",
   NETWORK_ERROR: "errors.network",
   PROFILE_NOT_FOUND: "errors.profileNotFound",
+  LOCATION_DENIED: "errors.locationDenied",
+  LOCATION_UNAVAILABLE: "errors.locationUnavailable",
 } as const;
 
 // A literal union matching real locale keys, not `string` - so every call
