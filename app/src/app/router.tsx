@@ -9,6 +9,7 @@ import OnboardingPage from "@/routes/onboarding/OnboardingPage";
 import FarmerHome from "@/routes/farmer/FarmerHome";
 import MePage from "@/routes/farmer/MePage";
 import ScanPage from "@/routes/farmer/ScanPage";
+import ScanResultPage from "@/routes/farmer/ScanResultPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
@@ -29,6 +30,7 @@ export default function AppRouter() {
               <Route path="/farmer" element={<FarmerHome />} />
               <Route path="/farmer/lots" element={<PlaceholderPage titleKey="nav.lots" />} />
               <Route path="/farmer/scan" element={<ScanPage />} />
+              <Route path="/farmer/scan/result/:id" element={<ScanResultPage />} />
               <Route
                 path="/farmer/prices"
                 element={<PlaceholderPage titleKey="home.todaysPrice" />}

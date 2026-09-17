@@ -1,6 +1,7 @@
 // The only file that touches speechSynthesis (CLAUDE.md §4 "one file, one
-// job"). SPEC.md §5.9 layer 3 (browser voice) - layers 1 (bundled clips) and
-// 2 (Bhashini `tts` function) are not in prototype scope yet, see 1.5.
+// job"). SPEC.md §5.9 layer 3 (browser voice) - layer 3 is the only one in
+// the prototype; layers 1 (bundled clips) and 2 (Bhashini `tts` function)
+// are P1, out of scope (CLAUDE.md §9.5).
 //
 // Takes already-translated text so it stays plain TS (no React, no i18next
 // import) and is easy to unit-test. VoiceButton does the t() call.

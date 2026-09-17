@@ -22,7 +22,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
 - [x] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
 - [x] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
-- [ ] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
+- [x] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
 - [ ] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
 - [ ] 1.7 Offline scan: photos + lot saved on phone, grade requested when back online
 
@@ -806,6 +806,77 @@ case, self-skipping). All pass: `pytest -q` (17 passed, 1 skipped) and, unaffect
   already flagged for the app side).
 - `/health` still returns `{ok, service}`, not `{ok, version}` as SPEC.md originally said - fixed
   the doc, not the code (see Files above); nothing reads a version string today.
+
+### 1.5 Grade result screen — 2026-09-17
+**What it does:** `/farmer/scan/result/:id` (SPEC.md §4.6) is the screen the whole grading chain
+(1.2-1.4) was missing - a farmer now sees and hears the answer. `ScanPage` no longer shows a
+placeholder confirmation; once `saveScanPhotos` returns the draft id it navigates straight to the
+result screen. That screen polls `useGradeResult()` every 5 s (grading runs from the outbox, not
+this screen) and switches on one pure state (`gradeView()`): **waiting** ("Photos saved" + "⏳
+Grade will come when internet returns", online or off), **failed** (a calm line + "Try again",
+which just re-queues the same `request_grade` job - `enqueue()` upserts, so it also revives a job
+that had already given up after 10 tries), or **done** - `GradeBadge` (big, A=green/B=yellow/
+C=orange per SPEC.md §6.2, light tint + border, never colour alone), `GradeBreakdown` (size/
+colour/damage bars + "AI is 82% sure"), a full-width "🔊 Hear the result" button that speaks the
+whole sentence, and (confidence < 70%) a yellow "Photo not clear. Scan again in daylight." box +
+"Needs human check" line. A mocked grade (`source: "mock"`) shows the new `<DemoDataTag>` chip -
+first use of the "never show mock data as real" rule (CLAUDE.md §5) outside a code comment.
+**Decided with the user before building (not guessed):**
+1. **Browser voice only, no bundled A/B/C clips.** 0.7 and 1.4's handoff notes both said clips
+   "land in 1.5", but the spoken sentence includes the confidence number, which clips can't say
+   without the 0-100 number clips `make-voice-clips.ts` would generate - and that script is out of
+   prototype scope (CLAUDE.md §9.5). Fixed the stale comments in `SPEC.md` §5.9 and
+   `lib/voice/speak.ts` that pointed to 1.5.
+2. **No "Create lot" button yet** - it goes to a screen that doesn't exist until 1.6. This screen
+   ends on "Scan again" instead; 1.6 adds the button in one line.
+3. **Colour word is derived from `colour_pct` (≥85 good, ≥65 fair, else poor)**, not a new
+   `colour_label` DB column - the bar and the word can never disagree, and the mock's 90% already
+   reads as "Good" (matches the SPEC.md §4.6 mockup) with no migration.
+**Files:** `app/src/components/lot/gradeDisplay.ts` (new - pure: `gradeView`, `isDoneGrade` (the
+type guard that narrows the DB's nullable columns once `status="done"`), `sizeFraction`,
+`normalizeSizeLabel`, `colourLabelFor`), `app/src/components/lot/{GradeBadge,GradeBreakdown}.tsx`
+(new), `app/src/components/common/DemoDataTag.tsx` (new), `app/src/components/voice/
+VoiceButton.tsx` (new optional `label` prop - renders the full-width bar instead of the round
+icon, one component covers both from SPEC.md §4.6 and every earlier screen), `app/src/routes/
+farmer/ScanResultPage.tsx` (new), `app/src/routes/farmer/ScanPage.tsx` (rewrite - navigates
+instead of showing its own confirmation; deleted the object-URL/thumbnail bookkeeping 1.2 left as
+a stand-in), `app/src/services/grading.ts` (`useGradeResult` now polls every 5 s while pending;
+new `retryGrade`), `app/src/app/router.tsx` (`/farmer/scan/result/:id`), `app/src/locales/
+{en,hi,mr}.json` (`grade.*`, `common.demoData`), `app/tests/unit/lot/gradeDisplay.test.ts` (new).
+Doc fixes in the same change (CLAUDE.md §0 rule 3): `SPEC.md` §3.1 route table
+(`/farmer/scan/result` → `/farmer/scan/result/:id`) and §5.9's code snippet + `speak.ts`'s header
+comment (no longer promise clips "in milestone 1.5").
+**Mocked:** the grade itself, same as since 1.3 - whatever `integrations/ai` currently returns
+(mock until `cloudflared`/`AI_SERVICE_URL` are set, see 🔑 below). The screen's only new job is to
+say so honestly with `<DemoDataTag>` when `source: "mock"`.
+**Test by hand:** at 360 px, in all three languages -
+1. `pnpm dev`, farmer test number `9090910001`/`910001` → Scan crop → 3 photos → lands straight on
+   `/farmer/scan/result/<id>`, no more thumbnail confirmation screen.
+2. "Photos saved" + ⏳ waiting, then within ~5 s (mock) flips to **Grade B**, Medium, Good, 5%,
+   "AI is 82% sure", with a **Demo data** chip.
+3. Tap "🔊 Hear the result" → the full sentence is read; switch to हिंदी/मराठी and repeat - both
+   the header 🔊 (reads the title) and this one work independently.
+4. DevTools → Offline before scanning → "Grade will come when internet returns" and stays there;
+   back online → the grade appears with no reload (the 5 s poll picks it up).
+5. `pnpm build && pnpm preview` → repeat step 2.
+**Tests:** `app/tests/unit/lot/gradeDisplay.test.ts` (new, 12 cases - all 5 `gradeView` states
+incl. "done" falling back to "failed" if a field is unexpectedly still null, `sizeFraction`/
+`normalizeSizeLabel` incl. an unrecognised label, `colourLabelFor` at the 64/65/84/85 boundaries).
+`locales.test.ts` covers the new keys' en/hi/mr parity with no edit needed. No component test
+(CLAUDE.md §6 "no UI snapshot tests" - all the branching logic lives in `gradeDisplay.ts`). All
+pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (115 unit tests, 18 files).
+**Next / known gaps:**
+- Next: **1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot
+  detail** - SPEC.md §4.7 / Phase 1 table. Adds the "✅ Create lot" button this screen doesn't
+  have yet, reading the same `grade_results` row.
+- The low-confidence yellow box is unit-tested via `needsHumanCheck()` (1.3) and `gradeView`, but
+  wasn't seen on screen by hand this round - the mock always returns 82%. To see it for real,
+  either grade a dark/blank photo through the real AI service (needs the `cloudflared` tunnel
+  below) or temporarily lower `confidence` in `integrations/ai/mock.ts`.
+- Bundled voice clips and the `tts` function are still not built - out of prototype scope
+  (decision 1 above), not a gap specific to this milestone.
+- The 833 KB / 247 KB gzip single JS chunk (noted since 0.5) is unchanged - 1.6/1.7 give the
+  farmer routes enough real content to make `React.lazy()` per route worth doing; still not yet.
 
 ## 🔑 Keys and 🧰 tools still needed
 

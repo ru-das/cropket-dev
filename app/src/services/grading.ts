@@ -7,6 +7,7 @@ import { z } from "zod";
 import { supabase } from "@/lib/supabase";
 import { toAppError, AppError } from "@/lib/errors";
 import { db } from "@/offline/db";
+import { enqueue } from "@/offline/outbox";
 import { GradeRequest } from "@shared/schemas/grade.ts";
 import { Crop } from "@shared/crops.ts";
 import type { Database } from "@/lib/database.types";
@@ -23,13 +24,34 @@ async function getGradeResult(id: string): Promise<GradeResult | null> {
   return data;
 }
 
-/** The grade for one scan, or null while it's still pending (SPEC.md §4.6). */
+/**
+ * The grade for one scan, or null while it's still pending (SPEC.md §4.6).
+ * Polls every 5 s while there's no row yet or it's still "pending" - the
+ * grade function runs from the outbox, not this hook, so this is how
+ * ScanResultPage notices the answer without a Realtime channel for a
+ * once-per-scan wait. Stops polling once the row is "done" or "failed".
+ * TanStack Query already pauses fetches while offline on its own.
+ */
 export function useGradeResult(id: string | undefined) {
   return useQuery({
     queryKey: gradeKeys.byId(id ?? ""),
     queryFn: () => getGradeResult(id as string),
     enabled: id !== undefined,
+    refetchInterval: (query) => {
+      const row = query.state.data;
+      return !row || row.status === "pending" ? 5_000 : false;
+    },
   });
+}
+
+/**
+ * Re-queues a grade request (the "Try again" on a failed grade, CLAUDE.md
+ * §5). enqueue() upserts, so this also revives an outbox item that already
+ * gave up after 10 tries (SPEC.md §5.8 rule 4) - it goes back to "pending"
+ * with tries reset to 0.
+ */
+export async function retryGrade(gradeResultId: string): Promise<void> {
+  await enqueue("request_grade", { gradeResultId }, gradeResultId);
 }
 
 const RequestGradePayload = z.object({ gradeResultId: z.string() });

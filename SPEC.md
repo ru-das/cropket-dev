@@ -323,7 +323,7 @@ cropket/
 | `/` | anyone (language pick) | yes |
 | `/login`, `/onboarding` | anyone | no (first login needs internet) |
 | `/farmer` | farmer | yes |
-| `/farmer/scan`, `/farmer/scan/result` | farmer | yes (grade may be pending) |
+| `/farmer/scan`, `/farmer/scan/result/:id` | farmer | yes (grade may be pending) |
 | `/farmer/lots`, `/farmer/lots/:id` | farmer | yes |
 | `/farmer/lots/:id/bids` | farmer | read-only saved copy; accepting needs internet |
 | `/farmer/lots/:id/compare` | farmer | yes (from saved prices and distances) |
@@ -1174,9 +1174,9 @@ i18next import (easier to unit test, one file one job):
 ```ts
 // app/src/lib/voice/speak.ts
 export async function speak({ text, lang }: SpeakInput): Promise<boolean> {
-  // 1. bundled clip (offline) — lands in milestone 1.5 with the first real clips
+  // 1. bundled clip (offline) — P1, not in the prototype (CLAUDE.md §9.5)
   // 2. `tts` Edge Function (Bhashini, cached) — P1, not in the prototype
-  return browserSpeak(text, lang);                                    // 3. speechSynthesis (built in 0.7)
+  return browserSpeak(text, lang);      // 3. speechSynthesis — the only layer built (0.7), used everywhere
 }
 ```
 - Only one sound plays at a time: every `speak()` cancels whatever the browser is currently

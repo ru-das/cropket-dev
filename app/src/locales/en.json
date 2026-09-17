@@ -87,6 +87,35 @@
     "scanAgain": "Scan again",
     "gradeNext": "Grade will come when internet returns"
   },
+  "grade": {
+    "title": "Your crop grade",
+    "badge": "Grade {{grade}}",
+    "kind": {
+      "indicative": "Indicative grade",
+      "assured": "Assured grade"
+    },
+    "size": "Size",
+    "colour": "Colour",
+    "damage": "Damage",
+    "sizeLabel": {
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "unknown": "Not sure"
+    },
+    "colourLabel": {
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
+    },
+    "confidence": "AI is {{pct}}% sure",
+    "lowConfidence": "Photo not clear. Scan again in daylight.",
+    "needsHumanCheck": "Needs human check",
+    "hear": "Hear the result",
+    "spoken": "Grade {{grade}}. The AI is {{confidence}} percent sure. Size {{size}}, colour {{colour}}, damage {{damage}} percent.",
+    "failed": "The grade check did not work.",
+    "tryAgain": "Try again"
+  },
   "me": {
     "signOut": "Sign out"
   },
@@ -106,7 +135,8 @@
   },
   "common": {
     "comingSoon": "This screen is coming soon.",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "demoData": "Demo data"
   },
   "errors": {
     "otpInvalid": "That code is not right. Try again.",
