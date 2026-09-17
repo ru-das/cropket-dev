@@ -18,7 +18,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 0.8 PWA install (vite-plugin-pwa), opens offline in `pnpm preview`
 
 ## M1 — Farmer core
-- [ ] 1.1 Chat-style onboarding (taps + GPS location)
+- [x] 1.1 Chat-style onboarding (taps + GPS location)
 - [ ] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
 - [ ] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
 - [ ] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
@@ -489,6 +489,87 @@ demo-ready.
   screen asks for one. Add one to the Me page only if a demo phone doesn't offer the prompt.
 - `vercel.json`'s no-cache header for `index.html`/`sw.js` (`SPEC.md` §8.1) is milestone 5.3,
   not needed until the app is actually deployed.
+
+### 1.1 Chat-style onboarding — 2026-09-17
+**What it does:** `/onboarding` (SPEC.md §4.3) now asks its questions one at a time in a growing
+transcript, instead of one flat form. A farmer or FPO answers **role → name → village + GPS →
+crops** (4 questions); a buyer stops after village + GPS (3) - a buyer doesn't grow anything, so
+the crop chips never show for them. Each answered question stays on screen as a small summary line
+("🧑‍🌾 Farmer", "Niphad · 📍", "🧅 Onion  🍅 Tomato") while the current question sits at the bottom
+with its input; the header shows "Getting started · 2 of 4" and a back arrow (hidden on the first
+question) that returns to the previous answer without losing it. Every question has a 🔊
+`VoiceButton`. "Use my location" calls the browser's GPS (`lib/native.ts`, wrapped so the
+Capacitor plugin can drop in later without touching callers); denied or timed-out GPS shows a calm
+message + "Skip this step" and the farmer can still finish with `location: null` (advisory, never
+blocks, per `SPEC.md` §6.7). The last question's button ("Save and continue") is disabled while
+offline, since onboarding needs a real Supabase insert - the same "needs internet" pattern as
+money actions.
+Two `profiles` columns did not exist yet: `crops text[]` (checked against
+onion/tomato/potato) is new; `village`/`location` already existed from 0.5 and were already
+grantable. `district`/`state` now default to `Nashik`/`Maharashtra` (the pilot area) so the M2
+floor price always has a district, even before the app can turn a GPS point into a place name -
+this default is shown on screen as grey text under the village box, not hidden. `SPEC.md` §5.6 was
+updated in the same change (it listed `profiles` without `crops`, which Phase 1 already asked for
+- one of the "point out a conflict and fix it" cases from `CLAUDE.md`).
+**A thing worth knowing:** PostGIS reads a point as `POINT(lng lat)` - longitude first, backwards
+from how people say "lat, lng". `_shared/domain/geo.ts`'s `toPointWKT()` is the one place that
+builds that string, and its test locks in the order with very different lat/lng numbers (Niphad:
+lat ≈ 20, lng ≈ 74) so a swap would be obvious. Checked directly against `cropket-dev` (not
+guessed) that a plain PostgREST insert writes a `"SRID=4326;POINT(lng lat)"` string straight into
+the `geography` column - no RPC or Edge Function needed for this one.
+**Files:** `supabase/migrations/20260917014214_profile_onboarding.sql` (new),
+`supabase/functions/_shared/domain/crops.ts`, `geo.ts` (new - `Crop` enum, `LatLng` +
+`toPointWKT()`), `schemas/profile.ts` (`ProfileInput` grows `village`/`crops`/`location`, with a
+rule that farmer/FPO need ≥ 1 crop and a buyer needs none), `app/src/lib/native.ts`
+(`getCurrentLocation()`), `app/src/lib/errors.ts` (`LOCATION_DENIED`/`LOCATION_UNAVAILABLE`),
+`app/src/services/profiles.ts` (`createMyProfile` writes the new columns),
+`app/src/routes/onboarding/{OnboardingPage.tsx (rewrite), steps.ts, StepInputs.tsx, constants.ts}`
+(new/rewrite), `app/src/locales/{en,hi,mr}.json` (`onboarding.*`, new `crop.*` group,
+two new `errors.*` keys), `database.types.ts` (regenerated), `SPEC.md` §5.6.
+**Mocked:** nothing - GPS is real browser geolocation, the profile write is a real Supabase
+insert. The only fixed values are the pilot `district`/`state` defaults, and they're shown on
+screen, not hidden.
+**Test by hand:**
+1. `pnpm dev`, farmer test number `9090910001` / OTP `910001`, first login → `/onboarding` shows
+   "Getting started · 1 of 4".
+2. Tap Farmer (question turns into a "🧑‍🌾 Farmer" summary line) → type a name → Continue → type a
+   village, tap "Use my location", allow the prompt → "📍 Location saved" → pick 🧅 Onion → "Save
+   and continue" → lands on `/farmer`, greeting shows the name.
+3. Same flow but **block** location (DevTools → Sensors → Location, or deny the prompt): a calm
+   message + "Skip this step" appears; skipping still lets you finish, and the saved row has
+   `location = null`.
+4. Buyer number `9090920001` / `920001`: header reads "of 3", no crop question, lands on `/buyer`.
+5. DevTools → Offline on the last question: "Save and continue" is disabled with "Needs internet
+   to finish" underneath; back online re-enables it.
+6. Back arrow returns to the previous question with its answer still filled in; re-picking a role
+   there correctly shortens/lengthens the remaining questions (farmer ↔ buyer).
+7. Repeat steps 1-2 in Hindi and Marathi (language switch was already set at Welcome).
+8. Check the row landed correctly: `psql "$(bash scripts/set-key.sh --get SUPABASE_DB_URL)" -c
+   "select name, village, district, state, crops, st_astext(location::geometry) from profiles
+   order by created_at desc limit 3;"`
+**Tests:** `app/tests/unit/domain/geo.test.ts` (new, 6 cases - WKT is lng-first),
+`domain/schemas/profile.test.ts` (extended - village/crops/location validation, farmer needs a
+crop, buyer doesn't), `native.test.ts` (extended - GPS success, denied, timeout, no API),
+`onboarding/steps.test.ts` (new - farmer/FPO get 4 steps, buyer 3), `supabase/tests/rls_profiles.sql`
+(`plan(8)` → `plan(12)` - crops constraint, district default, the GPS point round-trips
+longitude-first, and village/crops/location stay editable while role/banned still aren't). All
+pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (69 unit tests, 11 files) and
+`bash scripts/test-sql.sh` (12/12) on `cropket-dev`.
+**Next / known gaps:**
+- Next: **1.2 `SmartFrameCamera`** (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to
+  `crop-photos` - `SPEC.md` §5.1 / Phase 1 table.
+- Voice *answers* (`MicInput`, speaking a name or village instead of typing) is `SPEC.md` §9.2
+  Phase 1 **P1** - out of prototype scope. Only 🔊 (spoken questions) is built here.
+- No screen lets a farmer edit village/crops/location later - only onboarding writes them for now.
+  Revisit when the Me page (`SPEC.md` §4) grows real settings.
+- The GPS point is stored but nothing reads it back yet (Net-₹ road distance, mandi heatmap
+  distance sort) - that starts in M2.
+- District/state stay fixed at "Nashik"/"Maharashtra" for every farmer in the prototype (single
+  pilot area, per `SPEC.md`) - reverse geocoding from the GPS point is out of scope; if the
+  pilot ever needs farmers outside Nashik district, this default will need revisiting.
+- Browser geolocation needs HTTPS or `localhost`; on a real phone over USB use
+  `adb reverse tcp:5173 tcp:5173` and open `http://localhost:5173`, not the LAN IP. Inside the
+  APK it needs the Capacitor Geolocation plugin + Android fine-location permission - milestone 5.4.
 
 ## 🔑 Keys and 🧰 tools still needed
 

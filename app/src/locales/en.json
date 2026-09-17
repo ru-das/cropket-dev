@@ -34,10 +34,26 @@
     "back": "Back"
   },
   "onboarding": {
-    "whoAreYou": "Who are you?",
-    "nameLabel": "Your name",
+    "title": "Getting started",
+    "stepOf": "{{step}} of {{total}}",
+    "back": "Back",
+    "next": "Continue",
+    "finish": "Save and continue",
+    "needsInternet": "Needs internet to finish",
+    "q": {
+      "role": "Who are you?",
+      "name": "What is your name?",
+      "place": "Which village is your farm in?",
+      "placeBuyer": "Which town are you in?",
+      "crops": "Which crops do you grow?"
+    },
     "namePlaceholder": "Type your name",
-    "continue": "Continue"
+    "placePlaceholder": "Type the name",
+    "pilotArea": "Nashik, Maharashtra",
+    "useMyLocation": "Use my location",
+    "gettingLocation": "Finding your location…",
+    "locationSaved": "Location saved",
+    "locationSkip": "Skip this step"
   },
   "role": {
     "farmer": "Farmer",
@@ -45,6 +61,11 @@
     "fpo": "FPO",
     "admin": "Admin",
     "nbfc": "NBFC"
+  },
+  "crop": {
+    "onion": "Onion",
+    "tomato": "Tomato",
+    "potato": "Potato"
   },
   "home": {
     "greeting": "Namaste, {{name}}",
@@ -80,6 +101,8 @@
     "rateLimited": "Too many tries. Wait a bit and try again.",
     "network": "No internet. Check your connection and try again.",
     "profileNotFound": "We could not find your profile. Try signing in again.",
+    "locationDenied": "Location permission was not given. You can skip this step.",
+    "locationUnavailable": "Could not find your location. You can skip this step.",
     "unknown": "Something went wrong. Try again."
   }
 }
