@@ -20,7 +20,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M1 — Farmer core
 - [x] 1.1 Chat-style onboarding (taps + GPS location)
 - [x] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
-- [ ] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
+- [x] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
 - [ ] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
 - [ ] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
 - [ ] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
@@ -631,8 +631,101 @@ tests, 14 files) and `bash scripts/test-sql.sh` (17/17: 5 + 12) on `cropket-dev`
 - `getUserMedia` needs HTTPS or `localhost`, same as GPS in 1.1 - `adb reverse tcp:5173 tcp:5173`
   on a real phone. Inside the APK it needs the Capacitor Camera plugin + permission (milestone 5.4).
 
+### 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter — 2026-09-17
+**What it does:** The first Edge Function in the project. `grade_results` (SPEC.md §5.6) holds
+one row per scan: `pending → done`/`failed`, grade A/B/C, confidence 0-100, size/colour/damage,
+`source` (`mock`/`ai`) so 1.5's `<DemoDataTag>` will know when a grade isn't real yet. RLS is
+select-own only, same shape as `profiles` - only the `grade` function's service role ever writes
+it, so there's no insert/update grant to get wrong. The `grade` Edge Function (SPEC.md §5.4)
+checks the caller is a farmer, rejects any photo path outside their own uid folder (`403
+PHOTO_NOT_OWNED` - a farmer can only ever grade their own photos), upserts the row, signs the
+`crop-photos` paths (also proves the uploads really landed), calls `integrations/ai/gradeCrop()`,
+and marks the row `done` or `failed`. Being the first function, it also lays the shared scaffolding
+every later function will import: `_shared/http.ts` (the `{ok,data}`/`{ok,error}` envelope,
+`AppError`), `_shared/env.ts` + `_shared/db.ts` (the only `Deno.env` reader and the service-role
+client), `_shared/auth.ts` (`requireRole()` - role read from `profiles`, never the request body),
+and `_shared/integrations/{mode,ai/*}.ts` (SPEC.md §2.2 adapter pattern - `isMock("ai", keys)` is
+true when `INTEGRATIONS_MOCK` lists `ai` or `AI_SERVICE_URL`/`KEY` are empty; both mock and real
+validate through the same `AiGradeResult` zod schema). On the app side, `saveScanPhotos`
+(services/photos.ts) now also queues one `request_grade` outbox job after the 3 `upload_blob`
+jobs, using the draft's own id as the `gradeResultId` (SPEC.md §5.6 "made on the phone" - no
+second id to keep in sync). `services/grading.ts`'s `requestGrade()` (the new outbox handler,
+registered in `offline/sync.ts`) reads the crop and uploaded paths back out of Dexie and calls the
+function; `useGradeResult(id)` reads the row back for 1.5's result screen.
+**Deployed to `cropket-dev` and checked directly against it, not just planned:** got a real
+farmer JWT through the OTP test-number flow (`9090910001`/`910001`), uploaded a throwaway test
+photo to that farmer's `crop-photos` folder with the service-role key, then called the deployed
+function - a bad body → `400 VALIDATION_FAILED`; another farmer's photo path → `403
+PHOTO_NOT_OWNED`; the real photo, with no mock/real AI answer configured yet, → an honest `502
+AI_UNAVAILABLE` and confirmed the row was written `status = 'failed'` in the table, never a fake
+grade. Both the test photo and the test row were deleted afterwards - nothing left in `cropket-dev`
+from this pass.
+**A real gotcha, found while deploying (not guessed):** the installed `supabase` CLI (2.117.0)
+does not auto-discover the shared `supabase/functions/deno.json` - deploy needs `--import-map
+supabase/functions/deno.json` explicitly, or it fails bundling with `Relative import path "zod"
+not prefixed with / or ./ or ../`. Also, `supabase functions new <name>` scaffolds a per-function
+`deno.json` with no `zod` entry, which shadows the shared one and must be deleted. Documented in
+`CLAUDE.md` §2 and §7 Learned Rules so the next function doesn't hit the same wall.
+**A small deviation from the plan:** the plan also called for an `errors.ts` code named
+`GRADE_FAILED`. Nothing in 1.3 actually throws that code (the function's own failure path always
+returns `AI_UNAVAILABLE`; `GRADE_FAILED` would represent "this row's `status` is `failed`" for
+1.5's result screen, which doesn't exist yet) - added only `AI_UNAVAILABLE`, which is used, and
+left `GRADE_FAILED` for 1.5 to add when it actually needs it.
+**Files:** `supabase/migrations/20260917023943_grade_results.sql` (new), `supabase/tests/
+rls_grade_results.sql` (new), `supabase/functions/_shared/domain/schemas/grade.ts` (new -
+`GradeRequest`, `AiGradeResult`, `needsHumanCheck`), `supabase/functions/deno.json` (new, shared
+import map: `zod`, `@supabase/supabase-js`, both pinned to the app's versions),
+`supabase/functions/_shared/{http,env,db,auth}.ts` (new), `supabase/functions/_shared/
+integrations/{mode.ts,ai/{index,mock,real,types}.ts}` (new), `supabase/functions/grade/index.ts`
+(new), `app/src/services/grading.ts` (new - `buildGradeRequest`, `requestGrade`, `useGradeResult`),
+`app/src/services/photos.ts` (`saveScanPhotos` now also queues `request_grade`), `app/src/offline/
+sync.ts` (registers the new handler), `app/src/lib/errors.ts` (`AI_UNAVAILABLE`),
+`app/src/locales/{en,hi,mr}.json` (`errors.aiUnavailable`), `scripts/set-key.sh` (added
+`INTEGRATIONS_MOCK` to the `KEYS` list - it was already in `supabase/functions/.env.example` but
+had no way to set it), `CLAUDE.md` (`--import-map` flag + Learned Rules entry), generated
+`database.types.ts` (app + functions). No new package - `@supabase/supabase-js` was already a
+dependency, pinned to the same `2.116.0` for the shared Deno import map.
+**Mocked:** the AI grade itself. `integrations/ai/mock.ts` always returns the SPEC.md §4.6 mockup
+(Grade B, 82% confidence, medium, good, 5% damage) with `source: "mock"`. It only switches on once
+`INTEGRATIONS_MOCK=ai` is set (see 🔑 below) - until then, since `AI_SERVICE_URL`/`KEY` are
+already configured on this laptop, a real call is attempted and honestly 502s (confirmed above),
+never silently faking a grade (CLAUDE.md §5).
+**Test by hand:** 1. `bash scripts/set-key.sh INTEGRATIONS_MOCK` → enter `ai` → let it push
+secrets. 2. `pnpm dev`, farmer test number → Scan crop → 3 photos. 3. DevTools → IndexedDB →
+`outbox` drains `upload_blob` ×3 then `request_grade`. 4. Supabase dashboard → Table editor →
+`grade_results` → one row, `status = done`, `grade = B`, `confidence = 82`, `source = mock`.
+5. DevTools → Offline, scan again → nothing sent, `request_grade` sits pending; back online → the
+row appears within 60 s. 6. Edge Functions → `grade` → Logs → confirm no photo path or phone
+number appears in any log line.
+**Tests:** `app/tests/unit/domain/schemas/grade.test.ts` (new, 13 cases - `needsHumanCheck` at
+69/70/71%, `GradeRequest`/`AiGradeResult` good/bad input), `app/tests/unit/integrations/ai.test.ts`
+(new, 2 cases - the mock's output passes `AiGradeResult`, the same schema `real.ts` must pass),
+`app/tests/unit/services/grading.test.ts` (new, 3 cases - `buildGradeRequest` happy path, throws
+on a not-yet-uploaded blob, throws on an unknown crop), `supabase/tests/rls_grade_results.sql`
+(new, 4 checks - own-row select, cross-farmer isolation, insert and update both rejected). All
+pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (103 unit tests, 17 files) and
+`bash scripts/test-sql.sh` (21/21: 4 + 5 + 12) on `cropket-dev`.
+**Next / known gaps:**
+- Next: **1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos** - `SPEC.md`
+  §5.5. Once it has a real `/grade` route, remove `ai` from `INTEGRATIONS_MOCK` to switch grading
+  over with no code change.
+- The scan confirmation screen is unchanged (still 1.2's "Grade will come when internet returns"
+  stand-in) - 1.5 replaces it with `GradeBadge`/`GradeBreakdown`, spoken grade and the low-
+  confidence message, reading `useGradeResult()` from this milestone.
+- A retried `grade` call (outbox backoff after a partial success) re-runs the AI call rather than
+  being idempotent on `gradeResultId` - fine for a non-money call in the prototype; revisit if
+  the real AI service turns out to be slow or costly enough that double-calls matter.
+- No `rate_limits` table yet (SPEC.md §5.1 "grading 20 per hour per farmer") - not a Phase 1 P0
+  row; add if the real AI service (1.4) turns out to need protecting from retries.
+- `perImage[]`/`reasons[]` from the AI response aren't stored - SPEC.md §4.6 only shows size/
+  colour/damage/confidence; add columns when a screen asks for them.
+
 ## 🔑 Keys and 🧰 tools still needed
 
 <!-- Claude Code keeps this list current. Remove a line when it's done. -->
 
-_(none yet)_
+- `INTEGRATIONS_MOCK` — turns on mock grading (`ai`) until 1.4 builds the real AI `/grade` route.
+  `AI_SERVICE_URL`/`AI_SERVICE_KEY` are already set on this laptop, so without this the deployed
+  `grade` function honestly 502s (`AI_UNAVAILABLE`) instead of faking a grade. Run in your
+  terminal: `bash scripts/set-key.sh INTEGRATIONS_MOCK` and enter `ai`, then let it push secrets
+  (or run `supabase secrets set --env-file supabase/functions/.env` yourself).

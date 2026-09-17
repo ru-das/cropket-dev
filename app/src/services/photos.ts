@@ -23,9 +23,14 @@ const UploadBlobPayload = z.object({ blobId: z.string() });
 
 /**
  * Saves a scan's photos as a draft + blobs on the phone, then queues each
- * for upload. Blobs are enqueued in shot order (SPEC.md §5.8 rule 2: a photo
- * upload finishes before the grade request that will use it, once 1.3/1.7
- * add that job). Returns the new draft id.
+ * for upload followed by one grade request (SPEC.md §5.8 rule 2: a photo
+ * upload finishes before the grade request that uses it). The `createdAt`
+ * order picks the blobs first in the common case; if the grade request ever
+ * runs before a blob finishes, requestGrade() (services/grading.ts) throws
+ * and the outbox's normal backoff just retries it a few seconds later - so
+ * this never has to be strictly enforced, only likely. Returns the new
+ * draft id, which doubles as the grade_results row's id (SPEC.md §5.6
+ * "made on the phone").
  */
 export async function saveScanPhotos(crop: string, photos: Blob[]): Promise<string> {
   const draftId = crypto.randomUUID();
@@ -38,6 +43,7 @@ export async function saveScanPhotos(crop: string, photos: Blob[]): Promise<stri
     // key uploadCropPhoto needs.
     await enqueue("upload_blob", { blobId } satisfies z.infer<typeof UploadBlobPayload>, blobId);
   }
+  await enqueue("request_grade", { gradeResultId: draftId }, draftId);
   return draftId;
 }
 

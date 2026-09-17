@@ -119,6 +119,7 @@
     "cameraDenied": "Camera permission was not given. You can go back and try again.",
     "cameraUnavailable": "Could not open the camera. Check your phone's camera and try again.",
     "uploadFailed": "The photo did not upload. It will try again automatically.",
+    "aiUnavailable": "The grade check did not work. It will try again automatically.",
     "unknown": "Something went wrong. Try again."
   }
 }

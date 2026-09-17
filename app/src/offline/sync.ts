@@ -1,7 +1,7 @@
 // Runs the outbox (SPEC.md §5.8 "Sync rules"): sends queued items to the
-// server when online, in order, with backoff on failure. `handlers` gets its
-// first real job in 1.2 (upload_blob); 1.6/1.7 add create_lot and
-// request_grade the same way. An item whose kind has no handler yet is left
+// server when online, in order, with backoff on failure. `handlers` got its
+// first real job in 1.2 (upload_blob); 1.3 adds request_grade; 1.6/1.7 add
+// create_lot the same way. An item whose kind has no handler yet is left
 // "pending" and doesn't burn a try.
 import { db } from "./db";
 import {
@@ -12,11 +12,13 @@ import {
   type OutboxKind,
 } from "./outbox";
 import { uploadCropPhoto } from "@/services/photos";
+import { requestGrade } from "@/services/grading";
 
 type Handler = (payload: unknown) => Promise<void>;
 
 const handlers: Partial<Record<OutboxKind, Handler>> = {
   upload_blob: uploadCropPhoto,
+  request_grade: requestGrade,
 };
 
 async function sendOne(item: OutboxItem, handler: Handler): Promise<void> {
