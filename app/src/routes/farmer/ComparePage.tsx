@@ -28,7 +28,7 @@ export default function ComparePage() {
   const { data: lot, isLoading: lotLoading } = useLot(id);
 
   const crop = lot?.crop ?? "onion"; // useMarketData needs a crop even before the lot loads
-  const { data: market, dataUpdatedAt } = useMarketData(crop);
+  const { data: market, dataUpdatedAt, isError, refetch } = useMarketData(crop);
 
   const farmerLocation =
     profile?.lat !== null &&
@@ -44,6 +44,20 @@ export default function ComparePage() {
     routable.map((m) => ({ lat: m.mandi.lat, lng: m.mandi.lng })),
   );
 
+  if (isError && !market) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi bg-mirchi/10 p-4">
+        <p className="text-body text-mirchi-text">{t("common.loadFailed")}</p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="h-12 rounded-button border border-mirchi-text px-4 text-body font-semibold text-mirchi-text"
+        >
+          {t("common.tryAgain")}
+        </button>
+      </div>
+    );
+  }
   if (lotLoading || !market)
     return <p className="text-body text-ink-muted">{t("common.loading")}</p>;
   if (!lot) return <p className="text-body text-ink-muted">{t("lots.notFound")}</p>;

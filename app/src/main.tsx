@@ -16,6 +16,7 @@ import "./lib/i18n";
 import { config } from "./lib/config";
 import { isNativeApp } from "./lib/native";
 import SetupNeeded from "./app/SetupNeeded.tsx";
+import ErrorBoundary from "./app/ErrorBoundary.tsx";
 import AppRouter from "./app/router.tsx";
 import { Providers } from "./app/providers.tsx";
 
@@ -31,9 +32,11 @@ createRoot(document.getElementById("root")!).render(
     {config.setupErrors.length > 0 ? (
       <SetupNeeded missing={config.setupErrors} />
     ) : (
-      <Providers>
-        <AppRouter />
-      </Providers>
+      <ErrorBoundary>
+        <Providers>
+          <AppRouter />
+        </Providers>
+      </ErrorBoundary>
     )}
   </StrictMode>,
 );

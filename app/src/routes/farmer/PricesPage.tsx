@@ -33,9 +33,26 @@ export default function PricesPage() {
   const [selectedCrop, setSelectedCrop] = useState<Crop | null>(crops[0] ?? null);
   const crop = selectedCrop ?? crops[0] ?? null;
 
-  const { data, dataUpdatedAt } = useMarketData(crop ?? "onion");
+  const { data, dataUpdatedAt, isError, refetch } = useMarketData(crop ?? "onion");
 
   if (!crop) return <p className="text-body text-ink-muted">{t("common.loading")}</p>;
+  // isError with no cached data means the fetch failed and there is nothing
+  // saved to fall back to (SPEC.md §5.8 still shows the saved copy when
+  // there is one) - offer a retry instead of "Loading..." forever.
+  if (isError && !data) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi bg-mirchi/10 p-4">
+        <p className="text-body text-mirchi-text">{t("common.loadFailed")}</p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="h-12 rounded-button border border-mirchi-text px-4 text-body font-semibold text-mirchi-text"
+        >
+          {t("common.tryAgain")}
+        </button>
+      </div>
+    );
+  }
   if (!data) return <p className="text-body text-ink-muted">{t("common.loading")}</p>;
 
   const farmerLocation: LatLng | null =
