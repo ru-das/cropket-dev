@@ -10,7 +10,9 @@ import FarmerHome from "@/routes/farmer/FarmerHome";
 import MePage from "@/routes/farmer/MePage";
 import ScanPage from "@/routes/farmer/ScanPage";
 import ScanResultPage from "@/routes/farmer/ScanResultPage";
+import LotsPage from "@/routes/farmer/LotsPage";
 import NewLotPage from "@/routes/farmer/NewLotPage";
+import LotDetailPage from "@/routes/farmer/LotDetailPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
@@ -29,8 +31,9 @@ export default function AppRouter() {
           <Route element={<RequireRole roles={["farmer"]} />}>
             <Route element={<AppShell />}>
               <Route path="/farmer" element={<FarmerHome />} />
-              <Route path="/farmer/lots" element={<PlaceholderPage titleKey="nav.lots" />} />
+              <Route path="/farmer/lots" element={<LotsPage />} />
               <Route path="/farmer/lots/new" element={<NewLotPage />} />
+              <Route path="/farmer/lots/:id" element={<LotDetailPage />} />
               <Route path="/farmer/scan" element={<ScanPage />} />
               <Route path="/farmer/scan/result/:id" element={<ScanResultPage />} />
               <Route

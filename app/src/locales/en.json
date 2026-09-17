@@ -123,7 +123,22 @@
     "save": "Save lot",
     "location": "Location: {{place}} (from GPS)",
     "locationUnknown": "Location not found",
-    "backspace": "Backspace"
+    "backspace": "Backspace",
+    "empty": "You have no lots yet.",
+    "emptyAction": "Scan crop",
+    "onPhoneOnly": "On phone only",
+    "detailTitle": "Lot {{code}}",
+    "notFound": "This lot was not found.",
+    "status": {
+      "draft": "Draft",
+      "listed": "For sale",
+      "in_mega": "In a group lot",
+      "sold": "Sold",
+      "in_transit": "On the way",
+      "delivered": "Delivered",
+      "rescued": "Rescued",
+      "salvage": "For salvage"
+    }
   },
   "me": {
     "signOut": "Sign out"

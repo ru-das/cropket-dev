@@ -123,7 +123,22 @@
     "save": "लॉट सेव्ह करा",
     "location": "ठिकाण: {{place}} (GPS वरून)",
     "locationUnknown": "ठिकाण सापडले नाही",
-    "backspace": "मागे पुसा"
+    "backspace": "मागे पुसा",
+    "empty": "तुमच्याकडे अजून कोणताही लॉट नाही.",
+    "emptyAction": "पीक स्कॅन करा",
+    "onPhoneOnly": "फक्त फोनमध्ये सेव्ह आहे",
+    "detailTitle": "लॉट {{code}}",
+    "notFound": "हा लॉट सापडला नाही.",
+    "status": {
+      "draft": "मसुदा",
+      "listed": "विक्रीसाठी",
+      "in_mega": "गट लॉटमध्ये",
+      "sold": "विकले गेले",
+      "in_transit": "मार्गावर",
+      "delivered": "डिलिव्हर झाले",
+      "rescued": "वाचवले",
+      "salvage": "बचाव विक्रीसाठी"
+    }
   },
   "me": {
     "signOut": "साइन आउट करा"

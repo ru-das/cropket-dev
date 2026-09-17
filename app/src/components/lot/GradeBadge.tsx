@@ -10,6 +10,8 @@ import type { Grade } from "@shared/schemas/grade.ts";
 type Props = {
   grade: Grade;
   kind: "indicative" | "assured";
+  /** "sm" is a compact chip for a list row (LotCard) - no kind line, no min-width. Defaults to "lg". */
+  size?: "lg" | "sm";
 };
 
 const TONE: Record<Grade, string> = {
@@ -18,8 +20,21 @@ const TONE: Record<Grade, string> = {
   C: "border-kesar bg-kesar/10 text-kesar-text",
 };
 
-export default function GradeBadge({ grade, kind }: Props) {
+export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   const { t } = useTranslation();
+
+  if (size === "sm") {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full border px-3 py-1 text-body font-semibold",
+          TONE[grade],
+        )}
+      >
+        {t("grade.badge", { grade })}
+      </span>
+    );
+  }
 
   return (
     <div
