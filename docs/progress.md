@@ -19,7 +19,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M1 — Farmer core
 - [x] 1.1 Chat-style onboarding (taps + GPS location)
-- [ ] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
+- [x] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
 - [ ] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
 - [ ] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
 - [ ] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
@@ -570,6 +570,66 @@ pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (69 unit tests, 1
 - Browser geolocation needs HTTPS or `localhost`; on a real phone over USB use
   `adb reverse tcp:5173 tcp:5173` and open `http://localhost:5173`, not the LAN IP. Inside the
   APK it needs the Capacitor Geolocation plugin + Android fine-location permission - milestone 5.4.
+
+### 1.2 SmartFrameCamera + upload to crop-photos — 2026-09-17
+**What it does:** Farmer home → "Scan crop" now opens a real camera (`SPEC.md` §4.5). A guide
+frame turns green/red from the average brightness of a small offscreen canvas sampled every
+300 ms; the shutter is disabled and greyed while red ("Too dark. Turn on flash."), matching the
+Phase 1 "Done when" check. After 3 shots (each compressed to ≤ 300 KB, tried at JPEG quality
+0.8/0.6/0.45), the photos are saved to Dexie as a `grade` draft + 3 `blobs`, queued on the
+outbox (`upload_blob`) in shot order, and a short confirmation screen shows 3 thumbnails +
+"Photos saved" (or "Will upload when internet returns" while offline). `offline/sync.ts` got its
+first real handler, so the sync wiring built in 0.6 now actually sends something for the first
+time. This is fully offline: `getUserMedia`/canvas/Dexie are all local, only the upload step
+needs a network and that's exactly what the outbox is for.
+**A correction found while building (not in the original plan):** Supabase Storage's
+`upsert: true` (used so a retry after a half-failed upload is safe) does an **UPDATE** under the
+hood when the object already exists, not a second insert - so the bucket migration needed an
+update RLS policy too, not just insert/select/delete. Confirmed with a dedicated pgTAP check.
+**Files:** `supabase/migrations/20260917021207_crop_photos_bucket.sql` (new - private bucket +
+insert/select/update/delete policies, own-uid-folder only), `supabase/tests/rls_crop_photos.sql`
+(new), `app/src/services/photos.ts` (new - `cropPhotoPath`, `saveScanPhotos`, `uploadCropPhoto`),
+`app/src/lib/native.ts` (`getCameraStream`, `setTorch`), `app/src/components/camera/frame.ts`
+(new - pure brightness/resize/encode helpers) and `SmartFrameCamera.tsx` (new), `app/src/routes/
+farmer/ScanPage.tsx` (new, replaces the `/farmer/scan` placeholder), `app/src/app/router.tsx`,
+`app/src/offline/sync.ts` (registers `upload_blob`, adds the 7-day blob sweep from `SPEC.md`
+§5.8 rule 6 that 0.6 deferred here), `app/src/lib/errors.ts` (`CAMERA_DENIED`,
+`CAMERA_UNAVAILABLE`, `UPLOAD_FAILED`), `app/src/locales/{en,hi,mr}.json` (`scan.*` + the 3 new
+error keys). No new package - `getUserMedia`, `<canvas>`, torch constraint are browser APIs.
+**Mocked:** nothing - the camera, brightness check, compression and upload are all real. There is
+no grade yet (that's 1.3/1.4), so the confirmation screen is an honest stand-in, not mock data -
+it says "Grade will come when internet returns" rather than showing a fake grade.
+**Test by hand:** 1. `pnpm dev`, farmer test number → Home → "Scan crop". 2. Camera opens, frame
+is green in normal light. 3. Cover the lens or go into a dark room → frame turns red, "Too dark.
+Turn on flash.", shutter greyed and un-tappable. 4. Take 3 photos → counter runs 1 of 3 → 3 of 3,
+confirmation shows 3 thumbnails. 5. DevTools → Application → IndexedDB → `cropket`: one `drafts`
+row (`kind: "grade"`), 3 `blobs` rows ≤ 300 KB each; `outbox` drains and each blob gets an
+`uploadedPath`. 6. Supabase dashboard → Storage → `crop-photos` → 3 files under the farmer's uid
+folder. 7. DevTools → Offline, scan again → still captures, says it'll upload later, header shows
+the pending count; back online → drains within 60 s. 8. Deny camera permission once → the
+"camera blocked" message shows, no white screen. 9. Repeat in Hindi and Marathi.
+**Tests:** `app/tests/unit/camera/frame.test.ts` (new, 10 cases - brightness on black/white/grey/
+empty, resize keeps aspect and never upscales, encoder stops at the first quality under the cap
+and falls back to the smallest when none fit), `app/tests/unit/services/photos.test.ts` (new, 2
+cases - `cropPhotoPath`'s uid-folder shape), `app/tests/unit/offline/sync.test.ts` (new, 4 cases -
+`isExpiredBlob` at 6/7/8 days and not-yet-uploaded), `supabase/tests/rls_crop_photos.sql` (new, 5
+checks - bucket private, own folder writable, another uid's folder rejected and invisible,
+upsert-as-update works). `locales.test.ts` covers the new `scan.*`/`errors.*` keys automatically
+(no edit needed). All pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (85 unit
+tests, 14 files) and `bash scripts/test-sql.sh` (17/17: 5 + 12) on `cropket-dev`.
+**Next / known gaps:**
+- Next: **1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock
+  first)** - `SPEC.md` §5.1 / Phase 1 table. It reads the 3 `crop-photos` paths this milestone
+  writes.
+- The confirmation screen (3 thumbnails + "saved") is a placeholder - 1.5 replaces it with the
+  real `GradeBadge`/`GradeBreakdown` screen once grading exists.
+- `request_grade` is not a registered outbox handler yet (only `upload_blob` is) - 1.3/1.7 add
+  it; until then a grade is never actually requested, even once photos are uploaded.
+- No per-shot retake (only "scan all 3 again" from scratch) - add if farmers ask for it by hand.
+- The 824 KB / 245 KB gzip single JS chunk (noted since 0.5) is unchanged - still the right call
+  per that note until M1 gives more routes real content; revisit once 1.5/1.6 land.
+- `getUserMedia` needs HTTPS or `localhost`, same as GPS in 1.1 - `adb reverse tcp:5173 tcp:5173`
+  on a real phone. Inside the APK it needs the Capacitor Camera plugin + permission (milestone 5.4).
 
 ## 🔑 Keys and 🧰 tools still needed
 

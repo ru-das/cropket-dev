@@ -1,14 +1,23 @@
 // Runs the outbox (SPEC.md §5.8 "Sync rules"): sends queued items to the
-// server when online, in order, with backoff on failure. `handlers` is
-// empty today - 1.7 (offline scan) registers the first real jobs
-// (upload_blob, create_lot). Until then every item just waits; an item
-// whose kind has no handler is left "pending" and doesn't burn a try.
+// server when online, in order, with backoff on failure. `handlers` gets its
+// first real job in 1.2 (upload_blob); 1.6/1.7 add create_lot and
+// request_grade the same way. An item whose kind has no handler yet is left
+// "pending" and doesn't burn a try.
 import { db } from "./db";
-import { afterFailure, pickNext, refreshOutboxSnapshot, type OutboxItem, type OutboxKind } from "./outbox";
+import {
+  afterFailure,
+  pickNext,
+  refreshOutboxSnapshot,
+  type OutboxItem,
+  type OutboxKind,
+} from "./outbox";
+import { uploadCropPhoto } from "@/services/photos";
 
 type Handler = (payload: unknown) => Promise<void>;
 
-const handlers: Partial<Record<OutboxKind, Handler>> = {};
+const handlers: Partial<Record<OutboxKind, Handler>> = {
+  upload_blob: uploadCropPhoto,
+};
 
 async function sendOne(item: OutboxItem, handler: Handler): Promise<void> {
   await db.outbox.update(item.id, { status: "sending" });
@@ -39,6 +48,35 @@ export async function runOutboxOnce(): Promise<void> {
 }
 
 const POLL_MS = 60_000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * True once a blob is both uploaded and its draft is 7+ days old (SPEC.md
+ * §5.8 rule 6: "uploaded blobs are deleted from the phone after 7 days" -
+ * the copy in Storage is already safe, this is just freeing space on the
+ * phone). Pure so the boundary is unit-testable with no Dexie involved.
+ */
+export function isExpiredBlob(
+  uploadedPath: string | undefined,
+  draftCreatedAt: number,
+  now: number,
+): boolean {
+  return uploadedPath !== undefined && now - draftCreatedAt >= SEVEN_DAYS_MS;
+}
+
+/** Deletes blobs that are safe to forget (SPEC.md §5.8 rule 6). Local-only, needs no network. */
+async function sweepExpiredBlobs(): Promise<void> {
+  const now = Date.now();
+  for (const blob of await db.blobs.toArray()) {
+    if (!blob.uploadedPath) continue; // still needs to reach the server - never sweep that
+    const draft = await db.drafts.get(blob.draftId);
+    // No draft left to point back to it is treated as expired too - an
+    // orphan blob that's already uploaded has nothing left to wait for.
+    if (!draft || isExpiredBlob(blob.uploadedPath, draft.createdAt, now)) {
+      await db.blobs.delete(blob.id);
+    }
+  }
+}
 
 /**
  * Runs on app start, when the network comes back, and every 60 s (SPEC.md
@@ -48,6 +86,7 @@ const POLL_MS = 60_000;
  */
 export function startSync(): () => void {
   void runOutboxOnce();
+  void sweepExpiredBlobs();
   const onOnline = () => void runOutboxOnce();
   window.addEventListener("online", onOnline);
   const interval = setInterval(() => void runOutboxOnce(), POLL_MS);

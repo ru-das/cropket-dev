@@ -8,6 +8,7 @@ import LoginPage from "@/routes/login/LoginPage";
 import OnboardingPage from "@/routes/onboarding/OnboardingPage";
 import FarmerHome from "@/routes/farmer/FarmerHome";
 import MePage from "@/routes/farmer/MePage";
+import ScanPage from "@/routes/farmer/ScanPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
@@ -27,7 +28,7 @@ export default function AppRouter() {
             <Route element={<AppShell />}>
               <Route path="/farmer" element={<FarmerHome />} />
               <Route path="/farmer/lots" element={<PlaceholderPage titleKey="nav.lots" />} />
-              <Route path="/farmer/scan" element={<PlaceholderPage titleKey="home.scanCrop" />} />
+              <Route path="/farmer/scan" element={<ScanPage />} />
               <Route
                 path="/farmer/prices"
                 element={<PlaceholderPage titleKey="home.todaysPrice" />}

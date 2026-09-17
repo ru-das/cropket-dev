@@ -9,6 +9,9 @@ const CODE_TO_MESSAGE_KEY = {
   PROFILE_NOT_FOUND: "errors.profileNotFound",
   LOCATION_DENIED: "errors.locationDenied",
   LOCATION_UNAVAILABLE: "errors.locationUnavailable",
+  CAMERA_DENIED: "errors.cameraDenied",
+  CAMERA_UNAVAILABLE: "errors.cameraUnavailable",
+  UPLOAD_FAILED: "errors.uploadFailed",
 } as const;
 
 // A literal union matching real locale keys, not `string` - so every call

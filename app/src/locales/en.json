@@ -74,6 +74,19 @@
     "todaysPrice": "Today's price",
     "myKhata": "My khata"
   },
+  "scan": {
+    "title": "Scan {{crop}}",
+    "photoOf": "Photo {{n}} of {{total}}",
+    "lightGood": "Light is good",
+    "tooDark": "Too dark. Turn on flash.",
+    "flash": "Flash",
+    "capture": "Take photo",
+    "coinHint": "Put a ₹10 coin here",
+    "saved": "Photos saved",
+    "savedOffline": "Will upload when internet returns",
+    "scanAgain": "Scan again",
+    "gradeNext": "Grade will come when internet returns"
+  },
   "me": {
     "signOut": "Sign out"
   },
@@ -103,6 +116,9 @@
     "profileNotFound": "We could not find your profile. Try signing in again.",
     "locationDenied": "Location permission was not given. You can skip this step.",
     "locationUnavailable": "Could not find your location. You can skip this step.",
+    "cameraDenied": "Camera permission was not given. You can go back and try again.",
+    "cameraUnavailable": "Could not open the camera. Check your phone's camera and try again.",
+    "uploadFailed": "The photo did not upload. It will try again automatically.",
     "unknown": "Something went wrong. Try again."
   }
 }
