@@ -23,8 +23,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
 - [x] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
 - [x] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
-- [ ] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
-- [ ] 1.7 Offline scan: photos + lot saved on phone, grade requested when back online
+- [x] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
+- [ ] 1.7 Offline: "Try again" button for failed outbox items on My Lots + full airplane-mode
+      round-trip test (saving a lot offline itself landed in 1.6, not here - see its handoff note)
 
 ## M2 — Market intelligence
 - [ ] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
@@ -877,6 +878,75 @@ pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (115 unit tests, 
   (decision 1 above), not a gap specific to this milestone.
 - The 833 KB / 247 KB gzip single JS chunk (noted since 0.5) is unchanged - 1.6/1.7 give the
   farmer routes enough real content to make `React.lazy()` per route worth doing; still not yet.
+
+### 1.6 `lots` table + create lot + QR + My Lots + lot detail — 2026-09-17
+**What it does:** A grade now turns into a saved **Digital Lot** (SPEC.md §4.7). From the grade
+result screen, "✅ Create lot" opens `/farmer/lots/new`: type the weight on a big-key `NumberPad`,
+GPS fills in on its own in the background (never blocks Save - SPEC.md §6.7), tap **Save lot**.
+**Decided with the user before building (not guessed):**
+1. **Saving a lot works offline from the start**, not split into "online in 1.6, offline in 1.7" as
+   the checklist's old wording suggested. Tapping Save always succeeds: `saveLot()` just queues a
+   `create_lot` outbox job (SPEC.md §5.8) - there's no separate `drafts` row for it, because unlike
+   a scan's photos a lot has no blob to point back at, so **the outbox item itself is the pending
+   lot**. The 60 s poll from 0.6 was too slow for "feels instant" - `offline/sync.ts` now also runs
+   the moment something is queued (a new `subscribeOutbox()` in `offline/outbox.ts`), so a lot saved
+   while online reaches the server in about a second, not up to a minute later. This also sped up
+   photo/grade sync from 1.2/1.3, which had the same lag.  Item **1.7 shrinks**: "lot saved on
+   phone" is done here; what's left is the "Try again" button for failed outbox items on My Lots,
+   plus the full airplane-mode round-trip test.
+2. **`qrcode.react@4.2.0` added** (approved) - no dependencies of its own, React 19 supported, draws
+   an inline SVG (sharp offline and when printed later), nothing loaded from a CDN.
+3. **Left out on purpose** (not silently cut): the 🎤 mic key on the pad, the 12-per-A4 crate
+   sticker sheet (both P1), and the lot detail buttons "📈 Check price first" / "🛒 Sell on
+   Cropket" (need M2's prices and M3's marketplace) - same call 1.5 made for "no Create lot button
+   yet". No buyer-side RLS on `lots` yet either - that's 3.2's job when lots start getting listed.
+**Files:** `supabase/migrations/20260917063353_lots.sql` (new - `lot_status` enum, RLS select/
+insert-own, no update/delete grant yet), `supabase/tests/rls_lots.sql` (new), `supabase/functions/
+_shared/domain/lotCode.ts` (new - deterministic "L-204173" from the lot's uuid, digits only so it
+can be read aloud or typed), `supabase/functions/_shared/domain/schemas/lot.ts` (new - `LotStatus`,
+`LotInput`), `app/src/services/lots.ts` (new - `saveLot`/`insertLot`/`useMyLots`/`usePendingLots`/
+`useLot`/`useLotPhoto`, one `LotView` shape whether a lot is a server row or still on the phone),
+`app/src/offline/sync.ts` (registers `create_lot`; a `running` guard now stops the online event, the
+60 s poll and the new outbox subscription from ever overlapping into a double send), `app/src/
+offline/outbox.ts` (`subscribeOutbox()`), `app/src/components/common/{numberPad.ts,NumberPad.tsx}`
+(new), `app/src/components/lot/{QRLabel,LotCard}.tsx` (new), `app/src/components/lot/GradeBadge.tsx`
+(adds an optional `size="sm"` chip for a list row - default behaviour unchanged), `app/src/routes/
+farmer/{NewLotPage,LotsPage,LotDetailPage}.tsx` (new), `app/src/routes/farmer/ScanResultPage.tsx`
+(adds the "✅ Create lot" button, in both the waiting and done states), `app/src/app/router.tsx`
+(`/farmer/lots`, `/farmer/lots/new`, `/farmer/lots/:id`), `app/src/locales/{en,hi,mr}.json`
+(`grade.createLot`, `lots.*`), `app/src/lib/database.types.ts` + `supabase/functions/_shared/
+database.types.ts` (regenerated), `app/tests/unit/domain/lotCode.test.ts`, `app/tests/unit/domain/
+schemas/lot.test.ts`, `app/tests/unit/common/numberPad.test.ts` (new).
+**Mocked:** nothing new - a lot's `grade` comes from whatever `grade_results` already holds (mock or
+real, same as since 1.3); the lot row itself is real.
+**Test by hand:** at 360 px, in all three languages, farmer test number `9090910001`/`910001` -
+1. Scan crop → grade result → **✅ Create lot** → type `500` on the pad → 📍 line fills in → **Save
+   lot** → lands on lot detail: Onion, grade chip (if the grade had already arrived), 500 kg, a
+   scannable QR and `L-######`.
+2. Scan the QR with a phone camera - it reads back the lot's uuid.
+3. **My lots** → the new lot is in the list.
+4. **The offline path (the point of decision 1):** DevTools → Offline → create a lot → Save works,
+   lot detail opens, My Lots shows it with **"On phone only"** → go back online → within about a
+   second the chip disappears and the row is on the server (checked directly against `cropket-dev`
+   with `psql ... -c "select id, qr_code, quantity_kg, status from lots;"`).
+5. Tap Save twice / reload mid-send → still exactly one row (`on conflict (id) do nothing`).
+6. `pnpm build && pnpm preview` → repeat step 4 with the service worker active.
+**Tests:** `lotCode.test.ts` (6 cases), `schemas/lot.test.ts` (10 cases), `numberPad.test.ts` (8
+cases), `supabase/tests/rls_lots.sql` (6 checks: own-only select, insert-own, cross-farmer insert
+blocked, no update/delete, `quantity_kg > 0`). All pass: `pnpm lint && pnpm typecheck && pnpm test &&
+pnpm build` (137 unit tests, 21 files) and `bash scripts/test-sql.sh` (both `rls_profiles.sql` and
+`rls_lots.sql`). The `lots` table was pushed to and verified directly against `cropket-dev`.
+**Next / known gaps:**
+- Next: **1.7** is now just the outbox's "Try again" button for a `failed` item on My Lots (the
+  count-only header from 0.6 doesn't show failed items - see its ponytail note in `offline/
+  outbox.ts`) plus the airplane-mode round-trip test on a real phone/APK-equivalent.
+- Lot detail has no action buttons yet (see decision 3) - 3.2 adds "Sell on Cropket" when the
+  marketplace exists; M2 adds "Check price first".
+- If a lot is created before its grade arrives, `lots.grade` stays `null` forever - nothing
+  backfills it once grading finishes later. Not a gap for the prototype (a farmer normally waits a
+  few seconds for the mock/real grade before tapping Create lot), but worth a TODO if this surprises
+  anyone in the demo.
+- Crate QR stickers (12-per-A4 print page) and the mic key on `NumberPad` are still P1, not built.
 
 ## 🔑 Keys and 🧰 tools still needed
 
