@@ -958,7 +958,7 @@ Only Edge Functions call this service, with the header `X-Service-Key`. The serv
 
 | Endpoint | Input | Output |
 |---|---|---|
-| `GET /health` | — | `{ok, version}` (used for warm-up ping) |
+| `GET /health` | — | `{ok, service}` (used for warm-up ping) |
 | `POST /grade` | `crop`, `images[]` | `{grade, confidence, size:{label, mmAvg}, colour:{label, healthyPct}, damagePct, perImage[], reasons[]}` |
 | `POST /ocr/weighbridge` | `image`, `expected_plate?` | `{plate, plateConfidence, weightKg, weightConfidence, plateMatches}` |
 | `POST /ocr/mandi-meter` (P3) | `image`, `meter_type` | `{moisturePct, readingConfidence}` |

@@ -21,7 +21,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 1.1 Chat-style onboarding (taps + GPS location)
 - [x] 1.2 `SmartFrameCamera` (blocks dark photos, 3 shots, compress ≤ 300 KB) + upload to `crop-photos`
 - [x] 1.3 `grade_results` table + `grade` Edge Function + `integrations/ai` adapter (mock first)
-- [ ] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
+- [x] 1.4 AI service: onion grading v1 (OpenCV) + pytest with sample photos
 - [ ] 1.5 Grade result screen (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-confidence message
 - [ ] 1.6 `lots` table + create lot (`NumberPad`, GPS) + QR (`QRLabel`) + My Lots + lot detail
 - [ ] 1.7 Offline scan: photos + lot saved on phone, grade requested when back online
@@ -720,12 +720,101 @@ pass: `pnpm lint && pnpm typecheck && pnpm test && pnpm build` (103 unit tests, 
 - `perImage[]`/`reasons[]` from the AI response aren't stored - SPEC.md §4.6 only shows size/
   colour/damage/confidence; add columns when a screen asks for them.
 
+### 1.4 AI service: onion grading v1 (OpenCV) + pytest — 2026-09-17
+**What it does:** `ai-service` now has a real `POST /grade` (SPEC.md §5.5) - the missing half of
+the chain 1.3 built. `app/grading/onion.py` is pure OpenCV/numpy (no FastAPI, no network): resize
+→ blur/brightness check → find the onion(s) by an HSV colour mask → fill each onion's contour
+(so a dark rot spot inside it still counts as "inside the onion", not as background) → healthy %
+(bright, saturated pixels) and damage % (very dark pixels) inside that filled shape → A/B/C rules
+→ combine 1-3 photos into one grade (`confidence = quality × agreement`, SPEC.md §5.5 step 6). All
+the tuning numbers (HSV ranges, blur/darkness cutoffs, A/B/C cut points) live in one `Thresholds`
+dataclass at the top of the file - the team will need to retune these once real onion photos exist,
+so they're not scattered through the code. `app/main.py`'s `/grade` route checks `X-Service-Key`
+(wrong key → 401, **key not configured at all → 500 `SETUP_MISSING_KEY`, fails closed** - the AI
+service has no mock mode of its own, CLAUDE.md §5), rejects anything that isn't onion with `400
+CROP_NOT_SUPPORTED` (tomato/potato are P2, and onion's colour ranges on a tomato would produce a
+confident wrong grade), downloads the signed photo URLs concurrently (`app/images.py`), grades
+them, and returns the exact shape `AiGradeResult`
+(`supabase/functions/_shared/domain/schemas/grade.ts`) expects, `source: "ai"`. Once
+`AI_SERVICE_URL` can reach this service (see 🔑 below) and `INTEGRATIONS_MOCK` no longer lists
+`ai`, `integrations/ai/real.ts` (already deployed since 1.3) starts calling this route for real -
+no app or Edge Function code changes needed, the adapter seam was already there.
+**Decided with the user before building (not guessed):**
+1. **No ₹10-coin sizing.** `size.mmAvg` is always `null`; size is only ever a relative small/
+   medium/large label from the onion's area in the photo. SPEC.md §10.4 already documents this as
+   the fallback when no coin is in frame - the coin-finding step (Hough circles, easily confused
+   with the onions themselves) is skipped in v1, marked with a `ponytail:` comment naming the
+   upgrade path. SPEC's "-15 confidence when no coin" is dropped too - with no coin detector ever
+   run, that would just be a constant tax on every grade.
+2. **No real photos yet, so tests grade synthetic ones.** `tests/synthetic.py` draws fake onion-
+   crate photos (coloured circles + noise, with knobs for dark/blurred/damaged) so `pytest -q`
+   proves the pipeline's behaviour (dark → low confidence, blurry → lower quality, a painted-on
+   dark patch → higher `damagePct`, disagreeing photos → lower confidence) without any photo files
+   in the repo. `tests/test_samples.py` globs `samples/onion/*.jpg` and **skips itself** while that
+   folder is empty - drop real onion photos in later (see `samples/README.md`) and the same test
+   starts grading them, no code change. The 200+ labelled photo set + measured-accuracy README
+   SPEC.md §5.5 step 7 asks for is out of prototype scope (CLAUDE.md §9.5).
+3. **Non-onion crops are rejected, not graded anyway.** `400 CROP_NOT_SUPPORTED` rather than
+   reusing onion HSV ranges on tomato/potato and returning a made-up-looking grade.
+**Files:** `ai-service/app/settings.py` (new - the one file that reads `ai-service/.env`,
+CLAUDE.md §4), `ai-service/app/grading/{__init__,onion}.py` (new), `ai-service/app/images.py`
+(new), `ai-service/app/main.py` (rewrite - key check, error handlers, `/grade`),
+`ai-service/tests/{conftest,synthetic,test_grading,test_grade_route,test_samples}.py` (new),
+`ai-service/samples/{README.md,onion/.gitkeep}` (new), `ai-service/requirements.txt`
+(`+opencv-python-headless==5.0.0.93 +numpy==2.5.3 +pydantic-settings==2.15.0`, `httpx` moved here
+from `requirements-dev.txt` since `main.py` needs it at runtime now, not just in tests),
+`SPEC.md` §5.5 (`GET /health`'s example response said `{ok, version}`; the route (since 0.1) and
+its test have always returned `{ok, service}` - fixed the doc to match the code, CLAUDE.md §0
+rule 3). No app or Edge Function files touched - 1.3 already built the calling side.
+**Mocked:** nothing in the grading pipeline itself - it's real OpenCV on real pixels. What's
+still missing is *reach*: this laptop's AI service isn't reachable from the cloud `grade`
+function yet (needs `cloudflared`, see 🔑 below), so until that tunnel exists the deployed app
+still shows mock grades, same as after 1.3.
+**Test by hand:**
+1. `cd ai-service && source .venv/bin/activate && pytest -q` → 17 passed, 1 skipped (the sample-
+   photos test, until real photos exist).
+2. `uvicorn app.main:app --reload --port 8000` in one terminal.
+3. `curl http://localhost:8000/health` → `{"ok":true,"service":"cropket-ai"}`.
+4. `curl -X POST localhost:8000/grade -H 'content-type: application/json' -d '{"crop":"onion","images":[]}'`
+   with no `X-Service-Key` header → `401 UNAUTHORIZED`.
+5. Same call with `-H "X-Service-Key: $(bash ../scripts/set-key.sh --get AI_SERVICE_KEY)"` and
+   `"crop":"tomato"` → `400 CROP_NOT_SUPPORTED`.
+6. Same key, a real signed `crop-photos` URL (from Supabase Storage) in `images` → `200` with a
+   grade, confidence, size/colour labels, `damagePct`, `source: "ai"`.
+7. Temporarily blank `SERVICE_KEY` in `ai-service/.env`, restart uvicorn, repeat step 4's call with
+   any key → `500 SETUP_MISSING_KEY`, not a silent pass-through. Put the real value back after.
+**Tests:** `ai-service/tests/test_grading.py` (9 cases - confidence high on a clean photo, low on
+a dark one, quality lower when blurred, damage patch raises `damagePct` and never improves the
+grade, disagreeing photos score lower than agreeing ones, percentages always 0-100, size label
+reacts to onion size, a photo with no onion in it grades low instead of crashing, `combine([])`
+raises), `ai-service/tests/test_grade_route.py` (6 cases - missing/wrong key → 401, unset
+`SERVICE_KEY` → 500, bad body → 400, unsupported crop → 400, a failed image download → 502, and
+the happy-path response checked field-by-field against `AiGradeResult`'s shape - the one thing
+guarding against the Python↔zod contract drifting apart), `ai-service/tests/test_samples.py` (1
+case, self-skipping). All pass: `pytest -q` (17 passed, 1 skipped) and, unaffected but re-checked,
+`cd app && pnpm lint && pnpm typecheck && pnpm test` (103 tests, 17 files).
+**Next / known gaps:**
+- Next: **1.5 Grade result screen** (`GradeBadge`, `GradeBreakdown`) + spoken grade + low-
+  confidence message - `SPEC.md` §4.6 / Phase 1 table. It reads `useGradeResult()` (built in 1.3)
+  and needs one new bundled voice clip per grade letter (A/B/C) in `hi`/`mr`, since browser TTS
+  is the only voice layer built so far (0.7's known gap).
+- The HSV thresholds in `onion.py`'s `Thresholds` dataclass are tuned against synthetic circles,
+  not real onions - expect to retune `hue_low`/`hue_high`/the healthy/damage cut points once real
+  photos exist (drop them in `samples/onion/`, see its README, then adjust and re-run `pytest`).
+- `perImage[]` (SPEC.md §5.5) isn't in the response - `combine()`'s `reasons[]` covers "why" at
+  the combined level; per-photo detail wasn't asked for by any screen yet (same open item 1.3
+  already flagged for the app side).
+- `/health` still returns `{ok, service}`, not `{ok, version}` as SPEC.md originally said - fixed
+  the doc, not the code (see Files above); nothing reads a version string today.
+
 ## 🔑 Keys and 🧰 tools still needed
 
 <!-- Claude Code keeps this list current. Remove a line when it's done. -->
 
-- `INTEGRATIONS_MOCK` — turns on mock grading (`ai`) until 1.4 builds the real AI `/grade` route.
-  `AI_SERVICE_URL`/`AI_SERVICE_KEY` are already set on this laptop, so without this the deployed
-  `grade` function honestly 502s (`AI_UNAVAILABLE`) instead of faking a grade. Run in your
-  terminal: `bash scripts/set-key.sh INTEGRATIONS_MOCK` and enter `ai`, then let it push secrets
-  (or run `supabase secrets set --env-file supabase/functions/.env` yourself).
+- `cloudflared` — not installed on this laptop, so the cloud `grade` function can't reach the AI
+  service running locally yet (§9.5 "Simple setup"). Run in your terminal:
+  `sudo pacman -S --needed cloudflared`, then `cloudflared tunnel --url http://localhost:8000` and
+  save the printed `https://…trycloudflare.com` address with
+  `bash scripts/set-key.sh AI_SERVICE_URL` (the value saved on this laptop from 1.3 is stale).
+  Once that's done, remove `ai` from `INTEGRATIONS_MOCK` (or clear it) so grading uses the real
+  `/grade` route built in 1.4 instead of the mock.
