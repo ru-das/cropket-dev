@@ -30,7 +30,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M2 — Market intelligence
 - [x] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
 - [x] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
-- [ ] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
+- [x] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
 - [ ] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
 - [ ] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
 
@@ -1203,6 +1203,75 @@ shown plainly - that's the comparator's point).
   (`cron-fetch-prices`) will be the second place that matters.
 - Next item: **2.3** `cron-fetch-prices` (real data.gov.in if key set) - run by
   hand; recompute `mandi_heat`.
+
+### 2.3 `cron-fetch-prices` — 2026-09-17
+**What it does:** an Edge Function, run by hand (`curl` below, no pg_cron schedule in
+the prototype), that fetches today's Nashik onion/tomato/potato prices, writes them to
+`mandi_prices`, then recomputes `mandi_heat` for every date it just wrote. Checked both
+upstreams live before building (see the plan): data.gov.in's daily-price resource has
+**no arrivals column at all** and its old Agmarknet HTML scrape is dead (now a React
+SPA that ignores every query param) - so prices come from data.gov.in and arrivals
+come separately from Agmarknet's own (undocumented, no key needed) dashboard API. The
+two are only ever paired up when they agree on the exact same calendar day; otherwise
+a price is stored with `arrivals_tonnes = null` rather than a guessed number next to
+`source = 'agmarknet'` (honesty rule).
+**A gap found and fixed along the way:** `seed.sql`'s five `agmarknet_name` guesses
+("Lasalgaon", "Niphad", "Pimpalgaon", "Chandwad") don't match anything either live feed
+actually reports - real Nashik onion markets today are named things like
+`Lasalgaon(Vinchur)` and `APMC Pimpalgaon Baswant`. Remapped all five mandis to their
+real Agmarknet names **and** numeric market ids (needed for the arrivals API, which
+keys by id, not name) - `seed.sql`'s mandi insert is now `on conflict do update` so
+re-running it repairs an already-seeded `cropket-dev` too.
+**Files:** `supabase/migrations/20260917125931_agmarknet_link.sql` (new -
+`mandis.agmarknet_market_id`, `mandi_prices.arrivals_tonnes` made nullable,
+`mandi_heat_inputs()` SQL function that gathers today's arrivals + 30-day average +
+nearby Digital Lots for `heat.ts` to score), `supabase/seed.sql` (real mandi mapping),
+`supabase/functions/_shared/domain/schemas/prices.ts` (new, `DailyPrice`),
+`supabase/functions/_shared/integrations/agmarknet/{types,parse,real,mock,index}.ts`
+(new adapter - `parse.ts` holds all the real logic so Vitest can reach it, `real.ts`
+just does the two `fetch()` calls), `supabase/functions/cron-fetch-prices/index.ts`
+(new), `supabase/config.toml` (+`[functions.cron-fetch-prices]`),
+`app/tests/unit/integrations/agmarknet.test.ts` (new, 16 tests using fixtures captured
+from the real responses), `supabase/tests/heat_inputs.sql` (new, 5 pgTAP checks),
+`app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts`
+(regenerated), `CLAUDE.md` §7 (a `supabase functions new` gotcha found while wiring
+this up - see below).
+**Mocked:** only when `DATA_GOV_API_KEY` / `AGMARKNET_RESOURCE_ID` are missing (both
+were already set on this laptop, so every check below ran against the real APIs, not
+mock). The mock walks ±5% from each mandi/crop's last stored price/arrivals so the
+demo prices screen (2.4) still moves day to day.
+**Test by hand:**
+1. `bash scripts/check-functions.sh` → all ✅ (local + live pre-flight/auth).
+2. `curl -X POST "$(bash scripts/set-key.sh --get SUPABASE_URL)/functions/v1/cron-fetch-prices" -H "Authorization: Bearer $(bash scripts/set-key.sh --get CRON_SECRET)"`
+   → ran twice against `cropket-dev`: `{"ok":true,"data":{"rows":4,"heatRows":11,"source":"agmarknet"}}`
+   both times (idempotent - still exactly 15 `mandi_prices` rows for today after the
+   second run). 4 real onion rows landed (Chandvad, Lasalgaon, Niphad, Pimpalgaon
+   Baswant - Yeola's onion market didn't report today, so it kept its seeded price);
+   tomato/potato stayed seeded, since Nashik reported neither to data.gov.in today.
+   None of the 4 real rows got a same-day arrivals match, so all four kept
+   `arrivals_tonnes = null` and no new heat row was written for them - exactly the
+   "never guess" behaviour the honesty rule asks for, not a bug.
+3. Wrong/missing `CRON_SECRET` → `401 UNAUTHENTICATED`, checked both ways.
+**Tests:** `app/tests/unit/integrations/agmarknet.test.ts` (mock passes `DailyPrice`
+and walks from history; date parsing both directions; a trailing-space market name
+matches; ₹→paise; an unmatched market is dropped; arrivals only attach on a matching
+date; a broken min>modal row is dropped, not written). `supabase/tests/heat_inputs.sql`
+(30-day average; a lot within 50 km counts, one at 60 km doesn't; a null-arrivals
+mandi/crop is left out entirely; `authenticated` can't call the function directly).
+**Next / known gaps:**
+- No pg_cron schedule - out of scope for the prototype (§9.5), run by hand for the demo.
+- The Agmarknet arrivals API (`api.agmarknet.gov.in/v1/dashboard-data/`) is an
+  undocumented internal endpoint behind their public site, not something data.gov.in
+  or Agmarknet publish as a stable contract. It can change shape without notice -
+  `parse.ts` validates its shape with zod and drops what it can't read rather than
+  crashing, but if it ever goes away entirely, arrivals simply go to `null` everywhere
+  (prices keep working) until someone finds a replacement.
+- `real.ts` hardcodes Maharashtra's state id (20) and Nashik's district id (361) for
+  the arrivals call, marked with a `ponytail:` comment - fine for a one-district pilot,
+  needs a per-mandi lookup if a second district is ever onboarded.
+- Next item: **2.4** Prices screen (`PriceHero`, `AdviceCard`, `FloorWarning`,
+  `MandiList`, `MandiHeatmap`, `DataAge`) - the first screen that actually reads what
+  this item writes.
 
 ## 🔑 Keys and 🧰 tools still needed
 

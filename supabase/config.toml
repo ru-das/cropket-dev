@@ -423,3 +423,7 @@ enabled = true
 [functions.grade]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.cron-fetch-prices]
+verify_jwt = false
+import_map = "./functions/deno.json"

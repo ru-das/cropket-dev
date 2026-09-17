@@ -16,26 +16,33 @@
 -- looking demo data, not a real Agmarknet report, and the prices screen
 -- (2.4) must show the "Demo data" tag for it (CLAUDE.md §5 honesty rule).
 --
--- Mandi names/coordinates are real Nashik-district markets, but the exact
--- `agmarknet_name` spelling is a best guess, not yet checked against a live
--- data.gov.in response - re-check it when 2.3 (`cron-fetch-prices`) is built,
--- since that is the string the daily fetch matches on.
-
+-- Mandi names/coordinates are real Nashik-district markets. `agmarknet_name`
+-- and `agmarknet_market_id` were checked against the live data.gov.in
+-- resource and the Agmarknet dashboard API on 2026-09-17 when 2.3
+-- (`cron-fetch-prices`) was built - the plain "Lasalgaon"/"Niphad"/
+-- "Pimpalgaon" spellings guessed in 2.1 do not appear in either feed, so
+-- they are fixed here to the market names/ids that actually report onion.
+--
+-- `do update` (not `do nothing`) on the agmarknet columns so re-running this
+-- file also repairs an already-seeded cropket-dev - still idempotent, since
+-- it always sets the same two values for the same id.
 -- ---------------------------------------------------------------------
 -- Mandis (5, all Nashik district / Maharashtra - the pilot area)
 -- ---------------------------------------------------------------------
-insert into mandis (id, name, district, state, location, agmarknet_name) values
+insert into mandis (id, name, district, state, location, agmarknet_name, agmarknet_market_id) values
   ('10000000-0000-0000-0000-000000000001', 'Lasalgaon', 'Nashik', 'Maharashtra',
-   'SRID=4326;POINT(74.2340 20.1462)', 'Lasalgaon'),
+   'SRID=4326;POINT(74.2340 20.1462)', 'Lasalgaon(Vinchur)', 3448),
   ('10000000-0000-0000-0000-000000000002', 'Pimpalgaon Baswant', 'Nashik', 'Maharashtra',
-   'SRID=4326;POINT(73.9998 20.1725)', 'Pimpalgaon'),
+   'SRID=4326;POINT(73.9998 20.1725)', 'APMC Pimpalgaon Baswant', 162),
   ('10000000-0000-0000-0000-000000000003', 'Niphad', 'Nashik', 'Maharashtra',
-   'SRID=4326;POINT(74.1116 20.0847)', 'Niphad'),
+   'SRID=4326;POINT(74.1116 20.0847)', 'Lasalgaon(Niphad)', 2139),
   ('10000000-0000-0000-0000-000000000004', 'Yeola', 'Nashik', 'Maharashtra',
-   'SRID=4326;POINT(74.4864 20.0433)', 'Yeola'),
+   'SRID=4326;POINT(74.4864 20.0433)', 'APMC Yeola', 159),
   ('10000000-0000-0000-0000-000000000005', 'Chandvad', 'Nashik', 'Maharashtra',
-   'SRID=4326;POINT(74.2333 20.3333)', 'Chandwad')
-on conflict (id) do nothing;
+   'SRID=4326;POINT(74.2333 20.3333)', 'APMC Chandwad', 550)
+on conflict (id) do update set
+  agmarknet_name = excluded.agmarknet_name,
+  agmarknet_market_id = excluded.agmarknet_market_id;
 
 -- ---------------------------------------------------------------------
 -- Crop rules - copied exactly from SPEC.md §2.3

@@ -222,7 +222,7 @@ export type Database = {
       }
       mandi_prices: {
         Row: {
-          arrivals_tonnes: number
+          arrivals_tonnes: number | null
           crop: string
           date: string
           mandi_id: string
@@ -232,7 +232,7 @@ export type Database = {
           source: string
         }
         Insert: {
-          arrivals_tonnes: number
+          arrivals_tonnes?: number | null
           crop: string
           date: string
           mandi_id: string
@@ -242,7 +242,7 @@ export type Database = {
           source: string
         }
         Update: {
-          arrivals_tonnes?: number
+          arrivals_tonnes?: number | null
           crop?: string
           date?: string
           mandi_id?: string
@@ -263,6 +263,7 @@ export type Database = {
       }
       mandis: {
         Row: {
+          agmarknet_market_id: number | null
           agmarknet_name: string | null
           district: string
           id: string
@@ -271,6 +272,7 @@ export type Database = {
           state: string
         }
         Insert: {
+          agmarknet_market_id?: number | null
           agmarknet_name?: string | null
           district?: string
           id: string
@@ -279,6 +281,7 @@ export type Database = {
           state?: string
         }
         Update: {
+          agmarknet_market_id?: number | null
           agmarknet_name?: string | null
           district?: string
           id?: string
@@ -392,7 +395,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      mandi_heat_inputs: {
+        Args: { p_date: string }
+        Returns: {
+          arrivals_tonnes: number
+          avg_arrivals_30d: number
+          crop: string
+          mandi_id: string
+          nearby_lot_tonnes: number
+        }[]
+      }
     }
     Enums: {
       lot_status:
