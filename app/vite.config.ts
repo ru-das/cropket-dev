@@ -74,6 +74,13 @@ export default defineConfig({
       allow: [path.resolve(root, ".."), sharedDomainDir],
     },
   },
+  worker: {
+    // MandiHeatmap.tsx loads maplibre-gl's tile worker with `{ type: "module" }` and
+    // the worker file itself uses `import()`, so it must be built as ESM. Vite's
+    // default ("iife") can't bundle those dynamic imports and doesn't match how the
+    // worker is loaded.
+    format: "es",
+  },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],

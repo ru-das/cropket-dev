@@ -8,12 +8,21 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 // maplibre-gl 6.x has no default export - `Map` is named `MapLibreMap` here
 // because the plain name would shadow the built-in JS Map class.
-import { Map as MapLibreMap, Marker, LngLatBounds } from "maplibre-gl";
+import { Map as MapLibreMap, Marker, LngLatBounds, setWorkerUrl } from "maplibre-gl";
+// maplibre-gl finds its tile-parsing web worker by guessing a path next to its own
+// module URL, which is only right when it's served straight from node_modules. Any
+// bundler moves it (Vite's dev cache, the production /assets folder, the APK), the
+// guess 404s, and the worker never starts - the map then draws pins on an empty
+// background with no visible error. So we import the worker through Vite (which emits
+// it as a real file and gives us its URL) and tell maplibre to use that instead.
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { config } from "@/lib/config";
 import type { MandiPrice } from "@/services/prices";
 import type { HeatColour } from "@shared/heat.ts";
 import type { LatLng } from "@shared/geo.ts";
+
+setWorkerUrl(maplibreWorkerUrl);
 
 const HEAT_EMOJI: Record<HeatColour, string> = { red: "🔴", yellow: "🟡", green: "🟢" };
 const NO_DATA_EMOJI = "⚪";

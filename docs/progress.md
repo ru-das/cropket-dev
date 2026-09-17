@@ -1350,6 +1350,29 @@ than fixing it silently, since it's outside this item's scope.
 - The main bundle's pre-existing 200 KB overage (above) - worth a dedicated look, not part of
   this item.
 
+**Correction (2026-09-17, found hand-testing):** the line above claiming "the map ... [is] real"
+was wrong - the map never drew tiles. `MandiHeatmap` mounted (attribution + coloured pins showed),
+but the base map was blank, with the dev console warning `The file does not exist at
+".../node_modules/.vite/deps/maplibre-gl-worker.mjs"`. **Root cause:** maplibre-gl 6 guesses its
+tile-parsing worker's URL by resolving a relative path against its own `import.meta.url`
+(`maplibre-gl/src/util/web_worker.ts`), which is only correct when the library is served straight
+from `node_modules` - any bundler that moves it (Vite's dev cache, the production `/assets`
+folder, the APK) makes that guess 404, and a worker `new Worker(url)` 404 fails silently (an
+`error` event nobody listens to), not a thrown exception. Confirmed this broke the production
+build too, not just dev: `dist/assets/` had no worker file before the fix. **Fix:** import the
+worker through Vite (`maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url`) so Vite emits it as a
+real file and hands back its real URL, and call maplibre's own `setWorkerUrl()` with it before any
+`Map` is constructed; added `worker: { format: "es" }` to `vite.config.ts` since the worker uses
+`import()` and is loaded as `{ type: "module" }`, which Vite's default `iife` worker format can't
+bundle. **Files:** `app/src/components/market/MandiHeatmap.tsx`, `app/vite.config.ts`. **No unit
+test added** - every Vitest test in this repo runs in the `node` environment (see `vite.config.ts`
+`test.environment`), so nothing here can observe a browser Worker/bundler wiring bug; verified
+instead with `pnpm build && ls dist/assets | grep worker` (empty before the fix, a
+`maplibre-gl-worker-<hash>.js` file after) plus by hand in both `pnpm dev` and `pnpm preview`.
+**Side effect:** the worker is now its own ~500 KB chunk, precached by the PWA's existing
+`globPatterns` alongside the ~1 MB `MandiHeatmap` chunk (both already lazy/online-only) - rolls
+into the pre-existing bundle-size gap noted above, not fixed here.
+
 ### 2.5 `route-distance` + Net-₹ comparator screen — 2026-09-17
 **What it does:** answers the question 2.4 left open - "Where do you keep the most?" A new
 `route-distance` Edge Function gets real road distance/time from OpenRouteService (24 h cache in
