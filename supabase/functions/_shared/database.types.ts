@@ -101,6 +101,63 @@ export type Database = {
           },
         ]
       }
+      lots: {
+        Row: {
+          client_created_at: string | null
+          created_at: string
+          crop: string
+          farmer_id: string
+          grade: string | null
+          grade_result_id: string | null
+          id: string
+          location: unknown
+          qr_code: string
+          quantity_kg: number
+          status: Database["public"]["Enums"]["lot_status"]
+        }
+        Insert: {
+          client_created_at?: string | null
+          created_at?: string
+          crop: string
+          farmer_id: string
+          grade?: string | null
+          grade_result_id?: string | null
+          id: string
+          location?: unknown
+          qr_code: string
+          quantity_kg: number
+          status?: Database["public"]["Enums"]["lot_status"]
+        }
+        Update: {
+          client_created_at?: string | null
+          created_at?: string
+          crop?: string
+          farmer_id?: string
+          grade?: string | null
+          grade_result_id?: string | null
+          id?: string
+          location?: unknown
+          qr_code?: string
+          quantity_kg?: number
+          status?: Database["public"]["Enums"]["lot_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lots_grade_result_id_fkey"
+            columns: ["grade_result_id"]
+            isOneToOne: false
+            referencedRelation: "grade_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           banned: boolean
@@ -163,6 +220,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      lot_status:
+        | "draft"
+        | "listed"
+        | "in_mega"
+        | "sold"
+        | "in_transit"
+        | "delivered"
+        | "rescued"
+        | "salvage"
       user_role: "farmer" | "buyer" | "fpo" | "admin" | "nbfc"
     }
     CompositeTypes: {
@@ -294,6 +360,16 @@ export const Constants = {
   },
   public: {
     Enums: {
+      lot_status: [
+        "draft",
+        "listed",
+        "in_mega",
+        "sold",
+        "in_transit",
+        "delivered",
+        "rescued",
+        "salvage",
+      ],
       user_role: ["farmer", "buyer", "fpo", "admin", "nbfc"],
     },
   },
