@@ -218,7 +218,8 @@
     "loading": "Loading…",
     "demoData": "Demo data",
     "loadFailed": "This did not load. Try again.",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "dismiss": "Close"
   },
   "errors": {
     "otpInvalid": "That code is not right. Try again.",
