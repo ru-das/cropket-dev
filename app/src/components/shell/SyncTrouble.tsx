@@ -21,7 +21,7 @@ export default function SyncTrouble() {
     return (
       <div
         role="status"
-        className="flex items-center justify-between gap-2 border-l-[6px] border-mirchi bg-mirchi/10 px-4 py-2 text-meta text-mirchi-text"
+        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi bg-mirchi/10 px-4 py-2 text-meta text-mirchi-text"
       >
         <span className="flex items-center gap-2">
           <span aria-hidden="true">🔴</span>
@@ -41,7 +41,7 @@ export default function SyncTrouble() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-l-[6px] border-kesar bg-kesar/10 px-4 py-2 text-meta text-kesar-text"
+      className="animate-fade-slide-in flex items-center gap-2 border-l-[6px] border-kesar bg-kesar/10 px-4 py-2 text-meta text-kesar-text"
     >
       <span aria-hidden="true">🟧</span>
       <span>{t("sync.waitingLong")}</span>

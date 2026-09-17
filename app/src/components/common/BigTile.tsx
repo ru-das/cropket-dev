@@ -17,7 +17,7 @@ export default function BigTile({ icon: Icon, labelKey, href }: Props) {
   const { t } = useTranslation();
 
   return (
-    <div className="relative flex min-h-24 flex-col items-center justify-center gap-2 rounded-card border border-line bg-surface p-4 text-center">
+    <div className="relative flex min-h-24 flex-col items-center justify-center gap-2 rounded-card border border-line bg-surface p-4 text-center transition-transform duration-150 ease-out has-[a:active]:scale-[0.97]">
       <Link to={href} className="absolute inset-0" aria-label={t(labelKey)} />
       <Icon aria-hidden="true" size={28} className="pointer-events-none text-leaf-dark" />
       <span className="pointer-events-none text-body font-semibold text-ink">{t(labelKey)}</span>

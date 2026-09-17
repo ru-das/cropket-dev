@@ -1466,6 +1466,49 @@ separate cleanup 2.4 flagged, not part of this item.
 - The 🏆 Cropket-buyer row from SPEC.md §4.9's wireframe is still missing on purpose; add it in
   3.5 once a real top bid exists to price it from.
 
+### UI polish: tap feedback + purposeful motion — 2026-09-17
+**What it does:** Not a milestone item - a cross-cutting refinement of the screens M0-M2 already
+shipped, since none of them had any transition at all (buttons and cards just snapped). One rule
+in `globals.css`, keyed off the `rounded-button`/`rounded-card` utility classes every screen
+already uses, gives every existing button and card link a 150 ms press-scale + colour transition
+for free - no per-screen edits needed for that part. A `fade-slide-in` keyframe (also added once)
+is used in the handful of spots where something state-changes into view rather than always being
+on screen: the offline banner and the "sync failed / waiting" strip ease in instead of popping,
+the sync header's "⟳" now actually spins while something is pending, the bottom nav's active tab
+colour-transitions instead of snapping, each new question in onboarding's chat-style transcript
+eases in as it appears (the one screen that's explicitly a sequence), and the A/B/C grade badge
+on the scan result screen fades/settles in on reveal (the pay-off moment of a scan). `BigTile`
+needed its own `has-[a:active]:scale-[0.97]` since its tap target is a link laid over a div, so
+the global button rule can't reach it. SPEC.md §6.1's "very little motion, only on state change"
+was the brief throughout - nothing here is decorative, and the existing global
+`prefers-reduced-motion` rule in `globals.css` already collapses all of it to ~0 ms, so no new
+per-animation media query was needed.
+**Files:** `app/src/styles/globals.css`, `app/src/components/shell/{NetworkBanner,SyncTrouble,
+SyncStatus,BottomNav}.tsx`, `app/src/components/common/BigTile.tsx`,
+`app/src/routes/onboarding/OnboardingPage.tsx`, `app/src/routes/farmer/ScanResultPage.tsx`. No
+new package, no new file, no folder change.
+**Mocked:** nothing.
+**Test by hand:** at 360 px, in all three languages -
+1. `pnpm dev` → farmer home: tap a tile → it presses in slightly; tap a bottom-nav tab → the
+   colour eases instead of snapping.
+2. DevTools → Offline → the 🟧 strip eases in under the header instead of popping; back online, it
+   eases back out.
+3. Onboarding → each new question fades/slides in as you answer the one before it.
+4. Scan a crop → on the result screen, the grade badge settles in rather than appearing instantly.
+5. If anything is queued in the outbox, the header's "⟳" spins until it clears.
+6. DevTools → Rendering → emulate `prefers-reduced-motion: reduce` → repeat 1-4, everything above
+   is near-instant, nothing is missing (no animation-only content).
+**Tests:** none new - this is CSS/markup-only motion with no branching logic (`CLAUDE.md` §6 "no
+UI snapshot tests"). `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (242 tests,
+unchanged - this item added no test-worthy logic). Ran the impeccable mechanical detector over
+the changed files: no findings.
+**Next / known gaps:**
+- Buyer/FPO/admin homes get only the free global button-press feedback - they're single-screen
+  stubs until M3 gives them real content worth animating.
+- No manual on-device check this session (no browser/Playwright available here yet - same gap
+  M2.5's handoff already flagged); do the DevTools pass above, and the real-device Slow-3G pass,
+  before the demo.
+
 ## 🔑 Keys and 🧰 tools still needed
 
 <!-- Claude Code keeps this list current. Remove a line when it's done. -->

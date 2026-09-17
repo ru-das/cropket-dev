@@ -23,6 +23,38 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Tap feedback for every button/link that already uses the shared radius
+     utilities (SPEC.md §6.1 "very little motion" - one feedback rule for
+     every control, nothing bespoke per screen). Native `disabled` already
+     blocks `:active`, so a disabled button never scales. */
+  :where(button.rounded-button, a.rounded-button, a.rounded-card) {
+    transition:
+      transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 150ms ease-out,
+      border-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+  :where(button.rounded-button, a.rounded-button, a.rounded-card):active {
+    transform: scale(0.97);
+  }
+
+  /* Content that appears rather than always being on screen (an offline/sync
+     strip, a new chat-style question, a grade reveal) eases in instead of
+     popping - SPEC.md §6.1 "very little motion, only on state change". */
+  @keyframes fade-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-slide-in {
+    animation: fade-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
   /* Very little motion, and none at all if the user asked for that
      (SPEC.md §6.1) */
   @media (prefers-reduced-motion: reduce) {

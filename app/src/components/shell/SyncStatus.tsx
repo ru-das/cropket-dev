@@ -20,7 +20,13 @@ export default function SyncStatus({ pending, total }: SyncStatusProps) {
 
   return (
     <span role="status" className="text-meta text-ink-muted">
-      {pending > 0 ? "⟳ " : "✓ "}
+      {pending > 0 ? (
+        <span aria-hidden="true" className="motion-safe:inline-block motion-safe:animate-spin">
+          ⟳
+        </span>
+      ) : (
+        "✓"
+      )}{" "}
       {label}
     </span>
   );

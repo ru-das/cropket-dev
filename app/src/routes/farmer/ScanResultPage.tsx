@@ -93,8 +93,11 @@ export default function ScanResultPage() {
         {view === "done" && data && isDoneGrade(data) && (
           <>
             {/* grade is `check (grade in ('A','B','C'))` at the DB level -
-                isDoneGrade only proves "not null" to TypeScript. */}
-            <GradeBadge grade={data.grade as Grade} kind={data.kind === "assured" ? "assured" : "indicative"} />
+                isDoneGrade only proves "not null" to TypeScript. The reveal
+                gets a small entrance - it's the pay-off moment of the scan. */}
+            <div className="animate-fade-slide-in">
+              <GradeBadge grade={data.grade as Grade} kind={data.kind === "assured" ? "assured" : "indicative"} />
+            </div>
             {data.needs_human_check && (
               <p className="text-meta text-haldi-text">{t("grade.needsHumanCheck")}</p>
             )}

@@ -165,7 +165,11 @@ export default function OnboardingPage() {
         {steps.slice(0, currentIndex + 1).map((step, index) => {
           const isCurrent = index === currentIndex;
           return (
-            <div key={step} ref={isCurrent ? currentRef : undefined} className="mt-6 first:mt-2">
+            <div
+              key={step}
+              ref={isCurrent ? currentRef : undefined}
+              className={isCurrent ? "animate-fade-slide-in mt-6 first:mt-2" : "mt-6 first:mt-2"}
+            >
               <div className="flex items-center gap-2">
                 <p className="text-card font-display text-ink">🌾 {t(questionKey(step, role))}</p>
                 <VoiceButton textKey={questionKey(step, role)} />

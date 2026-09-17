@@ -38,7 +38,7 @@ export default function BottomNav() {
           end={end}
           className={({ isActive }) =>
             cn(
-              "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-[3px] py-1 text-meta",
+              "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-[3px] py-1 text-meta transition-colors duration-150",
               isActive
                 ? "border-leaf text-leaf-dark font-semibold"
                 : "border-transparent text-ink-muted",

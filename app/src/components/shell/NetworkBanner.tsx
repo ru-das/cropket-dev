@@ -12,7 +12,7 @@ export default function NetworkBanner() {
   return (
     <div
       role="status"
-      className="flex items-center gap-2 border-l-[6px] border-kesar bg-kesar/10 px-4 py-2 text-meta text-kesar-text"
+      className="animate-fade-slide-in flex items-center gap-2 border-l-[6px] border-kesar bg-kesar/10 px-4 py-2 text-meta text-kesar-text"
     >
       <span aria-hidden="true">🟧</span>
       <span>{t("offline.banner")}</span>
