@@ -108,6 +108,7 @@
       "fair": "Fair",
       "poor": "Poor"
     },
+    "damageHint": "Less damage is better.",
     "confidence": "AI is {{pct}}% sure",
     "lowConfidence": "Photo not clear. Scan again in daylight.",
     "needsHumanCheck": "Needs human check",

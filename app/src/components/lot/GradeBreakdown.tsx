@@ -12,13 +12,26 @@ type Props = {
   confidence: number;
 };
 
-function BarRow({ label, value, fraction }: { label: string; value: string; fraction: number }) {
+// Size and colour bars fill green because longer = better there. Damage is
+// the opposite (longer = worse), so it needs its own warning colour - a
+// green damage bar reads as "good" to a farmer scanning shapes, not words.
+function BarRow({
+  label,
+  value,
+  fraction,
+  tone = "leaf",
+}: {
+  label: string;
+  value: string;
+  fraction: number;
+  tone?: "leaf" | "mirchi";
+}) {
   return (
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 text-body text-ink">{label}</span>
       <div aria-hidden="true" className="h-3 flex-1 overflow-hidden rounded-full bg-line">
         <div
-          className="h-full rounded-full bg-leaf"
+          className={tone === "mirchi" ? "h-full rounded-full bg-mirchi" : "h-full rounded-full bg-leaf"}
           style={{ width: `${Math.round(fraction * 100)}%` }}
         />
       </div>
@@ -42,7 +55,13 @@ export default function GradeBreakdown({ sizeLabel, colourPct, damagePct, confid
         value={t(`grade.colourLabel.${colourLabelFor(colourPct)}`)}
         fraction={colourPct / 100}
       />
-      <BarRow label={t("grade.damage")} value={`${Math.round(damagePct)}%`} fraction={damagePct / 100} />
+      <BarRow
+        label={t("grade.damage")}
+        value={`${Math.round(damagePct)}%`}
+        fraction={damagePct / 100}
+        tone="mirchi"
+      />
+      <p className="text-meta text-mirchi-text">{t("grade.damageHint")}</p>
       <p className="text-meta text-ink-muted">
         {t("grade.confidence", { pct: Math.round(confidence) })}
       </p>
