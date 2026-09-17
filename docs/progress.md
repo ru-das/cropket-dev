@@ -32,7 +32,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
 - [x] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
 - [x] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
-- [ ] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
+- [x] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
 
 ## M3 — Buyer marketplace
 - [ ] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
@@ -1349,6 +1349,99 @@ than fixing it silently, since it's outside this item's scope.
 - No 30-day price chart (SPEC.md §9.2 Phase 2, now correctly marked P1).
 - The main bundle's pre-existing 200 KB overage (above) - worth a dedicated look, not part of
   this item.
+
+### 2.5 `route-distance` + Net-₹ comparator screen — 2026-09-17
+**What it does:** answers the question 2.4 left open - "Where do you keep the most?" A new
+`route-distance` Edge Function gets real road distance/time from OpenRouteService (24 h cache in
+a new `route_cache` table) or a straight-line × 1.3 mock when `ORS_API_KEY` is missing, and a new
+screen at `/farmer/lots/:id/compare` (reached from a button on the lot detail page) shows one row
+per Nashik mandi, sorted by what the farmer actually keeps (`netRupee()`, already built and
+tested in 2.2). Tapping a row opens transport/fees/weight-loss underneath, using a native
+`<details>` disclosure - no bottom-sheet component needed. Mandis only for now: no 🏆
+Cropket-buyer row and no "Sell on Cropket" button - real bids don't exist until 3.3, and an
+invented Cropket price would be exactly the mock-shown-as-real thing CLAUDE.md §0 rule 10
+forbids (decided with the user before building).
+**A SPEC.md fix in the same commit (CLAUDE.md §0 rule 3):** §5.6's `route_cache` row was
+`from_hash, to_hash, km, minutes, alternatives (jsonb), fetched_at`. Built instead with rounded
+`from_lat/from_lng/to_lat/to_lng` (numeric(8,3), ~110 m buckets) - no hashing code needed, and
+the table stays readable when debugging a distance - and no `alternatives` column, since
+alternative routes only feed P2 risk-aware routing (§9.2), not built in the prototype. SPEC.md
+§5.6 now describes the real shape.
+**How it fits together:**
+- `route_cache` (migration) - service-role only, same "no client access at all" shape as
+  `escrows`/`escrow_events`/`payouts`. Only real ORS results are cached; a mock result is free to
+  recompute, so caching it would freeze the "Demo data" tag in place after a key is added.
+- `_shared/domain/schemas/route.ts` - `RouteRequest`/`RouteLeg` zod shapes.
+- `_shared/domain/geo.ts` - new `straightLineRoute()` (haversine × 1.3, at a fixed 30 km/h rural
+  speed for `minutes` - SPEC.md has no mock number for travel time, only distance, so this is a
+  new assumption, called out as one). Shared by `integrations/ors/mock.ts` **and** the app's
+  offline fallback (`services/routes.ts`), so the exact same number shows on screen whether the
+  mock ran on the server or on the phone.
+- `_shared/integrations/ors/` - `mock.ts`/`real.ts`/`index.ts`, same three-file adapter shape as
+  `integrations/agmarknet` and `integrations/ai`. `real.ts` makes one ORS Matrix API call for all
+  destinations at once (not N directions calls) and is the one place that flips `{lat,lng}` to
+  ORS's `[lng,lat]` order, with a comment - the same trap `geo.ts`'s `toPointWKT()` already
+  documents. A set key whose call fails 502s (`ROUTE_UNAVAILABLE`) - never a quiet fallback to
+  mock (CLAUDE.md §5 honesty rule).
+- `route-distance/index.ts` - thin: `requireRole(farmer)` → parse → (real mode only) read
+  `route_cache` for anything cached inside the last 24 h → call the adapter for what's missing →
+  upsert those rows → reply in the caller's `to[]` order.
+- `services/routes.ts` (new) - `useRouteDistances(from, to)`, `staleTime` 24 h to match the
+  server cache. Lets a network error throw (never caught) so TanStack Query's saved copy stays on
+  screen instead of being overwritten by a guess; only when there is truly nothing yet (first
+  load, offline, no farmer location) does it compute the same `straightLineRoute()` fallback.
+- `services/prices.ts` - `fetchMarketSnapshot()` now also reads `crop_rules.transit_loss_pct` and
+  the cheapest seeded transporter (`transporters` order by rate asc limit 1 - one flat rate
+  whatever the load, marked `ponytail:`, real vehicle choice arrives with truck booking in Phase
+  4 P1). New pure `buildComparisonRows()` calls `netRupee()` once per mandi and sorts by
+  `youKeepPaise` - not clamped at zero, same as `netRupee()` itself, so a losing row is shown, not
+  hidden. New `mandisWithCoords()` helper (mandi has a saved lat/lng) is shared by
+  `pickHeroMandi()` (small simplification, same behaviour) and the new comparator.
+**Mocked:** road distance, only when `ORS_API_KEY` is empty (it is currently **set** on this
+laptop, so the screen runs on real ORS distances/times day to day - confirmed by hand below).
+Everything else (prices, transit loss, transporter rate) was already real-or-mock from 2.1-2.4.
+**Tested by hand against `cropket-dev`** (curl, farmer test number `9090910001`/`910001`):
+1. Real call (Nashik → Lasalgaon/Niphad coordinates) → `200`, real km/minutes,
+   `source: "ors"` - cross-checked against Google Maps' road distance (56.65 km / 33.08 km, both
+   within a few km of the map's own numbers).
+2. `route_cache` had 2 rows afterward with the right rounded coordinates.
+3. The exact same call repeated → identical numbers, **same `fetched_at`** - proves the cache was
+   read, not a second ORS call made. Test rows deleted afterward so `cropket-dev` stays clean.
+4. Missing body field → `400 VALIDATION_FAILED`. No `Authorization` header → `401`.
+5. `bash scripts/check-functions.sh` - config block, CORS pre-flight and auth-check all ✅.
+**Manual UI check not done this session:** no browser tool was available, so the screen itself
+(360 px width, all three languages, `pnpm build && pnpm preview` + DevTools Offline) was not
+opened and looked at - only typechecked, linted, unit-tested and built successfully. Please do
+that pass by hand before the next demo.
+**Files:** `supabase/migrations/20260917141016_route_cache.sql` (new),
+`supabase/functions/_shared/domain/schemas/route.ts` (new),
+`supabase/functions/_shared/domain/geo.ts` (+`straightLineRoute`, `ROAD_DETOUR_FACTOR`,
+`RURAL_SPEED_KMH`), `supabase/functions/_shared/integrations/ors/{index,mock,real,types}.ts`
+(new), `supabase/functions/route-distance/index.ts` (new), `supabase/config.toml`
+(`[functions.route-distance]`), `app/src/services/routes.ts` (new), `app/src/services/prices.ts`
+(+`transitLossPct`, `cheapestTransporter`, `buildComparisonRows`, `mandisWithCoords`),
+`app/src/routes/farmer/ComparePage.tsx` (new), `app/src/routes/farmer/LotDetailPage.tsx` (+the
+"Where do you keep the most?" button), `app/src/app/router.tsx` (+the `/compare` route),
+`en.json`/`hi.json`/`mr.json` (+`compare.*`), SPEC.md §5.6 (route_cache fix).
+**Tests:** `app/tests/unit/domain/geo.test.ts` (+`straightLineRoute`: detour factor, rural-speed
+minutes, zero for the same point), `app/tests/unit/integrations/ors.test.ts` (new - mock legs
+pass the same `RouteLeg` schema real.ts must pass, farther = more km),
+`app/tests/unit/services/prices.test.ts` (+`buildComparisonRows`: best-you-keep row first even
+when a farther mandi's price is higher, a negative you-keep is shown not hidden, `isDemo` from
+either a mock price or a mock distance, transport+fees+loss+youKeep sums back to gross;
++`mandisWithCoords`), `supabase/tests/rls_market.sql` (+`route_cache` has RLS on, `authenticated`
+can neither select nor insert it). `pnpm lint && pnpm typecheck && pnpm test` (235 tests, all
+green) and `bash scripts/test-sql.sh` both pass.
+**Bundle size note (pre-existing, not fixed here):** the main JS chunk grew from 866.6 kB raw /
+257.4 kB gzip (2.4's number) to 889.9 kB raw / 263.9 kB gzip - this item's own share is ~23 kB
+raw / ~6.5 kB gzip of that. The pre-existing overage past CLAUDE.md's 200 KB budget is still the
+separate cleanup 2.4 flagged, not part of this item.
+**Next / known gaps:**
+- **Next item: 3.1** `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve +
+  `VerifiedBadge` - the start of M3, the buyer marketplace.
+- No manual UI/offline/360px pass this session (see above) - worth doing before the demo.
+- The 🏆 Cropket-buyer row from SPEC.md §4.9's wireframe is still missing on purpose; add it in
+  3.5 once a real top bid exists to price it from.
 
 ## 🔑 Keys and 🧰 tools still needed
 

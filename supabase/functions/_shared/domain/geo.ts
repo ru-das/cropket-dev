@@ -42,3 +42,27 @@ export function haversineKm(a: LatLng, b: LatLng): number {
   const h = sinLat * sinLat + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
 }
+
+// SPEC.md §9.5 "road distance ... else straight line × 1.3 (mock)" - a
+// straight road never exists, so a fixed detour factor stands in for real
+// road geometry when ORS has no key. Used by `integrations/ors/mock.ts`
+// (2.5) and by the app's offline fallback in `services/routes.ts`, so the
+// exact same number is on screen whether the mock ran on the server or on
+// the phone.
+export const ROAD_DETOUR_FACTOR = 1.3;
+
+// SPEC.md has no number for mock *travel time* (only distance) - a rural
+// Maharashtra state-highway average stands in until ORS gives a real one.
+export const RURAL_SPEED_KMH = 30;
+
+/**
+ * The mock road distance/time between two points: haversine × the detour
+ * factor, at a fixed rural speed. Pure function so `integrations/ors/mock.ts`
+ * (server) and the app's offline comparator fallback (2.5) share one
+ * implementation instead of two copies of the same fudge factor drifting
+ * apart.
+ */
+export function straightLineRoute(a: LatLng, b: LatLng): { km: number; minutes: number } {
+  const km = haversineKm(a, b) * ROAD_DETOUR_FACTOR;
+  return { km, minutes: (km / RURAL_SPEED_KMH) * 60 };
+}

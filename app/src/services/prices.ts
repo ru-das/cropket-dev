@@ -12,7 +12,9 @@ import { advise, type Advice, type PriceDay } from "@shared/advice.ts";
 import { referenceFloorPaise, type FloorMethod } from "@shared/floor.ts";
 import type { HeatColour } from "@shared/heat.ts";
 import { haversineKm, type LatLng } from "@shared/geo.ts";
+import { netRupee, MANDI_CHARGES } from "@shared/netRupee.ts";
 import type { Crop } from "@shared/crops.ts";
+import type { RouteLeg } from "@shared/schemas/route.ts";
 import type { Database } from "@/lib/database.types";
 
 type MandiRow = Pick<Database["public"]["Tables"]["mandis"]["Row"], "id" | "name" | "lat" | "lng">;
@@ -43,7 +45,20 @@ export type MarketSnapshot = {
   advice: Advice | null;
   floorPaise: number | null;
   perishability: number;
+  /** crop_rules.transit_loss_pct - the Net-₹ comparator's (2.5) weight-loss input. */
+  transitLossPct: number;
+  /** The cheapest seeded transporter (2.5) - null only if `transporters` is empty. */
+  cheapestTransporter: { ratePerKmPaise: number; name: string } | null;
 };
+
+/** A mandi price with coordinates guaranteed - the ones a route can be drawn to. */
+export type RoutableMandiPrice = MandiPrice & { mandi: { lat: number; lng: number } };
+
+export function mandisWithCoords(mandiPrices: MandiPrice[]): RoutableMandiPrice[] {
+  return mandiPrices.filter(
+    (m): m is RoutableMandiPrice => m.mandi.lat !== null && m.mandi.lng !== null,
+  );
+}
 
 export const priceKeys = {
   market: (crop: Crop) => ["prices", "market", crop] as const,
@@ -134,10 +149,7 @@ export function pickHeroMandi(params: {
   const { mandiPrices, perishability, farmerLocation } = params;
   if (mandiPrices.length === 0) return null;
 
-  const withCoords = mandiPrices.filter(
-    (m): m is MandiPrice & { mandi: { lat: number; lng: number } } =>
-      m.mandi.lat !== null && m.mandi.lng !== null,
-  );
+  const withCoords = mandisWithCoords(mandiPrices);
   const rankByDistance =
     perishability >= PERISHABLE_THRESHOLD && farmerLocation !== null && withCoords.length > 0;
 
@@ -161,17 +173,83 @@ export function pickHeroMandi(params: {
   };
 }
 
+export type ComparisonRow = {
+  mandi: MandiRow;
+  pricePerQuintalPaise: number;
+  grossPaise: number;
+  transportPaise: number;
+  feesPaise: number;
+  lossPaise: number;
+  youKeepPaise: number;
+  isBest: boolean;
+  /** Mock price or mock (straight-line) distance - SPEC.md §4.9 "Demo data". */
+  isDemo: boolean;
+};
+
+/**
+ * SPEC.md §4.9 Net-₹ Comparator: one row per mandi, sorted by what the
+ * farmer actually keeps. `netRupee()` (2.2, already tested) does the money
+ * math - this just calls it once per mandi with that mandi's own distance
+ * and price, then ranks the results. Mandis only for now, no buyer/Cropket
+ * row (real bids don't exist until 3.3).
+ */
+export function buildComparisonRows(params: {
+  mandiPrices: RoutableMandiPrice[];
+  legs: RouteLeg[];
+  quantityKg: number;
+  transitLossPct: number;
+  ratePerKmPaise: number;
+}): ComparisonRow[] {
+  const { mandiPrices, legs, quantityKg, transitLossPct, ratePerKmPaise } = params;
+
+  const rows = mandiPrices.map((m, i) => {
+    const leg = legs[i];
+    const net = netRupee({
+      pricePerQuintalPaise: m.todayModalPricePaise,
+      quantityKg,
+      routeKm: leg.km,
+      ratePerKmPaise,
+      charges: MANDI_CHARGES,
+      transitLossPct,
+    });
+    return {
+      mandi: m.mandi,
+      pricePerQuintalPaise: m.todayModalPricePaise,
+      grossPaise: net.grossPaise,
+      transportPaise: net.transportPaise,
+      feesPaise: net.feesPaise,
+      lossPaise: net.lossPaise,
+      youKeepPaise: net.youKeepPaise,
+      isBest: false,
+      isDemo: m.isDemo || leg.source === "mock",
+    };
+  });
+
+  rows.sort((a, b) => b.youKeepPaise - a.youKeepPaise);
+  if (rows[0]) rows[0].isBest = true;
+  return rows;
+}
+
 async function fetchMarketSnapshot(crop: Crop): Promise<MarketSnapshot> {
   const today = todayIso();
   const historyStart = addDays(today, -30);
 
-  const [mandisRes, pricesRes, heatRes, weatherRes, cropRuleRes] = await Promise.all([
-    supabase.from("mandis").select("id, name, lat, lng"),
-    supabase.from("mandi_prices").select("*").eq("crop", crop).gte("date", historyStart),
-    supabase.from("mandi_heat").select("*").eq("crop", crop).gte("date", addDays(today, -2)),
-    supabase.from("weather_daily").select("*").eq("district", "Nashik").gt("date", today),
-    supabase.from("crop_rules").select("*").eq("crop", crop).single(),
-  ]);
+  const [mandisRes, pricesRes, heatRes, weatherRes, cropRuleRes, transporterRes] =
+    await Promise.all([
+      supabase.from("mandis").select("id, name, lat, lng"),
+      supabase.from("mandi_prices").select("*").eq("crop", crop).gte("date", historyStart),
+      supabase.from("mandi_heat").select("*").eq("crop", crop).gte("date", addDays(today, -2)),
+      supabase.from("weather_daily").select("*").eq("district", "Nashik").gt("date", today),
+      supabase.from("crop_rules").select("*").eq("crop", crop).single(),
+      // Cheapest seeded transporter (2.5 Net-₹ comparator) - `transporters`
+      // only grants these three columns to the client, phone is service-role
+      // only (rls_market.sql, shipments-create's future use).
+      supabase
+        .from("transporters")
+        .select("name, rate_per_km_paise")
+        .order("rate_per_km_paise")
+        .limit(1),
+    ]);
 
   // Checked one at a time, not in a loop over an array - Postgrest's
   // response type is a discriminated union on `error`, so only a check on
@@ -181,6 +259,7 @@ async function fetchMarketSnapshot(crop: Crop): Promise<MarketSnapshot> {
   if (heatRes.error) throw toAppError(heatRes.error);
   if (weatherRes.error) throw toAppError(weatherRes.error);
   if (cropRuleRes.error) throw toAppError(cropRuleRes.error);
+  if (transporterRes.error) throw toAppError(transporterRes.error);
 
   const mandis: MandiRow[] = mandisRes.data;
   const priceRows: PriceRow[] = pricesRes.data;
@@ -217,6 +296,13 @@ async function fetchMarketSnapshot(crop: Crop): Promise<MarketSnapshot> {
       modalPricesPaise: priceRows.map((row) => row.modal_price_paise),
     }),
     perishability: cropRule.perishability,
+    transitLossPct: cropRule.transit_loss_pct,
+    cheapestTransporter: transporterRes.data?.[0]
+      ? {
+          ratePerKmPaise: transporterRes.data[0].rate_per_km_paise,
+          name: transporterRes.data[0].name,
+        }
+      : null,
   };
 }
 

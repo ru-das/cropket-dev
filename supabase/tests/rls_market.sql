@@ -8,7 +8,7 @@
 -- committed `supabase/seed.sql` data) so this test passes whether or not
 -- the seed has been run. Everything here rolls back.
 begin;
-select plan(14);
+select plan(16);
 
 -- fixture rows, inserted as the table owner - the same way seed.sql and
 -- cron-fetch-prices (2.3, service role) write these tables. Never as
@@ -21,6 +21,11 @@ values ('99999999-9999-9999-9999-999999999999', 'onion', '2020-01-01', 176000, 2
 
 insert into transporters (id, name, phone, rate_per_km_paise) values
   ('99999999-9999-9999-9999-999999999998', 'Test Transport', '7999999999', 2000);
+
+-- route_cache (2.5): service-role only, same "no client access at all"
+-- shape as escrows/escrow_events/payouts (CLAUDE.md §4).
+insert into route_cache (from_lat, from_lng, to_lat, to_lng, km, minutes) values
+  (20.000, 74.000, 20.100, 74.100, 15.5, 20);
 
 set local role authenticated;
 
@@ -75,6 +80,19 @@ select throws_ok(
   $$ select phone from transporters limit 1 $$,
   null, null,
   'an authenticated user cannot select transporters.phone - no column grant'
+);
+
+select throws_ok(
+  $$ select 1 from route_cache limit 1 $$,
+  null, null,
+  'an authenticated user cannot select route_cache - service role only'
+);
+
+select throws_ok(
+  $$ insert into route_cache (from_lat, from_lng, to_lat, to_lng, km, minutes)
+     values (21.000, 75.000, 21.100, 75.100, 10, 15) $$,
+  null, null,
+  'an authenticated user cannot insert into route_cache'
 );
 
 reset role;

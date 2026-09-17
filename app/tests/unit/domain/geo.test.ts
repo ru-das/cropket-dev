@@ -3,7 +3,14 @@
 // this file exists to catch is lng/lat swapped, which silently moves a
 // Nashik farmer's pin into the sea.
 import { describe, expect, it } from "vitest";
-import { LatLng, haversineKm, toPointWKT } from "@shared/geo.ts";
+import {
+  LatLng,
+  haversineKm,
+  straightLineRoute,
+  toPointWKT,
+  ROAD_DETOUR_FACTOR,
+  RURAL_SPEED_KMH,
+} from "@shared/geo.ts";
 
 describe("toPointWKT", () => {
   it("puts longitude before latitude, as PostGIS expects", () => {
@@ -57,5 +64,23 @@ describe("haversineKm", () => {
     const a = { lat: 20.1462, lng: 74.234 };
     const b = { lat: 20.0433, lng: 74.4864 };
     expect(haversineKm(a, b)).toBeCloseTo(haversineKm(b, a), 10);
+  });
+});
+
+describe("straightLineRoute", () => {
+  const a = { lat: 20.1462, lng: 74.234 };
+  const b = { lat: 20.0847, lng: 74.1116 };
+
+  it("is zero for the same point", () => {
+    expect(straightLineRoute(a, a)).toEqual({ km: 0, minutes: 0 });
+  });
+
+  it("is haversine distance x the detour factor", () => {
+    expect(straightLineRoute(a, b).km).toBeCloseTo(haversineKm(a, b) * ROAD_DETOUR_FACTOR, 10);
+  });
+
+  it("derives minutes from the rural speed constant", () => {
+    const { km, minutes } = straightLineRoute(a, b);
+    expect(minutes).toBeCloseTo((km / RURAL_SPEED_KMH) * 60, 10);
   });
 });

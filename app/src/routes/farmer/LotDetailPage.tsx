@@ -1,9 +1,10 @@
 // Lot detail (SPEC.md §4.7 right panel): photo, grade, weight, status and
 // the QR code, whether the lot is already on the server or still sitting in
 // the outbox (useLot() gives one LotView shape either way - services/lots.ts).
-// No "Check price first" / "Sell on Cropket" buttons yet - those need M2's
-// prices and M3's marketplace, so they're left out rather than shown as
-// dead buttons (same call 1.5 made for "no Create lot button yet").
+// "Where do you keep the most?" (2.5) links to the Net-₹ comparator. No
+// "Sell on Cropket" button yet - that needs M3's marketplace, so it's left
+// out rather than shown as a dead button (same call 1.5 made for "no Create
+// lot button yet").
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { ArrowLeft } from "lucide-react";
@@ -72,6 +73,13 @@ export default function LotDetailPage() {
       <div className="mt-6">
         <QRLabel lotId={lot.id} code={lot.qrCode} />
       </div>
+
+      <Link
+        to={`/farmer/lots/${lot.id}/compare`}
+        className="mt-6 flex h-14 w-full items-center justify-center rounded-button border border-leaf bg-leaf text-body font-semibold text-white"
+      >
+        {t("compare.title")}
+      </Link>
     </div>
   );
 }

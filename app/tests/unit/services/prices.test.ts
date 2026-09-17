@@ -5,11 +5,15 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAdviceInput,
+  buildComparisonRows,
   isDemoPrice,
   latestPerMandi,
+  mandisWithCoords,
   pickHeroMandi,
   type MandiPrice,
+  type RoutableMandiPrice,
 } from "@/services/prices";
+import type { RouteLeg } from "@shared/schemas/route.ts";
 
 const LASALGAON = { id: "n1", name: "Lasalgaon", lat: 20.1462, lng: 74.234 };
 const NIPHAD = { id: "n2", name: "Niphad", lat: 20.0847, lng: 74.1116 };
@@ -162,5 +166,77 @@ describe("buildAdviceInput", () => {
       },
     ];
     expect(buildAdviceInput(rows)[0].arrivalsTonnes).toBe(40);
+  });
+});
+
+describe("mandisWithCoords", () => {
+  it("keeps mandis with a saved lat/lng", () => {
+    const withCoords = mandiPrice({ mandi: LASALGAON });
+    expect(mandisWithCoords([withCoords])).toHaveLength(1);
+  });
+
+  it("drops a mandi with no saved location", () => {
+    const noCoords = mandiPrice({ mandi: { id: "n3", name: "No GPS", lat: null, lng: null } });
+    expect(mandisWithCoords([noCoords])).toHaveLength(0);
+  });
+});
+
+describe("buildComparisonRows", () => {
+  const near = mandiPrice({ mandi: LASALGAON, todayModalPricePaise: 190000 }) as RoutableMandiPrice; // ₹1,900/quintal
+  const far = mandiPrice({ mandi: NIPHAD, todayModalPricePaise: 190010 }) as RoutableMandiPrice; // barely higher
+
+  const baseParams = { quantityKg: 500, transitLossPct: 2, ratePerKmPaise: 1800 };
+
+  it("sorts by what the farmer keeps, best row first", () => {
+    // `near` (1 km) beats `far` (1,000 km) despite far's higher price - the
+    // huge transport cost eats far's tiny price edge (SPEC.md §4.9 "a far
+    // mandi with a higher price can lose").
+    const legs: RouteLeg[] = [
+      { km: 1, minutes: 2, source: "ors" },
+      { km: 1000, minutes: 1200, source: "ors" },
+    ];
+    const rows = buildComparisonRows({ mandiPrices: [near, far], legs, ...baseParams });
+
+    expect(rows[0].mandi.name).toBe("Lasalgaon");
+    expect(rows[0].isBest).toBe(true);
+    expect(rows[1].isBest).toBe(false);
+    expect(rows[0].youKeepPaise).toBeGreaterThan(rows[1].youKeepPaise);
+  });
+
+  it("shows a negative you-keep instead of hiding the row (netRupee is not clamped)", () => {
+    const tiny = mandiPrice({ mandi: LASALGAON, todayModalPricePaise: 1000 }) as RoutableMandiPrice; // ₹10/quintal
+    const legs: RouteLeg[] = [{ km: 100, minutes: 150, source: "ors" }];
+    const rows = buildComparisonRows({
+      mandiPrices: [tiny],
+      legs,
+      quantityKg: 1,
+      transitLossPct: 2,
+      ratePerKmPaise: 1800,
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].youKeepPaise).toBeLessThan(0);
+  });
+
+  it("flags isDemo when the price is a mock", () => {
+    const mockPrice = mandiPrice({ mandi: LASALGAON, isDemo: true }) as RoutableMandiPrice;
+    const legs: RouteLeg[] = [{ km: 5, minutes: 10, source: "ors" }];
+    const rows = buildComparisonRows({ mandiPrices: [mockPrice], legs, ...baseParams });
+    expect(rows[0].isDemo).toBe(true);
+  });
+
+  it("flags isDemo when the distance is a mock (straight-line fallback)", () => {
+    const realPrice = mandiPrice({ mandi: LASALGAON, isDemo: false }) as RoutableMandiPrice;
+    const legs: RouteLeg[] = [{ km: 5, minutes: 10, source: "mock" }];
+    const rows = buildComparisonRows({ mandiPrices: [realPrice], legs, ...baseParams });
+    expect(rows[0].isDemo).toBe(true);
+  });
+
+  it("sums transport + fees + loss + you-keep back to gross", () => {
+    const legs: RouteLeg[] = [{ km: 20, minutes: 30, source: "ors" }];
+    const rows = buildComparisonRows({ mandiPrices: [near], legs, ...baseParams });
+    const row = rows[0];
+    expect(row.transportPaise + row.feesPaise + row.lossPaise + row.youKeepPaise).toBe(
+      row.grossPaise,
+    );
   });
 });

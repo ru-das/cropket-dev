@@ -169,6 +169,22 @@
   "floor": {
     "belowFloor": "This price is below the usual floor of {{floor}}. You can still sell, but check before you decide."
   },
+  "compare": {
+    "title": "Where do you keep the most?",
+    "subtitle": "{{qty}} kg {{crop}}, Grade {{grade}}",
+    "subtitleNoGrade": "{{qty}} kg {{crop}}",
+    "columnPlace": "Place",
+    "columnPrice": "Price",
+    "columnYouKeep": "You keep",
+    "bestBadge": "Best for you",
+    "gross": "Price you'd get",
+    "transport": "Transport",
+    "transportVia": "via {{name}}, {{rate}}/km",
+    "fees": "Mandi fees",
+    "weightLoss": "Weight lost in transit",
+    "noLocation": "Add your location when you sign up to compare mandis by distance.",
+    "empty": "No mandi prices yet for this crop."
+  },
   "heat": {
     "red": "Too much crop",
     "yellow": "Normal",

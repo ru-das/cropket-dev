@@ -1026,7 +1026,7 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 | `emi_mandates` | id, loan_lead_id, farmer_id, emi_paise, remaining_paise, lender_id |
 | `overdrafts` | id, fpo_id, escrow_id, amount_paise, interest_paise, status |
 | `weather_daily` | district, date, rain_mm, temp_max, fetched_at |
-| `route_cache` | from_hash, to_hash, km, minutes, alternatives (jsonb), fetched_at |
+| `route_cache` | from_lat, from_lng, to_lat, to_lng (numeric(8,3), ~110 m buckets - no hashing code needed and the table stays readable), km, minutes, fetched_at. No `alternatives` column: that's P2 risk-aware routing (§9.2), not built in the prototype - an always-null column is dead weight (2.5 deviation). |
 | `tts_cache` | text_hash, lang, storage_path |
 | `app_config` | key, value (e.g. `min_app_version`, `mega_lot_target_kg`, `platform_fee_bps`) |
 | `rate_limits` | key, window_start, count |

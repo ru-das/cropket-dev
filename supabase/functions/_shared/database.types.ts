@@ -357,6 +357,36 @@ export type Database = {
         }
         Relationships: []
       }
+      route_cache: {
+        Row: {
+          fetched_at: string
+          from_lat: number
+          from_lng: number
+          km: number
+          minutes: number
+          to_lat: number
+          to_lng: number
+        }
+        Insert: {
+          fetched_at?: string
+          from_lat: number
+          from_lng: number
+          km: number
+          minutes: number
+          to_lat: number
+          to_lng: number
+        }
+        Update: {
+          fetched_at?: string
+          from_lat?: number
+          from_lng?: number
+          km?: number
+          minutes?: number
+          to_lat?: number
+          to_lng?: number
+        }
+        Relationships: []
+      }
       transporters: {
         Row: {
           id: string
