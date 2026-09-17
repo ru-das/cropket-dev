@@ -49,6 +49,7 @@ BHASHINI_USER_ID|fn|no|bhashini.gov.in (ULCA) → sign up → profile. Without i
 BHASHINI_API_KEY|fn|no|Bhashini (ULCA) profile → generate API key
 BHASHINI_PIPELINE_ID|fn|no|Bhashini (ULCA) → pipeline details
 FIREBASE_SERVICE_ACCOUNT_JSON|fn|no|Firebase → Project settings → Service accounts → generate key, then: base64 -w0 file.json
+INTEGRATIONS_MOCK|fn|no|Comma-separated adapter names to force mock mode, e.g. "ai" while ai-service has no /grade route yet (SPEC.md §2.2)
 CRON_SECRET|fn|yes|Random string. Also add it in Supabase Vault as cron_secret
 OTP_PEPPER|fn|yes|Random string. Needed before delivery OTP works
 WHATSAPP_TOKEN|fn|no|developers.facebook.com → your app → WhatsApp → API Setup (Phase 8)

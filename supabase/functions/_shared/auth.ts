@@ -1,0 +1,30 @@
+// Verifies the caller's JWT and reads their role from `profiles` - never
+// from the request body, so a client can never claim a role it doesn't have
+// (CLAUDE.md §4 "the role is always read from profiles on the server").
+import { AppError } from "./http.ts";
+import { db } from "./db.ts";
+
+export type AuthedUser = { id: string; role: string };
+
+export async function requireRole(req: Request, roles: string[]): Promise<AuthedUser> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) throw new AppError("UNAUTHENTICATED", 401);
+
+  const {
+    data: { user },
+    error: userError,
+  } = await db.auth.getUser(token);
+  if (userError || !user) throw new AppError("UNAUTHENTICATED", 401);
+
+  const { data: profile, error: profileError } = await db
+    .from("profiles")
+    .select("role, banned")
+    .eq("id", user.id)
+    .single();
+  if (profileError || !profile) throw new AppError("PROFILE_NOT_FOUND", 404);
+  if (profile.banned) throw new AppError("BANNED", 403);
+  if (!roles.includes(profile.role)) throw new AppError("FORBIDDEN", 403);
+
+  return { id: user.id, role: profile.role };
+}

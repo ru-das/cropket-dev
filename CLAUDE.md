@@ -202,8 +202,12 @@ supabase gen types typescript --linked | tee app/src/lib/database.types.ts > sup
 ### Edge Functions (run in the cloud)
 ```bash
 supabase functions new <function-name>
-supabase functions deploy <function-name> --use-api     # --use-api = no Docker needed
-supabase functions deploy --use-api                     # all functions
+# --import-map is required: the installed CLI does not auto-discover the
+# shared supabase/functions/deno.json (see §7 Learned Rules). Also delete
+# the per-function deno.json that `functions new` scaffolds - the project
+# uses one shared import map, not one per function.
+supabase functions deploy <function-name> --use-api --import-map supabase/functions/deno.json
+supabase functions deploy --use-api --import-map supabase/functions/deno.json   # all functions
 supabase secrets set --env-file supabase/functions/.env # after keys change
 supabase secrets list                                   # names only
 
@@ -608,3 +612,4 @@ Example:
 -->
 
 - [2026-09-16] To hoist a package for pnpm (needed once, for `vite-plugin-pwa`'s `workbox-window`), put `publicHoistPattern` in `app/pnpm-workspace.yaml`, not a `public-hoist-pattern[]=` line in `app/.npmrc`. (Why: pnpm 11 moved hoist settings to `pnpm-workspace.yaml`; the old `.npmrc` line is silently ignored — no error, `pnpm build` just fails later with "Rolldown failed to resolve import".)
+- [2026-09-17] `supabase functions deploy` needs `--import-map supabase/functions/deno.json` - the shared import map is not auto-discovered by the installed CLI (2.117.0). Also delete the per-function `deno.json` that `supabase functions new <name>` scaffolds (it shadows the shared one and has no `zod` entry). (Why: without the flag, deploy fails with `Relative import path "zod" not prefixed with / or ./ or ../`.)
