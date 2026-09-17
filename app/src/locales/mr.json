@@ -114,7 +114,16 @@
     "hear": "निकाल ऐका",
     "spoken": "ग्रेड {{grade}}. AI ला {{confidence}} टक्के खात्री आहे. आकार {{size}}, रंग {{colour}}, नुकसान {{damage}} टक्के.",
     "failed": "ग्रेड तपासणी झाली नाही.",
-    "tryAgain": "पुन्हा प्रयत्न करा"
+    "tryAgain": "पुन्हा प्रयत्न करा",
+    "createLot": "लॉट तयार करा"
+  },
+  "lots": {
+    "newTitle": "किती किलो आहे?",
+    "kg": "किलो",
+    "save": "लॉट सेव्ह करा",
+    "location": "ठिकाण: {{place}} (GPS वरून)",
+    "locationUnknown": "ठिकाण सापडले नाही",
+    "backspace": "मागे पुसा"
   },
   "me": {
     "signOut": "साइन आउट करा"

@@ -50,6 +50,15 @@ export default function ScanResultPage() {
               </p>
             </div>
             <p className="text-body text-ink-muted">⏳ {t("scan.gradeNext")}</p>
+            {/* SPEC.md §4.6: "The farmer can still create the lot; it is
+                saved on the phone as a draft" - no need to wait for the
+                grade, online or off. */}
+            <Link
+              to={id ? `/farmer/lots/new?grade=${id}` : "#"}
+              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+            >
+              ✅ {t("grade.createLot")}
+            </Link>
           </>
         )}
 
@@ -99,6 +108,12 @@ export default function ScanResultPage() {
               }}
               label={t("grade.hear")}
             />
+            <Link
+              to={`/farmer/lots/new?grade=${id}`}
+              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+            >
+              ✅ {t("grade.createLot")}
+            </Link>
           </>
         )}
 

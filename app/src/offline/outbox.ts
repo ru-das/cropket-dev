@@ -110,3 +110,14 @@ export function useOutboxStatus(): number {
     () => unresolvedCount,
   );
 }
+
+/**
+ * Runs `callback` whenever the unresolved count changes (same listener set
+ * as useOutboxStatus). offline/sync.ts uses this so a newly queued item -
+ * "create_lot" saved offline, a photo, a grade request - is sent right away
+ * when there's a connection, instead of waiting for the 60 s poll.
+ */
+export function subscribeOutbox(callback: () => void): () => void {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
+}

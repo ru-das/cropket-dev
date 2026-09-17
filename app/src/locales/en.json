@@ -114,7 +114,16 @@
     "hear": "Hear the result",
     "spoken": "Grade {{grade}}. The AI is {{confidence}} percent sure. Size {{size}}, colour {{colour}}, damage {{damage}} percent.",
     "failed": "The grade check did not work.",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "createLot": "Create lot"
+  },
+  "lots": {
+    "newTitle": "How many kg?",
+    "kg": "kg",
+    "save": "Save lot",
+    "location": "Location: {{place}} (from GPS)",
+    "locationUnknown": "Location not found",
+    "backspace": "Backspace"
   },
   "me": {
     "signOut": "Sign out"

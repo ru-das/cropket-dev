@@ -114,7 +114,16 @@
     "hear": "नतीजा सुनें",
     "spoken": "ग्रेड {{grade}}. AI को {{confidence}} प्रतिशत यकीन है. आकार {{size}}, रंग {{colour}}, नुकसान {{damage}} प्रतिशत.",
     "failed": "ग्रेड जांच नहीं हो पाई।",
-    "tryAgain": "फिर कोशिश करें"
+    "tryAgain": "फिर कोशिश करें",
+    "createLot": "लॉट बनाएं"
+  },
+  "lots": {
+    "newTitle": "कितने किलो हैं?",
+    "kg": "किलो",
+    "save": "लॉट सेव करें",
+    "location": "जगह: {{place}} (GPS से)",
+    "locationUnknown": "जगह नहीं मिली",
+    "backspace": "पीछे हटाएं"
   },
   "me": {
     "signOut": "साइन आउट करें"
