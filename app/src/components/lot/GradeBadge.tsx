@@ -15,9 +15,9 @@ type Props = {
 };
 
 const TONE: Record<Grade, string> = {
-  A: "border-pass bg-pass/10 text-pass-text",
-  B: "border-haldi bg-haldi/10 text-haldi-text",
-  C: "border-kesar bg-kesar/10 text-kesar-text",
+  A: "border-pass/40 bg-pass-light text-pass-text",
+  B: "border-haldi/40 bg-haldi-light text-haldi-text",
+  C: "border-kesar/40 bg-kesar-light text-kesar-text",
 };
 
 export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
@@ -27,7 +27,7 @@ export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full border px-3 py-1 text-body font-semibold",
+          "inline-flex items-center rounded-full border px-3 py-1 text-meta font-semibold shadow-xs",
           TONE[grade],
         )}
       >
@@ -39,12 +39,12 @@ export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   return (
     <div
       className={cn(
-        "mx-auto flex min-w-[120px] flex-col items-center gap-1 rounded-card border-2 px-8 py-5",
+        "mx-auto flex min-w-[130px] flex-col items-center gap-1.5 rounded-2xl border-2 px-8 py-5 shadow-card",
         TONE[grade],
       )}
     >
-      <span className="text-hero font-display">{t("grade.badge", { grade })}</span>
-      <span className="text-meta">{t(`grade.kind.${kind}`)}</span>
+      <span className="text-hero font-display font-bold leading-none">{t("grade.badge", { grade })}</span>
+      <span className="text-meta font-medium tracking-wide uppercase opacity-90">{t(`grade.kind.${kind}`)}</span>
     </div>
   );
 }

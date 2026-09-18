@@ -7,25 +7,36 @@
   /* Base palette (SPEC.md §6.2) */
   --color-leaf: #1f6b3a; /* brand, primary buttons, links */
   --color-leaf-dark: #154d2a; /* pressed state, header text */
-  --color-field: #f3f6f0; /* app background */
+  --color-leaf-light: #e8f5ec; /* soft green for active tabs and badges */
+  --color-leaf-hover: #19562e;
+  --color-field: #f4f7f2; /* fresh, sunlit agricultural backdrop */
   --color-surface: #ffffff; /* cards, sheets */
+  --color-surface-subtle: #f9faf7; /* soft secondary card/tile background */
   --color-soil: #5a4632; /* secondary text accents, salvage board */
+  --color-soil-light: #f7f3ed;
   --color-ink: #1b2420; /* main text */
-  --color-ink-muted: #5b6660; /* secondary text, still AA on --field */
-  --color-line: #d9e0d6; /* borders, dividers */
+  --color-ink-muted: #526058; /* secondary text, strictly AA on --field */
+  --color-line: #dfe5dc; /* borders, dividers */
+  --color-line-subtle: #edf2ea; /* inner card dividers */
 
   /* Meaning colours - same everywhere: Khata, badges, banners, map.
-     Each has a "-text" pair for AA-contrast text/icons on its own fill. */
+     Each has a "-text" pair for AA-contrast text/icons on its own fill,
+     and a "-light" pair for soft, modern tint badges. */
   --color-haldi: #f2b705; /* 🟡 money locked safely */
   --color-haldi-text: #7a5a00;
+  --color-haldi-light: #fef8e7;
   --color-neel: #2f5da8; /* 🔵 goods on the way */
   --color-neel-text: #1e3f75;
+  --color-neel-light: #eff4fc;
   --color-pass: #2e9e4f; /* 🟢 paid / done / good */
   --color-pass-text: #1d6b34;
+  --color-pass-light: #eaf7ee;
   --color-mirchi: #c8302b; /* 🔴 problem / below floor */
   --color-mirchi-text: #9a231f;
+  --color-mirchi-light: #fdf2f2;
   --color-kesar: #e07b1f; /* 🟧 offline / needs attention */
   --color-kesar-text: #8a4a0f;
+  --color-kesar-light: #fdf5ec;
 
   /* Fonts (SPEC.md §6.3). Bundled via @fontsource, imported in main.tsx.
      "Baloo 2 Variable" is the family name the variable font package
