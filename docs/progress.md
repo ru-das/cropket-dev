@@ -1546,6 +1546,29 @@ the changed files: no findings.
   M2.5's handoff already flagged); do the DevTools pass above, and the real-device Slow-3G pass,
   before the demo.
 
+### App Redesign: Refined Agro-Craft UI — 2026-09-19
+**What it does:** Complete visual overhaul and modernisation of the Cropket user interface across all screens following the "Refined Agro-Craft" aesthetic. Retains 100% of rural usability, high outdoor sunlight contrast, Devanagari typography rules (18px base Mukta, Baloo 2 hero tabular numbers), and strict multi-modal feedback (icon + word + voice). Upgrades all visual primitives with semantic tints, elevation micro-shadows, responsive container anchoring, physical QR tag styling, HUD camera brackets with ambient lighting pills, organic shield grade badges, market intelligence cards with signature border strips, transparent receipt-style Net-₹ deductions, and consistent tactile feedback.
+**Files:**
+- Tokens & styles: `app/src/styles/tokens.css`, `app/src/styles/globals.css`
+- Components: `app/src/components/lot/{GradeBadge,GradeBreakdown,LotCard,QRLabel}.tsx`, `app/src/components/voice/VoiceButton.tsx`, `app/src/components/common/{BigTile,DemoDataTag,NumberPad}.tsx`, `app/src/components/shell/{AppShell,AppHeader,BottomNav,LanguageSwitch,SyncStatus,NetworkBanner,SyncTrouble}.tsx`, `app/src/components/camera/SmartFrameCamera.tsx`, `app/src/components/market/{PriceHero,AdviceCard,FloorWarning,MandiList}.tsx`
+- Routes: `app/src/routes/welcome/WelcomePage.tsx`, `app/src/routes/login/LoginPage.tsx`, `app/src/routes/onboarding/{OnboardingPage,StepInputs}.tsx`, `app/src/routes/farmer/{FarmerHome,ScanPage,ScanResultPage,NewLotPage,LotsPage,LotDetailPage,PricesPage,ComparePage,MePage}.tsx`, `app/src/routes/buyer/BuyerHome.tsx`, `app/src/routes/fpo/FpoHome.tsx`, `app/src/routes/admin/AdminHome.tsx`, `app/src/routes/PlaceholderPage.tsx`
+**Mocked:** nothing new (unchanged).
+**Test by hand:**
+1. `pnpm dev` → navigate to `/`, test language cards and Baloo 2 typography.
+2. Login with test number → test 6-digit spaced OTP input and resend countdown.
+3. Onboarding → test visual role cards (Farmer, Buyer, FPO), crop pills, and GPS radar button.
+4. Farmer home → inspect category-tinted action tiles and greeting card.
+5. Scan → test HUD viewfinder brackets, coin target guide, and shutter button.
+6. Grade result → test organic grade shield pill and metric progress bars.
+7. Number pad & New Lot → test large tactile numeric keypad and created lot card.
+8. Lot Detail & QR Label → test dashed crate tag card and compare shortcut.
+9. Prices & Heatmap → test Baloo 2 hero price, trend pill, and heat status list.
+10. Net-₹ Compare → test top mandi highlight card and expanded receipt deductions.
+11. Profile & Roles → test farmer profile card, language switch, and partner stubs.
+**Tests:** `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass cleanly (32 test files, 242 tests passing, 0 lint errors, bundle built).
+**Next / known gaps:**
+- Ready to proceed to M3 (Buyer marketplace, KYC verification, and live bidding).
+
 ## 🔑 Keys and 🧰 tools still needed
 
 <!-- Claude Code keeps this list current. Remove a line when it's done. -->
