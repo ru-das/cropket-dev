@@ -83,31 +83,32 @@ export default function NewLotPage() {
     : (profile?.village ?? t("lots.locationUnknown"));
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Link
             to={`/farmer/scan/result/${gradeResultId}`}
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
           >
-            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
           </Link>
-          <h1 className="text-title font-display text-ink">{t("lots.newTitle")}</h1>
+          <h1 className="text-title font-display font-bold text-ink">{t("lots.newTitle")}</h1>
         </div>
         <VoiceButton textKey="lots.newTitle" />
       </div>
 
-      <p className="mt-2 text-body text-ink-muted">{cropLabel}</p>
+      <p className="text-meta font-semibold uppercase tracking-wider text-ink-muted">{cropLabel}</p>
 
-      <div className="mt-2">
-        <NumberPad value={kg} onChange={setKg} unit={t("lots.kg")} />
-      </div>
+      <NumberPad value={kg} onChange={setKg} unit={t("lots.kg")} />
 
-      <p className="mt-2 text-meta text-ink-muted">📍 {locationLine}</p>
+      <p className="inline-flex items-center gap-1.5 self-start rounded-full border border-line bg-surface px-3.5 py-1 text-meta font-medium text-ink-muted shadow-xs">
+        <span>📍</span>
+        <span>{locationLine}</span>
+      </p>
 
       {error && (
-        <p className="mt-4 rounded-card border border-line bg-surface p-4 text-body text-mirchi-text">
+        <p className="rounded-2xl border border-mirchi/30 bg-mirchi-light p-4 text-body font-medium text-mirchi-text shadow-card">
           {t(error.messageKey)}
         </p>
       )}
@@ -116,7 +117,7 @@ export default function NewLotPage() {
         type="button"
         disabled={!canSave}
         onClick={() => void handleSave()}
-        className="mt-6 h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white disabled:bg-line disabled:text-ink-muted"
+        className="mt-4 flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:bg-line disabled:text-ink-muted"
       >
         {t("lots.save")}
       </button>

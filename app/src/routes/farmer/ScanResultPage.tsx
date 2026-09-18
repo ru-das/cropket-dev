@@ -27,54 +27,51 @@ export default function ScanResultPage() {
   const notGradeable = data?.crop !== undefined && data.crop !== "onion";
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
           >
-            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
           </Link>
-          <h1 className="text-title font-display text-ink">{t("grade.title")}</h1>
+          <h1 className="text-title font-display font-bold text-ink">{t("grade.title")}</h1>
         </div>
         <VoiceButton textKey="grade.title" />
       </div>
 
-      <div className="mt-4 flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4">
         {view === "loading" && <p className="text-body text-ink-muted">{t("common.loading")}</p>}
 
         {(view === "waiting" || view === "waitingOffline") && (
-          <>
+          <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-line bg-surface p-6 text-center shadow-card">
             <div className="flex items-center gap-2 text-pass-text">
-              <Check aria-hidden="true" size={22} />
-              <p className="text-body font-semibold">
+              <Check aria-hidden="true" size={24} />
+              <p className="text-card font-display font-semibold">
                 {view === "waiting" ? t("scan.saved") : t("scan.savedOffline")}
               </p>
             </div>
             <p className="text-body text-ink-muted">⏳ {t("scan.gradeNext")}</p>
-            {/* SPEC.md §4.6: "The farmer can still create the lot; it is
-                saved on the phone as a draft" - no need to wait for the
-                grade, online or off. */}
             <Link
               to={id ? `/farmer/lots/new?grade=${id}` : "#"}
-              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              className="mt-2 flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs active:scale-[0.98] transition-all"
             >
               ✅ {t("grade.createLot")}
             </Link>
-          </>
+          </div>
         )}
 
         {view === "failed" && (
-          <>
-            <p className="w-full rounded-card border border-line bg-surface p-4 text-body text-mirchi-text">
+          <div className="flex w-full flex-col gap-3">
+            <p className="w-full rounded-2xl border border-mirchi/30 bg-mirchi-light p-4 text-body font-medium text-mirchi-text shadow-card">
               {t(notGradeable ? "grade.notGradeable" : "grade.failed")}
             </p>
             {notGradeable ? (
               <Link
                 to={id ? `/farmer/lots/new?grade=${id}` : "#"}
-                className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+                className="flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs active:scale-[0.98] transition-all"
               >
                 ✅ {t("grade.createLot")}
               </Link>
@@ -82,28 +79,25 @@ export default function ScanResultPage() {
               <button
                 type="button"
                 onClick={() => id && void retryGrade(id)}
-                className="h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white"
+                className="flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs active:scale-[0.98] transition-all"
               >
                 {t("grade.tryAgain")}
               </button>
             )}
-          </>
+          </div>
         )}
 
         {view === "done" && data && isDoneGrade(data) && (
-          <>
-            {/* grade is `check (grade in ('A','B','C'))` at the DB level -
-                isDoneGrade only proves "not null" to TypeScript. The reveal
-                gets a small entrance - it's the pay-off moment of the scan. */}
-            <div className="animate-fade-slide-in">
+          <div className="flex w-full flex-col items-center gap-4">
+            <div className="animate-fade-slide-in flex w-full flex-col items-center gap-2">
               <GradeBadge grade={data.grade as Grade} kind={data.kind === "assured" ? "assured" : "indicative"} />
             </div>
             {data.needs_human_check && (
-              <p className="text-meta text-haldi-text">{t("grade.needsHumanCheck")}</p>
+              <p className="text-meta font-semibold text-haldi-text">{t("grade.needsHumanCheck")}</p>
             )}
             {data.source === "mock" && <DemoDataTag />}
             {data.needs_human_check && (
-              <p className="w-full rounded-card border border-haldi bg-haldi/10 p-4 text-body text-haldi-text">
+              <p className="w-full rounded-2xl border border-haldi/40 bg-haldi-light p-4 text-body font-medium text-haldi-text shadow-card">
                 {t("grade.lowConfidence")}
               </p>
             )}
@@ -126,17 +120,17 @@ export default function ScanResultPage() {
             />
             <Link
               to={`/farmer/lots/new?grade=${id}`}
-              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              className="flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs active:scale-[0.98] transition-all"
             >
               ✅ {t("grade.createLot")}
             </Link>
-          </>
+          </div>
         )}
 
         {view !== "loading" && (
           <Link
             to="/farmer/scan"
-            className="flex h-14 items-center justify-center rounded-button border border-line px-6 text-body font-semibold text-ink"
+            className="flex h-12 items-center justify-center rounded-xl text-body font-semibold text-ink-muted hover:text-ink active:scale-95 transition-all"
           >
             {t("scan.scanAgain")}
           </Link>

@@ -12,13 +12,26 @@ export default function FarmerHome() {
   const name = profile?.name ?? "";
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-title font-display text-ink">{t("home.greeting", { name })}</p>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card">
+        <div className="flex items-center gap-3">
+          <div
+            aria-hidden="true"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-leaf/20 bg-leaf-light text-2xl shadow-xs"
+          >
+            🌾
+          </div>
+          <div>
+            <p className="text-meta font-medium text-ink-muted">{t("app.name")}</p>
+            <h1 className="text-title font-display font-bold leading-tight text-ink">
+              {t("home.greeting", { name })}
+            </h1>
+          </div>
+        </div>
         <VoiceButton textKey="home.greeting" values={{ name }} />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3.5">
         <BigTile icon={Camera} labelKey="home.scanCrop" href="/farmer/scan" />
         <BigTile icon={Package} labelKey="home.myLots" href="/farmer/lots" />
         <BigTile icon={TrendingUp} labelKey="home.todaysPrice" href="/farmer/prices" />

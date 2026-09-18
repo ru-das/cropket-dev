@@ -43,15 +43,15 @@ export default function ScanPage() {
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
           >
-            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
           </Link>
-          <h1 className="text-title font-display text-ink">
+          <h1 className="text-title font-display font-bold text-ink">
             {t("scan.title", { crop: cropLabel })}
           </h1>
         </div>
@@ -66,9 +66,10 @@ export default function ScanPage() {
               type="button"
               onClick={() => setSelectedCrop(c)}
               className={
-                c === crop
-                  ? "h-12 rounded-button border border-leaf bg-leaf px-4 text-body font-semibold text-white"
-                  : "h-12 rounded-button border border-line bg-surface px-4 text-body font-semibold text-ink"
+                "h-11 rounded-full border px-4 text-meta font-semibold shadow-xs transition-all active:scale-95 " +
+                (c === crop
+                  ? "border-leaf bg-leaf text-white shadow-xs"
+                  : "border-line bg-surface text-ink hover:bg-surface-subtle")
               }
             >
               {t(`crop.${c}`)}

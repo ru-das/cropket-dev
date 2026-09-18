@@ -12,23 +12,27 @@ export default function LotCard({ lot }: { lot: LotView }) {
   return (
     <Link
       to={`/farmer/lots/${lot.id}`}
-      className="flex min-h-14 items-center justify-between gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex min-h-16 items-center justify-between gap-3.5 rounded-2xl border border-line bg-surface p-4 shadow-card transition-all duration-150 hover:border-leaf/40 active:scale-[0.98]"
     >
       <div className="flex flex-col gap-1">
-        <span className="text-body font-semibold text-ink">
+        <span className="text-body font-bold text-ink">
           {t(`crop.${lot.crop}`)} · {lot.quantityKg} {t("lots.kg")}
         </span>
-        <span className="text-meta text-ink-muted">
+        <span className="text-meta font-medium text-ink-muted">
           {lot.qrCode} · {t(`lots.status.${lot.status}`)}
         </span>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         {lot.grade && <GradeBadge grade={lot.grade} kind="indicative" size="sm" />}
         {lot.syncFailed ? (
-          <span className="text-meta font-semibold text-mirchi-text">{t("lots.notSaved")}</span>
+          <span className="rounded-full border border-mirchi/30 bg-mirchi-light px-2.5 py-0.5 text-meta font-semibold text-mirchi-text shadow-xs">
+            {t("lots.notSaved")}
+          </span>
         ) : (
           lot.pending && (
-            <span className="text-meta font-semibold text-kesar-text">{t("lots.onPhoneOnly")}</span>
+            <span className="rounded-full border border-kesar/30 bg-kesar-light px-2.5 py-0.5 text-meta font-semibold text-kesar-text shadow-xs">
+              {t("lots.onPhoneOnly")}
+            </span>
           )
         )}
       </div>

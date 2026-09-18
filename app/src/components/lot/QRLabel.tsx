@@ -13,9 +13,13 @@ type Props = {
 
 export default function QRLabel({ lotId, code }: Props) {
   return (
-    <div className="mx-auto flex flex-col items-center gap-2 rounded-card border border-line bg-surface p-4">
-      <QRCodeSVG value={lotId} size={160} />
-      <span className="text-title font-display text-ink">{code}</span>
+    <div className="mx-auto flex max-w-[260px] flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-line bg-white p-5 shadow-card">
+      <div className="rounded-xl border border-line-subtle bg-white p-2.5">
+        <QRCodeSVG value={lotId} size={160} />
+      </div>
+      <div className="flex flex-col items-center">
+        <span className="font-display text-2xl font-bold tracking-wider text-ink tabular-nums">{code}</span>
+      </div>
     </div>
   );
 }
