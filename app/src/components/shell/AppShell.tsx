@@ -8,11 +8,11 @@ import BottomNav from "./BottomNav";
 
 export default function AppShell() {
   return (
-    <div className="flex min-h-screen flex-col bg-field">
+    <div className="relative mx-auto flex min-h-screen w-full max-w-md flex-col bg-field shadow-sm sm:border-x sm:border-line">
       <AppHeader />
       <NetworkBanner />
       <SyncTrouble />
-      <main className="flex-1 p-4">
+      <main className="flex-1 p-4 pb-6">
         <Outlet />
       </main>
       <BottomNav />

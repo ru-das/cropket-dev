@@ -45,9 +45,9 @@ export default function SyncTrouble() {
     return (
       <div
         role="status"
-        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi bg-mirchi/10 pl-4 pr-1 py-2 text-meta text-mirchi-text"
+        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi border-b border-mirchi/20 bg-mirchi-light pl-4 pr-1 py-2 text-meta text-mirchi-text shadow-xs"
       >
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-2 font-medium">
           <span aria-hidden="true">🔴</span>
           <span>{t("sync.notSaved")}</span>
         </span>
@@ -55,7 +55,7 @@ export default function SyncTrouble() {
           <button
             type="button"
             onClick={() => void retryFailed()}
-            className="flex h-12 items-center rounded-button border border-mirchi-text px-4 text-meta font-semibold text-mirchi-text"
+            className="flex h-10 items-center rounded-xl border border-mirchi-text bg-surface px-3.5 text-meta font-semibold text-mirchi-text shadow-xs active:scale-95 transition-all"
           >
             {t("sync.tryAgain")}
           </button>
@@ -68,9 +68,9 @@ export default function SyncTrouble() {
   return (
     <div
       role="status"
-      className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-kesar bg-kesar/10 pl-4 pr-1 py-2 text-meta text-kesar-text"
+      className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-kesar border-b border-kesar/20 bg-kesar-light pl-4 pr-1 py-2 text-meta text-kesar-text shadow-xs"
     >
-      <span className="flex items-center gap-2">
+      <span className="flex items-center gap-2 font-medium">
         <span aria-hidden="true">🟧</span>
         <span>{t("sync.waitingLong")}</span>
       </span>

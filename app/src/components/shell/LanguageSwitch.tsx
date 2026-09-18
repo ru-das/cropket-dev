@@ -11,7 +11,11 @@ export default function LanguageSwitch() {
   const current = i18n.language;
 
   return (
-    <div role="group" aria-label={t("lang.switchLabel")} className="flex gap-1">
+    <div
+      role="group"
+      aria-label={t("lang.switchLabel")}
+      className="inline-flex items-center rounded-full border border-line bg-surface-subtle p-0.5 shadow-xs"
+    >
       {LANGS.map((lang) => {
         const active = current === lang;
         return (
@@ -22,8 +26,10 @@ export default function LanguageSwitch() {
             aria-label={t(`lang.${lang}`)}
             onClick={() => setLang(lang)}
             className={cn(
-              "h-12 min-w-12 rounded-button border px-2 text-meta font-semibold",
-              active ? "border-leaf bg-leaf text-white" : "border-line bg-surface text-ink",
+              "h-9 min-w-9 rounded-full px-2.5 text-meta font-semibold transition-all duration-150",
+              active
+                ? "bg-leaf text-white shadow-xs"
+                : "text-ink-muted hover:text-ink active:scale-95",
             )}
           >
             {t(`lang.short.${lang}`)}

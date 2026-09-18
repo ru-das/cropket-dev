@@ -19,15 +19,19 @@ export default function SyncStatus({ pending, total }: SyncStatusProps) {
   const label = pending > 0 ? t("sync.uploading", { done, total }) : t("sync.allSaved");
 
   return (
-    <span role="status" className="text-meta text-ink-muted">
+    <span
+      role="status"
+      className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-subtle px-2.5 py-1 text-meta font-medium text-ink-muted shadow-xs"
+    >
       {pending > 0 ? (
-        <span aria-hidden="true" className="motion-safe:inline-block motion-safe:animate-spin">
-          ⟳
-        </span>
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full bg-kesar motion-safe:animate-pulse"
+        />
       ) : (
-        "✓"
-      )}{" "}
-      {label}
+        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-pass" />
+      )}
+      <span>{label}</span>
     </span>
   );
 }
