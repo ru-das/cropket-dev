@@ -30,7 +30,7 @@ export default function BottomNav() {
   if (tabs.length === 0) return null;
 
   return (
-    <nav className="sticky bottom-0 z-10 flex border-t border-line bg-surface">
+    <nav className="sticky bottom-0 z-20 flex border-t border-line-soft bg-surface/95 shadow-[var(--shadow-nav)] backdrop-blur-sm">
       {tabs.map(({ to, labelKey, Icon, end }) => (
         <NavLink
           key={to}
@@ -38,15 +38,26 @@ export default function BottomNav() {
           end={end}
           className={({ isActive }) =>
             cn(
-              "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 border-t-[3px] py-1 text-meta transition-colors duration-150",
+              "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-meta transition-all duration-200",
               isActive
-                ? "border-leaf text-leaf-dark font-semibold"
-                : "border-transparent text-ink-muted",
+                ? "text-leaf-dark font-semibold"
+                : "text-ink-muted hover:text-ink",
             )
           }
         >
-          <Icon aria-hidden="true" size={22} />
-          <span>{t(labelKey)}</span>
+          {({ isActive }) => (
+            <>
+              <div
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-button transition-all duration-200",
+                  isActive ? "bg-leaf/10" : "",
+                )}
+              >
+                <Icon aria-hidden="true" size={20} />
+              </div>
+              <span>{t(labelKey)}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

@@ -20,6 +20,12 @@ const TONE: Record<Grade, string> = {
   C: "border-kesar bg-kesar/10 text-kesar-text",
 };
 
+const DOT: Record<Grade, string> = {
+  A: "bg-pass",
+  B: "bg-haldi",
+  C: "bg-kesar",
+};
+
 export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   const { t } = useTranslation();
 
@@ -27,10 +33,11 @@ export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full border px-3 py-1 text-body font-semibold",
+          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-body font-semibold",
           TONE[grade],
         )}
       >
+        <span aria-hidden="true" className={cn("h-2 w-2 rounded-full", DOT[grade])} />
         {t("grade.badge", { grade })}
       </span>
     );
@@ -39,7 +46,7 @@ export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   return (
     <div
       className={cn(
-        "mx-auto flex min-w-[120px] flex-col items-center gap-1 rounded-card border-2 px-8 py-5",
+        "mx-auto flex min-w-[140px] flex-col items-center gap-1.5 rounded-card border-2 px-10 py-6 shadow-[var(--shadow-soft)]",
         TONE[grade],
       )}
     >

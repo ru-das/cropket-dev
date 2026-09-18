@@ -12,9 +12,6 @@ type Props = {
   confidence: number;
 };
 
-// Size and colour bars fill green because longer = better there. Damage is
-// the opposite (longer = worse), so it needs its own warning colour - a
-// green damage bar reads as "good" to a farmer scanning shapes, not words.
 function BarRow({
   label,
   value,
@@ -29,13 +26,17 @@ function BarRow({
   return (
     <div className="flex items-center gap-3">
       <span className="w-20 shrink-0 text-body text-ink">{label}</span>
-      <div aria-hidden="true" className="h-3 flex-1 overflow-hidden rounded-full bg-line">
+      <div aria-hidden="true" className="h-2.5 flex-1 overflow-hidden rounded-full bg-line-soft">
         <div
-          className={tone === "mirchi" ? "h-full rounded-full bg-mirchi" : "h-full rounded-full bg-leaf"}
+          className={
+            tone === "mirchi"
+              ? "h-full rounded-full bg-mirchi transition-all duration-500 ease-out"
+              : "h-full rounded-full bg-leaf transition-all duration-500 ease-out"
+          }
           style={{ width: `${Math.round(fraction * 100)}%` }}
         />
       </div>
-      <span className="w-16 shrink-0 text-right text-meta text-ink-muted">{value}</span>
+      <span className="w-16 shrink-0 text-right text-meta font-medium text-ink-muted">{value}</span>
     </div>
   );
 }
@@ -44,7 +45,7 @@ export default function GradeBreakdown({ sizeLabel, colourPct, damagePct, confid
   const { t } = useTranslation();
 
   return (
-    <div className="flex w-full flex-col gap-3">
+    <div className="flex w-full flex-col gap-3.5 rounded-card border border-line-soft bg-surface p-4 shadow-[var(--shadow-soft)]">
       <BarRow
         label={t("grade.size")}
         value={t(`grade.sizeLabel.${normalizeSizeLabel(sizeLabel)}`)}
@@ -62,9 +63,11 @@ export default function GradeBreakdown({ sizeLabel, colourPct, damagePct, confid
         tone="mirchi"
       />
       <p className="text-meta text-mirchi-text">{t("grade.damageHint")}</p>
-      <p className="text-meta text-ink-muted">
-        {t("grade.confidence", { pct: Math.round(confidence) })}
-      </p>
+      <div className="border-t border-line-soft pt-2">
+        <p className="text-meta font-medium text-ink-muted">
+          {t("grade.confidence", { pct: Math.round(confidence) })}
+        </p>
+      </div>
     </div>
   );
 }

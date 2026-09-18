@@ -1,5 +1,6 @@
 // EN | हि | मरा header switch (SPEC.md §5.1, §4.2). Changes the language for
-// the whole app without navigating away from the current screen.
+// the whole app without navigating away from the current screen. Compact
+// pill-style toggle group for a modern look.
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { setLang, type Lang } from "@/lib/i18n";
@@ -11,7 +12,11 @@ export default function LanguageSwitch() {
   const current = i18n.language;
 
   return (
-    <div role="group" aria-label={t("lang.switchLabel")} className="flex gap-1">
+    <div
+      role="group"
+      aria-label={t("lang.switchLabel")}
+      className="flex gap-0.5 rounded-button bg-field p-0.5"
+    >
       {LANGS.map((lang) => {
         const active = current === lang;
         return (
@@ -22,8 +27,10 @@ export default function LanguageSwitch() {
             aria-label={t(`lang.${lang}`)}
             onClick={() => setLang(lang)}
             className={cn(
-              "h-12 min-w-12 rounded-button border px-2 text-meta font-semibold",
-              active ? "border-leaf bg-leaf text-white" : "border-line bg-surface text-ink",
+              "h-9 min-w-10 rounded-button px-2 text-meta font-semibold transition-all duration-200",
+              active
+                ? "bg-leaf text-white shadow-[var(--shadow-soft)]"
+                : "text-ink-muted hover:text-ink",
             )}
           >
             {t(`lang.short.${lang}`)}

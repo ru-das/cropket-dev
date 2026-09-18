@@ -7,12 +7,14 @@
   /* Base palette (SPEC.md §6.2) */
   --color-leaf: #1f6b3a; /* brand, primary buttons, links */
   --color-leaf-dark: #154d2a; /* pressed state, header text */
+  --color-leaf-light: #2d8a4f; /* hover/active highlights */
   --color-field: #f3f6f0; /* app background */
   --color-surface: #ffffff; /* cards, sheets */
   --color-soil: #5a4632; /* secondary text accents, salvage board */
   --color-ink: #1b2420; /* main text */
   --color-ink-muted: #5b6660; /* secondary text, still AA on --field */
   --color-line: #d9e0d6; /* borders, dividers */
+  --color-line-soft: #e8ece5; /* lighter dividers for subtle separation */
 
   /* Meaning colours - same everywhere: Khata, badges, banners, map.
      Each has a "-text" pair for AA-contrast text/icons on its own fill. */
@@ -49,4 +51,10 @@
   --radius-button: 12px;
   --radius-card: 16px;
   --radius-sheet: 24px; /* top corners of bottom sheets */
+
+  /* Subtle elevation for floating elements (SPEC.md §6.4: "only bottom
+     sheets and the sticky action bar get a shadow"). Used sparingly. */
+  --shadow-soft: 0 1px 3px rgba(27, 36, 32, 0.06);
+  --shadow-float: 0 4px 16px rgba(27, 36, 32, 0.08);
+  --shadow-nav: 0 -2px 12px rgba(27, 36, 32, 0.06);
 }
