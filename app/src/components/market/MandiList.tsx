@@ -20,22 +20,35 @@ export default function MandiList({ mandiPrices }: { mandiPrices: MandiPrice[] }
         {mandiPrices.map((m) => (
           <li
             key={m.mandi.id}
-            className="flex min-h-14 items-center gap-3 rounded-card border border-line bg-surface p-3"
+            className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-card transition-all"
           >
-            <span aria-hidden="true" className="text-body">
+            <span aria-hidden="true" className="shrink-0 text-base">
               {m.heat ? HEAT_EMOJI[m.heat.colour] : NO_DATA_EMOJI}
             </span>
-            <span className="flex-1 text-body text-ink">{m.mandi.name}</span>
-            <span className="text-body font-semibold text-ink">
+            <div className="min-w-0 flex-1">
+              <span className="block truncate text-body font-semibold text-ink">{m.mandi.name}</span>
+              {m.heat && (
+                <span className="text-xs font-medium text-ink-muted">
+                  {t(`heat.${m.heat.colour}`)}
+                </span>
+              )}
+            </div>
+            <span className="font-display text-lg font-bold tabular-nums text-ink">
               {formatRupees(m.todayModalPricePaise)}
             </span>
           </li>
         ))}
       </ul>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink-muted">
-        <span>🔴 {t("heat.red")}</span>
-        <span>🟡 {t("heat.yellow")}</span>
-        <span>🟢 {t("heat.green")}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-subtle p-3 text-xs text-ink-muted">
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <span aria-hidden="true">🔴</span> {t("heat.red")}
+        </span>
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <span aria-hidden="true">🟡</span> {t("heat.yellow")}
+        </span>
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <span aria-hidden="true">🟢</span> {t("heat.green")}
+        </span>
       </div>
     </div>
   );

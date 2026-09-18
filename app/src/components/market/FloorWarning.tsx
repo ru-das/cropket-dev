@@ -12,9 +12,11 @@ export default function FloorWarning({ floorPaise }: { floorPaise: number }) {
   const floor = formatRupees(floorPaise);
 
   return (
-    <div className="flex items-start gap-2 rounded-card border border-mirchi bg-mirchi/10 p-4 text-mirchi-text">
-      <AlertTriangle aria-hidden="true" size={20} className="mt-0.5 shrink-0" />
-      <p className="flex-1 text-body">{t("floor.belowFloor", { floor })}</p>
+    <div className="flex items-start gap-3 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light p-4 text-mirchi-text shadow-xs">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mirchi/15 text-mirchi-dark">
+        <AlertTriangle aria-hidden="true" size={20} />
+      </div>
+      <p className="flex-1 text-body font-medium leading-snug">{t("floor.belowFloor", { floor })}</p>
       <VoiceButton textKey="floor.belowFloor" values={{ floor }} />
     </div>
   );

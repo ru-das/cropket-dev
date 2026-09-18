@@ -41,12 +41,12 @@ export default function PricesPage() {
   // there is one) - offer a retry instead of "Loading..." forever.
   if (isError && !data) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi bg-mirchi/10 p-4">
-        <p className="text-body text-mirchi-text">{t("common.loadFailed")}</p>
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-mirchi/40 bg-mirchi-light p-6 text-center shadow-card">
+        <p className="text-body font-semibold text-mirchi-text">{t("common.loadFailed")}</p>
         <button
           type="button"
           onClick={() => void refetch()}
-          className="h-12 rounded-button border border-mirchi-text px-4 text-body font-semibold text-mirchi-text"
+          className="h-12 rounded-xl border border-mirchi-text px-5 text-body font-bold text-mirchi-text transition-transform active:scale-97"
         >
           {t("common.tryAgain")}
         </button>
@@ -74,17 +74,17 @@ export default function PricesPage() {
     isBelowFloor(hero.modalPricePaise, data.floorPaise);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-xs transition-transform active:scale-95"
           >
-            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={20} />
           </Link>
-          <h1 className="text-title font-display text-ink">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
             {t("prices.title", { crop: t(`crop.${crop}`) })}
           </h1>
         </div>
@@ -92,19 +92,20 @@ export default function PricesPage() {
       </div>
 
       {crops.length > 1 && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
           {crops.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setSelectedCrop(c)}
-              className={
+              className={`flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all active:scale-97 ${
                 c === crop
-                  ? "h-12 rounded-button border border-leaf bg-leaf px-4 text-body font-semibold text-white"
-                  : "h-12 rounded-button border border-line bg-surface px-4 text-body font-semibold text-ink"
-              }
+                  ? "bg-leaf text-white shadow-card"
+                  : "border border-line bg-surface text-ink shadow-xs"
+              }`}
             >
-              {t(`crop.${c}`)}
+              <span aria-hidden="true">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
+              <span>{t(`crop.${c}`)}</span>
             </button>
           ))}
         </div>
@@ -113,7 +114,7 @@ export default function PricesPage() {
       {hero && <PriceHero hero={hero} updatedAt={new Date(dataUpdatedAt)} />}
 
       {config.maptilerKey && online && (
-        <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-card bg-line" />}>
+        <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-2xl bg-line" />}>
           <MandiHeatmap mandiPrices={data.mandiPrices} farmerLocation={farmerLocation} />
         </Suspense>
       )}
