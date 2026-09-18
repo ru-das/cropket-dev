@@ -2,6 +2,7 @@
 // bottom nav has somewhere to go. Each real page (0.5-0.7) replaces one use
 // of this; delete the file once the last one is gone.
 import { useTranslation } from "react-i18next";
+import { Clock } from "lucide-react";
 
 type PlaceholderPageProps = {
   /** i18n key for the screen title, e.g. "nav.lots". */
@@ -12,9 +13,15 @@ export default function PlaceholderPage({ titleKey }: PlaceholderPageProps) {
   const { t } = useTranslation();
 
   return (
-    <div>
-      <h1 className="text-title font-display text-ink">{t(titleKey)}</h1>
-      <p className="mt-2 text-body text-ink-muted">{t("common.comingSoon")}</p>
+    <div className="space-y-6">
+      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{t(titleKey)}</h1>
+
+      <div className="rounded-2xl border border-dashed border-line bg-surface-subtle/50 p-8 text-center shadow-card">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-subtle text-ink-muted">
+          <Clock size={24} aria-hidden="true" />
+        </div>
+        <p className="mt-3 font-display text-lg font-bold text-ink">{t("common.comingSoon")}</p>
+      </div>
     </div>
   );
 }
