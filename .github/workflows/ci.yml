@@ -9,6 +9,9 @@ on:
 
 jobs:
   web:
+    env:
+      VITE_SUPABASE_URL: https://placeholder.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: placeholder-anon-key
     runs-on: ubuntu-latest
     defaults:
       run:
