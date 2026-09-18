@@ -20,8 +20,16 @@ export default function WelcomePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-field p-4">
       <div className="w-full max-w-sm text-center">
-        <p className="text-hero font-display text-leaf-dark">🌾 {t("app.name")}</p>
-        <p className="mt-2 text-body text-ink-muted">{t("app.tagline")}</p>
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-leaf/20 bg-leaf-light text-4xl shadow-card"
+        >
+          🌾
+        </div>
+        <h1 className="text-hero font-display font-bold tracking-tight text-leaf-dark">
+          {t("app.name")}
+        </h1>
+        <p className="mt-2 text-body font-medium text-ink-muted">{t("app.tagline")}</p>
 
         <div role="group" aria-label={t("welcome.choose")} className="mt-8 flex flex-col gap-3">
           {LANGS.map((lang) => (
@@ -29,14 +37,17 @@ export default function WelcomePage() {
               key={lang}
               type="button"
               onClick={() => choose(lang)}
-              className="h-14 w-full rounded-button border border-leaf bg-surface text-body font-semibold text-leaf-dark"
+              className="flex h-16 w-full items-center justify-between rounded-2xl border border-line bg-surface px-6 text-card font-semibold text-ink shadow-card transition-all duration-150 hover:border-leaf hover:bg-surface-subtle active:scale-[0.98]"
             >
-              {t(`lang.${lang}`)}
+              <span>{t(`lang.${lang}`)}</span>
+              <span aria-hidden="true" className="text-xl text-leaf-dark">
+                →
+              </span>
             </button>
           ))}
         </div>
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-6 flex justify-center">
           <VoiceButton textKey="welcome.choose" />
         </div>
       </div>

@@ -15,6 +15,7 @@ import { getCurrentLocation, type Coordinates } from "@/lib/native";
 import { reverseGeocodeVillage } from "@/lib/geocode";
 import { toAppError } from "@/lib/errors";
 import { useOnline } from "@/offline/network";
+import { ArrowLeft } from "lucide-react";
 import VoiceButton from "@/components/voice/VoiceButton";
 import { SignupRole, type SignupRole as SignupRoleT } from "@shared/schemas/profile.ts";
 import type { Crop } from "@shared/crops.ts";
@@ -156,17 +157,24 @@ export default function OnboardingPage() {
             type="button"
             onClick={handleBack}
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 items-center justify-center rounded-button text-title text-ink"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
           >
-            ←
+            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
           </button>
         ) : (
           <span />
         )}
-        <p className="text-meta font-semibold text-ink-muted">
-          {t("onboarding.title")} ·{" "}
-          {t("onboarding.stepOf", { step: currentIndex + 1, total: steps.length })}
-        </p>
+        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface px-3 py-1 shadow-xs">
+          <div className="h-2 w-14 overflow-hidden rounded-full bg-line">
+            <div
+              className="h-full bg-leaf transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+            />
+          </div>
+          <p className="text-meta font-semibold text-ink-muted">
+            {t("onboarding.stepOf", { step: currentIndex + 1, total: steps.length })}
+          </p>
+        </div>
       </div>
 
       <div className="mx-auto mt-4 w-full max-w-sm flex-1">
@@ -176,15 +184,19 @@ export default function OnboardingPage() {
             <div
               key={step}
               ref={isCurrent ? currentRef : undefined}
-              className={isCurrent ? "animate-fade-slide-in mt-6 first:mt-2" : "mt-6 first:mt-2"}
+              className={isCurrent ? "animate-fade-slide-in mt-4 first:mt-2" : "mt-3 first:mt-2"}
             >
-              <div className="flex items-center gap-2">
-                <p className="text-card font-display text-ink">🌾 {t(questionKey(step, role))}</p>
-                <VoiceButton textKey={questionKey(step, role)} />
-              </div>
-
               {isCurrent ? (
-                <div className="mt-3">
+                <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <p className="flex items-center gap-2 text-card font-display font-semibold text-ink">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-leaf-light text-sm">
+                        🌾
+                      </span>
+                      <span>{t(questionKey(step, role))}</span>
+                    </p>
+                    <VoiceButton textKey={questionKey(step, role)} />
+                  </div>
                   <StepInput
                     step={step}
                     role={role}
@@ -202,19 +214,22 @@ export default function OnboardingPage() {
                   />
                 </div>
               ) : (
-                <p className="mt-1 text-meta text-ink-muted">{summaryFor(step)}</p>
+                <div className="flex items-center justify-between rounded-xl border border-line/80 bg-surface-subtle px-3.5 py-2.5 shadow-xs">
+                  <span className="text-meta font-medium text-ink-muted">{t(questionKey(step, role))}</span>
+                  <span className="text-meta font-semibold text-ink">{summaryFor(step)}</span>
+                </div>
               )}
             </div>
           );
         })}
 
-        {error && <p className="mt-4 text-meta text-mirchi-text">{error}</p>}
+        {error && <p className="mt-4 text-meta font-medium text-mirchi-text">{error}</p>}
 
         <button
           type="button"
           disabled={primaryDisabled}
           onClick={handlePrimary}
-          className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white disabled:opacity-40"
+          className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-leaf text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:opacity-40"
         >
           {isLastStep ? t("onboarding.finish") : t("onboarding.next")}
         </button>
