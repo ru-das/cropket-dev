@@ -26,9 +26,6 @@ export default function FarmerHome() {
             🌾
           </div>
           <div>
-            <span className="font-display text-xs font-black tracking-widest text-leaf-dark uppercase">
-              {t("app.name")}
-            </span>
             <h1 className="font-display text-3xl font-black leading-tight text-ink">
               {t("home.greeting", { name })}
             </h1>
