@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 export default function DemoDataTag() {
   const { t } = useTranslation();
   return (
-    <span className="inline-flex items-center rounded-full border border-line bg-field px-3 py-1 text-meta text-ink-muted">
+    <span className="inline-flex items-center rounded-full border border-line-soft bg-field px-3 py-1 text-meta font-medium text-ink-muted">
       {t("common.demoData")}
     </span>
   );
