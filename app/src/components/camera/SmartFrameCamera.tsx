@@ -3,7 +3,7 @@
 // every 300 ms), blocks capture while too dark, and compresses each shot to
 // ≤ 300 KB. Works fully offline - getUserMedia and canvas are both local, no
 // network call anywhere in this file.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Zap, ZapOff } from "lucide-react";
 import { getCameraStream, setTorch } from "@/lib/native";
@@ -21,9 +21,16 @@ type Props = {
   shots?: number;
   minBrightness?: number;
   onDone: (photos: Blob[]) => void;
+  headerOverlay?: ReactNode;
 };
 
-export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, onDone }: Props) {
+export default function SmartFrameCamera({
+  crop,
+  shots = 3,
+  minBrightness = 70,
+  onDone,
+  headerOverlay,
+}: Props) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -127,107 +134,140 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-line bg-surface p-4 text-body text-mirchi-text shadow-card">
-        {t(error.messageKey)}
+      <div className="relative flex h-full w-full flex-col items-center justify-center bg-black p-6 text-center select-none">
+        {headerOverlay && (
+          <div className="absolute inset-x-0 top-0 z-10 p-3 md:p-4">
+            <div className="mx-auto w-full max-w-xl">{headerOverlay}</div>
+          </div>
+        )}
+        <div className="max-w-sm rounded-3xl border-2 border-line bg-surface p-6 shadow-hero">
+          <div className="mb-3 text-4xl" aria-hidden="true">📷</div>
+          <p className="font-body text-base font-semibold text-mirchi-text">
+            {t(error.messageKey)}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div
-        className="relative w-full overflow-hidden rounded-3xl bg-black shadow-hero border-2 border-line"
-        aria-label={t("scan.title", { crop: t(`crop.${crop}`) })}
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="aspect-3/4 w-full object-cover"
-        />
+    <div
+      className="relative h-full w-full overflow-hidden bg-black select-none"
+      aria-label={t("scan.title", { crop: t(`crop.${crop}`) })}
+    >
+      {/* Live camera video filling entire viewport between header and bottom nav */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+
+      {/* ── TOP FLOATING BAR: Scan crop header & Ambient lighting indicator ── */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-col items-center bg-gradient-to-b from-black/85 via-black/45 to-transparent p-3 pb-6 md:p-4">
+        {headerOverlay && (
+          <div className="pointer-events-auto w-full max-w-xl mb-2.5">
+            {headerOverlay}
+          </div>
+        )}
 
         {/* Ambient lighting pill with smooth blur */}
-        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center z-10">
-          <span
-            className={cn(
-              "rounded-full border-2 px-4.5 py-1.5 font-display text-meta font-bold shadow-float backdrop-blur-md transition-all duration-300",
-              isDark
-                ? "border-mirchi/80 bg-mirchi-light/95 text-mirchi-text shadow-glow-haldi"
-                : "border-pass/80 bg-pass-light/95 text-pass-text shadow-glow-leaf",
-            )}
-          >
-            {isDark ? `⚠ ${t("scan.tooDark")}` : `✅ ${t("scan.lightGood")}`}
-          </span>
-        </div>
+        <span
+          className={cn(
+            "pointer-events-auto rounded-full border-2 px-4.5 py-1.5 font-display text-meta font-bold shadow-float backdrop-blur-md transition-all duration-300",
+            isDark
+              ? "border-mirchi/80 bg-mirchi-light/95 text-mirchi-text shadow-glow-haldi"
+              : "border-pass/80 bg-pass-light/95 text-pass-text shadow-glow-leaf",
+          )}
+        >
+          {isDark ? `⚠ ${t("scan.tooDark")}` : `✅ ${t("scan.lightGood")}`}
+        </span>
+      </div>
 
-        {/* Framing HUD guide */}
+      {/* ── CENTER HUD: Framing Reticle & ₹10 Reference Coin ── */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
         <div
           className={cn(
-            "pointer-events-none absolute inset-6 rounded-3xl border-2 transition-all duration-300",
+            "relative flex aspect-3/4 max-h-[48vh] w-full max-w-xs flex-col items-center justify-center rounded-3xl border-2 transition-all duration-300",
             isDark
               ? "border-mirchi/80 shadow-[0_0_24px_rgba(185,28,28,0.35)]"
               : "border-pass/80 shadow-[0_0_24px_rgba(5,150,105,0.35)]",
           )}
         >
           {/* Target reticle for ₹10 coin */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-            <div className="mb-3 flex h-17 w-17 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/25 backdrop-blur-xs">
+          <div className="flex flex-col items-center justify-center p-4">
+            <div className="mb-2.5 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/25 backdrop-blur-xs">
               ₹10
             </div>
-            <span className="rounded-full border border-white/20 bg-black/60 px-4 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
+            <span className="rounded-full border border-white/20 bg-black/60 px-3.5 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
               {t("scan.coinHint")}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Shot progress indicator */}
-      <div className="flex items-center gap-3.5 rounded-full border-2 border-line bg-surface px-5 py-2.5 shadow-card">
-        <span className="font-display text-meta font-bold text-ink">
-          {t("scan.photoOf", { n: Math.min(taken + 1, shots), total: shots })}
-        </span>
-        <div className="ml-1 flex gap-2" aria-hidden="true">
-          {Array.from({ length: shots }, (_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-3.5 w-3.5 rounded-full transition-all duration-300",
-                i < taken
-                  ? "bg-leaf scale-125 shadow-glow-leaf ring-2 ring-leaf/30"
-                  : "bg-line",
-              )}
-            />
-          ))}
+      {/* ── BOTTOM FLOATING BAR: Photo progress + Shutter & Flashlight ── */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-3.5 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-4 pt-8 pb-4">
+        {/* Shot progress indicator */}
+        <div className="pointer-events-auto flex items-center gap-3.5 rounded-full border-2 border-white/25 bg-black/65 px-5 py-2 shadow-float backdrop-blur-md">
+          <span className="font-display text-meta font-bold tabular-nums text-white">
+            {t("scan.photoOf", { n: Math.min(taken + 1, shots), total: shots })}
+          </span>
+          <div className="ml-1 flex gap-2" aria-hidden="true">
+            {Array.from({ length: shots }, (_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  "h-3.5 w-3.5 rounded-full transition-all duration-300",
+                  i < taken
+                    ? "bg-pass scale-125 shadow-glow-leaf ring-2 ring-pass/40"
+                    : "bg-white/30",
+                )}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Capture controls */}
-      <div className="flex items-center justify-center gap-6 mt-1">
-        <button
-          type="button"
-          onClick={() => void capture()}
-          disabled={isDark || capturing}
-          aria-label={t("scan.capture")}
-          className="group relative flex h-22 w-22 items-center justify-center rounded-full border-4 border-surface bg-leaf shadow-hero transition-transform duration-200 active:scale-90 disabled:opacity-40 disabled:bg-line"
-        >
-          <div className="h-16 w-16 rounded-full border-2 border-white/90 bg-leaf-hover transition-transform duration-200 group-hover:scale-95 shadow-xs" />
-        </button>
+        {/* Capture controls */}
+        <div className="pointer-events-auto flex w-full max-w-xs items-center justify-between px-2">
+          {/* Left balance placeholder matching flash button size so shutter stays centered */}
+          <div className="h-14 w-14 shrink-0" aria-hidden="true" />
 
-        {torchAvailable && (
+          {/* Centered tactile shutter button */}
           <button
             type="button"
-            onClick={() => void toggleFlash()}
-            aria-label={t("scan.flash")}
-            className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-line bg-surface text-leaf-dark shadow-card active:scale-90 transition-all duration-200 hover:border-leaf hover:bg-leaf-light/40"
+            onClick={() => void capture()}
+            disabled={isDark || capturing}
+            aria-label={t("scan.capture")}
+            className="group relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white/90 bg-leaf shadow-hero transition-transform duration-200 active:scale-90 disabled:opacity-40 disabled:bg-line hover:scale-105"
           >
-            {torchOn ? (
-              <Zap aria-hidden="true" size={24} className="text-haldi fill-haldi" />
-            ) : (
-              <ZapOff aria-hidden="true" size={24} />
-            )}
+            <div className="h-14 w-14 rounded-full border-2 border-white/90 bg-leaf-hover transition-transform duration-200 group-hover:scale-95 shadow-xs" />
           </button>
-        )}
+
+          {/* Flashlight toggle button on the right */}
+          {torchAvailable ? (
+            <button
+              type="button"
+              onClick={() => void toggleFlash()}
+              aria-label={t("scan.flash")}
+              className={cn(
+                "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 shadow-float backdrop-blur-md transition-all duration-200 active:scale-90",
+                torchOn
+                  ? "border-haldi bg-black/75 text-haldi fill-haldi shadow-glow-haldi"
+                  : "border-white/25 bg-black/50 text-white hover:border-white/40 hover:bg-black/70",
+              )}
+            >
+              {torchOn ? (
+                <Zap aria-hidden="true" size={24} className="text-haldi fill-haldi" />
+              ) : (
+                <ZapOff aria-hidden="true" size={24} />
+              )}
+            </button>
+          ) : (
+            <div className="h-14 w-14 shrink-0" aria-hidden="true" />
+          )}
+        </div>
       </div>
     </div>
   );

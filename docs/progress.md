@@ -1675,4 +1675,25 @@ the changed files: no findings.
 
 **Next:** M3 buyer marketplace.
 
+### Camera Viewport & Floating HUD Redesign — 2026-09-19
+**What it does:**
+- Made the camera frame cover 100% of the viewport between the top `AppHeader` (64px) and bottom `BottomNav` (68px), completely eliminating vertical scrolling on mobile.
+- Embedded all scanning controls as floating layers above the live camera video with directional contrast scrims:
+  - Top floating bar: "Scan crop" header with glassmorphic Back button, title, `VoiceButton`, and multi-crop selector pills.
+  - Center HUD: Ambient light indicator ("✅ Good light" / "⚠ Too dark") and framing reticle with ₹10 reference coin guide.
+  - Bottom floating bar: Photos taken indicator pill ("Photo X of 3" with glowing progress dots), 80px tactile shutter button, and flashlight toggle.
+- Adapted `AppShell` so that on `/farmer/scan` it allocates full height without scrollbars, reserving exact bottom padding on mobile for `BottomNav`, while preserving standard layout and scroll behavior on all other routes.
+**Files touched:**
+- `app/src/components/shell/AppShell.tsx`
+- `app/src/components/shell/AppHeader.tsx`
+- `app/src/components/camera/SmartFrameCamera.tsx`
+- `app/src/routes/farmer/ScanPage.tsx`
+**Verification:**
+- Impeccable mechanical detector: 0 anti-patterns (`[]`).
+- `pnpm --dir app lint`: 0 errors (0 hardcoded text).
+- `pnpm --dir app typecheck`: 0 errors.
+- `pnpm --dir app test`: 32 files passed, 242 tests passed.
+- `pnpm --dir app build`: production build succeeded.
+**Next:** M3 buyer marketplace.
+
 
