@@ -29,6 +29,10 @@ export type MandiPrice = {
   isDemo: boolean;
   /** null = no 30-day average yet for this mandi/crop - show "no data" grey, never guess. */
   heat: { ratio: number; colour: HeatColour } | null;
+  /** ISO date of the price row actually used (may be before today if cron hasn't run). */
+  priceDate: string;
+  /** true when the best available price is older than today - shown as "Prices from <date>" in the UI. */
+  isStale: boolean;
 };
 
 export type HeroMandi = {
@@ -94,6 +98,13 @@ export function latestPerMandi<T extends { mandi_id: string; date: string }>(
 
 function priceOnDate(rows: PriceRow[], mandiId: string, date: string): PriceRow | undefined {
   return rows.find((row) => row.mandi_id === mandiId && row.date === date);
+}
+
+/** Newest-dated price row for a single mandi - fallback when today's hasn't arrived yet. */
+function latestForMandi(rows: PriceRow[], mandiId: string): PriceRow | undefined {
+  return rows
+    .filter((row) => row.mandi_id === mandiId)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
 }
 
 /** `source !== "agmarknet"` - seeded demo history or a keyless mock day. */
@@ -269,15 +280,21 @@ async function fetchMarketSnapshot(crop: Crop): Promise<MarketSnapshot> {
   const mandiPrices: MandiPrice[] = mandis
     .map((mandi): MandiPrice | null => {
       const todayRow = priceOnDate(priceRows, mandi.id, today);
-      if (!todayRow) return null; // no price today for this mandi - leave it out, never show a blank/zero
+      // Fall back to the most recent available row when today's hasn't landed
+      // (cron not yet run, or data.gov.in is lagging). Mark isStale so the UI
+      // can show "Prices from <date>" instead of today's date (honesty rule).
+      const bestRow = todayRow ?? latestForMandi(priceRows, mandi.id);
+      if (!bestRow) return null; // no price history at all - never show blank/zero
       const yesterdayRow = priceOnDate(priceRows, mandi.id, addDays(today, -1));
       const heat = heatByMandi.get(mandi.id);
       return {
         mandi,
-        todayModalPricePaise: todayRow.modal_price_paise,
+        todayModalPricePaise: bestRow.modal_price_paise,
         yesterdayModalPricePaise: yesterdayRow?.modal_price_paise ?? null,
-        isDemo: isDemoPrice(todayRow.source),
+        isDemo: isDemoPrice(bestRow.source),
         heat: heat ? { ratio: heat.ratio, colour: heat.colour as HeatColour } : null,
+        priceDate: bestRow.date,
+        isStale: !todayRow,
       };
     })
     .filter((row): row is MandiPrice => row !== null);

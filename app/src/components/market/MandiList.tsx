@@ -37,6 +37,16 @@ export default function MandiList({ mandiPrices }: { mandiPrices: MandiPrice[] }
                   {t(`heat.${m.heat.colour}`)}
                 </span>
               )}
+              {m.isStale && (
+                <span className="block font-display text-xs text-amber-600">
+                  {t("prices.staleDate", {
+                    date: new Date(m.priceDate + "T00:00:00").toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                    }),
+                  })}
+                </span>
+              )}
             </div>
             <span className="rounded-xl bg-surface-subtle px-3 py-1 font-display text-xl font-black tabular-nums text-ink border border-line">
               {formatRupees(m.todayModalPricePaise)}

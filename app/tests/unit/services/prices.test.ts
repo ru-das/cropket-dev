@@ -24,6 +24,8 @@ function mandiPrice(overrides: Partial<MandiPrice> & { mandi: MandiPrice["mandi"
     yesterdayModalPricePaise: null,
     isDemo: false,
     heat: null,
+    priceDate: "2026-09-19",
+    isStale: false,
     ...overrides,
   };
 }

@@ -165,7 +165,8 @@
     "hear": "Hear price",
     "spoken": "{{price}} per quintal at {{mandi}} - {{why}}.",
     "you": "You",
-    "mapLabel": "Map of nearby mandis, coloured by how much crop is arriving"
+    "mapLabel": "Map of nearby mandis, coloured by how much crop is arriving",
+    "staleDate": "Price from {{date}}"
   },
   "advice": {
     "holdDays": "Hold for {{days}} days",
