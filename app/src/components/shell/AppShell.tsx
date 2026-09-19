@@ -5,6 +5,7 @@ import { Outlet } from "react-router";
 import AppHeader from "./AppHeader";
 import NetworkBanner from "./NetworkBanner";
 import SyncTrouble from "./SyncTrouble";
+import SyncBar from "./SyncBar";
 import BottomNav from "./BottomNav";
 import SideNav from "./SideNav";
 
@@ -12,6 +13,8 @@ export default function AppShell() {
   return (
     // Outer viewport wrapper — centres content on ultra-wide displays
     <div className="min-h-screen bg-field md:flex md:justify-center">
+      {/* Upload progress hairline — fixed top-0, zero layout cost */}
+      <SyncBar />
       {/* Two-column shell on md+; single column on mobile */}
       <div className="relative flex w-full flex-col bg-field md:max-w-5xl md:flex-row lg:max-w-6xl xl:max-w-7xl md:shadow-float md:border-x md:border-line">
         {/* ── Left sidebar (md+) ── */}

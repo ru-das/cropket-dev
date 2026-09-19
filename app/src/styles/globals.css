@@ -113,6 +113,19 @@
     animation: float-gentle 3.5s ease-in-out infinite;
   }
 
+  /* Indeterminate upload progress shimmer for SyncBar */
+  @keyframes sync-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(300%);
+    }
+  }
+  .animate-sync-shimmer {
+    animation: sync-shimmer 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   /* Accessible reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *,
