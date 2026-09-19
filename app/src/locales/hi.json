@@ -74,7 +74,18 @@
     "scanCrop": "फसल स्कैन करें",
     "myLots": "मेरे लॉट",
     "todaysPrice": "आज का भाव",
-    "myKhata": "मेरा खाता"
+    "myKhata": "मेरा खाता",
+    "scanCropHero": "फसल स्कैन करें और बेचें",
+    "scanCropDesc": "तुरंत AI ग्रेड और सही मंडी भाव",
+    "scanNow": "अभी स्कैन करें",
+    "marketPulse": "मंडी का ताजा भाव",
+    "viewAllMandis": "सभी मंडियां देखें",
+    "recentLots": "हाल के लॉट",
+    "viewAllLots": "सभी देखें",
+    "noLotsYet": "अभी तक कोई लॉट नहीं बना",
+    "myLotsDesc": "अपने लॉट ट्रैक और प्रबंधित करें",
+    "todaysPriceDesc": "आस-पास के मंडी भाव देखें",
+    "myKhataDesc": "सुरक्षित भुगतान पासबुक"
   },
   "scan": {
     "title": "{{crop}} स्कैन करें",

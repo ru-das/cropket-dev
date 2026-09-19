@@ -1623,5 +1623,56 @@ the changed files: no findings.
 6. Check PricesPage at lg+ — price hero on left, mandi list on right.
 7. WelcomePage / LoginPage / Onboarding — centred card, bigger on wider screens.
 
+**Next:** Modern Consumer App Layout (Uber / Swiggy / Flipkart inspired).
+
+### Modern Consumer App Redesign — Uber / Swiggy / Flipkart inspired — 2026-09-19
+
+**What it does:** Replaced the boxy, toy-like "card-like" design (card-itis: isolated chunky floating boxes everywhere) with modern consumer app design patterns inspired by Uber, Swiggy, Flipkart, and Zomato.
+
+**Key Changes:**
+1. **Farmer Home (`FarmerHome.tsx`):**
+   - **Context Bar:** Greeting with farmer name, registered crop, village location tag, and audio button.
+   - **Hero Action Banner (Uber "Where to?" / Swiggy Instant Delivery):** Elevates crop scanning as the core action with prominent headline, description, 56px high-contrast CTA button, and camera viewfinder anchor.
+   - **Quick-Service Pods (`BigTile.tsx`):** Replaced 4 chunky floating squares with a 3-pod service grid (My Lots, Mandi Rates, Digital Khata) featuring category-tinted squircle icons, clean typography, live count/price badges, and audio buttons.
+   - **Live Market Pulse Ticker:** A live price glance showing today's best mandi price for the farmer's crop with tabular numbers and daily trend pill (+₹150).
+   - **Recent Activity Section:** Shows the farmer's latest active lot or a clean scan CTA.
+2. **Unified Divided Lists (`LotCard.tsx`, `LotsPage.tsx`, `MandiList.tsx`):**
+   - Replaced fragmented floating card boxes with unified, edge-to-edge list containers with hairline dividers (`divide-y divide-line/60`).
+   - `LotCard`: Crop emblem, bold tabular quantity, QR label, status pill, grade badge, and sleek `ChevronRight` affordance.
+   - `MandiList`: Unified market sheet with heat status dot, tabular numerals, and integrated legend.
+   - `LotsPage`: Header with lot count badge and quick "Scan Now" action.
+3. **Streamlined Financial Cards (`PriceHero.tsx`, `AdviceCard.tsx`, `FloorWarning.tsx`):**
+   - Removed artificial wavy SVG clutter and 2px thick borders in favor of crisp 1px borders, tabular numerals, and clear trend pills.
+4. **Shell & Navigation (`AppHeader.tsx`, `BottomNav.tsx`):**
+   - Refined to sleek hairline borders and clean active states.
+5. **Translations (`en.json`, `hi.json`, `mr.json`):**
+   - Added matching keys for all new action labels and subheadings across English, Hindi, and Marathi.
+
+**Files touched:**
+- `app/src/routes/farmer/FarmerHome.tsx`
+- `app/src/components/common/BigTile.tsx`
+- `app/src/components/lot/LotCard.tsx`
+- `app/src/routes/farmer/LotsPage.tsx`
+- `app/src/components/market/PriceHero.tsx`
+- `app/src/components/market/MandiList.tsx`
+- `app/src/routes/farmer/PricesPage.tsx`
+- `app/src/components/market/AdviceCard.tsx`
+- `app/src/components/market/FloorWarning.tsx`
+- `app/src/components/shell/AppHeader.tsx`
+- `app/src/components/shell/BottomNav.tsx`
+- `app/src/components/shell/SyncBar.tsx`
+- `app/src/locales/en.json`
+- `app/src/locales/hi.json`
+- `app/src/locales/mr.json`
+- `DESIGN.md`
+
+**Verification:**
+- Impeccable mechanical detector: 0 anti-patterns.
+- `pnpm --dir app lint`: 0 errors (0 hardcoded text).
+- `pnpm --dir app typecheck`: 0 errors.
+- `pnpm --dir app test`: 32 files passed, 242 tests passed.
+- `pnpm --dir app build`: production build succeeded.
+
 **Next:** M3 buyer marketplace.
+
 

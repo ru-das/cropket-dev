@@ -24,40 +24,32 @@ export default function AdviceCard({ advice }: { advice: Advice }) {
 
   return (
     <div
-      className={`relative overflow-hidden flex flex-col gap-4 rounded-3xl border-2 p-6 shadow-card transition-all duration-300 ${
+      className={`relative overflow-hidden flex flex-col gap-4 rounded-2xl border p-5 shadow-card transition-all duration-200 ${
         isHold
-          ? "border-haldi/40 bg-surface shadow-card hover:shadow-premium"
-          : "border-pass/40 bg-surface shadow-card hover:shadow-premium"
+          ? "border-haldi/30 bg-surface"
+          : "border-pass/30 bg-surface"
       }`}
     >
-      {/* Ambient background glow */}
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full blur-2xl ${
-          isHold ? "bg-haldi-light/60" : "bg-pass-light/60"
-        }`}
-      />
-
       <div className="relative z-10 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3">
           <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 shadow-xs ${
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-xs ${
               isHold
-                ? "border-haldi/40 bg-gradient-to-br from-haldi-light to-surface text-haldi-text shadow-glow-haldi"
-                : "border-pass/40 bg-gradient-to-br from-pass-light to-surface text-pass-text shadow-glow-leaf"
+                ? "border-haldi/30 bg-haldi-light text-haldi-text"
+                : "border-pass/30 bg-pass-light text-pass-text"
             }`}
           >
             {isHold ? (
-              <Hourglass aria-hidden="true" size={26} className="stroke-[2.5]" />
+              <Hourglass aria-hidden="true" size={22} className="stroke-[2.5]" />
             ) : (
-              <ShoppingBasket aria-hidden="true" size={26} className="stroke-[2.5]" />
+              <ShoppingBasket aria-hidden="true" size={22} className="stroke-[2.5]" />
             )}
           </div>
-          <span className="font-display text-2xl font-black text-ink leading-tight">
+          <span className="font-display text-xl font-black text-ink leading-tight">
             {headline}
           </span>
         </div>
-        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} className="h-11 w-11 shadow-xs" />
+        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} className="h-10 w-10 shadow-xs" />
       </div>
 
       {reasons.length > 0 && (

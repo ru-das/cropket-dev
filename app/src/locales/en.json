@@ -74,7 +74,18 @@
     "scanCrop": "Scan crop",
     "myLots": "My lots",
     "todaysPrice": "Today's price",
-    "myKhata": "My khata"
+    "myKhata": "My khata",
+    "scanCropHero": "Scan & sell crop",
+    "scanCropDesc": "Instant AI grade & fair mandi prices",
+    "scanNow": "Scan now",
+    "marketPulse": "Market pulse",
+    "viewAllMandis": "View all mandis",
+    "recentLots": "Recent lots",
+    "viewAllLots": "View all",
+    "noLotsYet": "No lots created yet",
+    "myLotsDesc": "Track & manage your lots",
+    "todaysPriceDesc": "Compare nearby mandi rates",
+    "myKhataDesc": "Safe locked payment passbook"
   },
   "scan": {
     "title": "Scan {{crop}}",

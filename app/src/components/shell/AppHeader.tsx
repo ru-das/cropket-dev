@@ -9,7 +9,7 @@ export default function AppHeader() {
   const { t } = useTranslation();
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b-2 border-line/70 bg-surface/85 px-4 py-2.5 backdrop-blur-xl shadow-xs md:px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-line/70 bg-surface/90 px-4 py-2.5 backdrop-blur-xl shadow-xs md:px-6">
       {/* Brand mark — only shown on mobile; md+ sidebar carries it */}
       <span className="flex items-center gap-2.5 font-display text-2xl font-black tracking-tight text-ink md:hidden">
         <span

@@ -98,13 +98,13 @@ export default function PricesPage() {
               key={c}
               type="button"
               onClick={() => setSelectedCrop(c)}
-              className={`flex h-13 shrink-0 items-center gap-2.5 rounded-2xl px-5 font-display text-base font-bold transition-all duration-200 active:scale-95 ${
+              className={`flex h-12 shrink-0 items-center gap-2 rounded-xl px-4 font-display text-sm font-bold transition-all duration-200 active:scale-95 ${
                 c === crop
-                  ? "border-2 border-leaf bg-leaf text-white shadow-hero scale-105 ring-2 ring-leaf/20"
-                  : "border-2 border-line bg-gradient-to-r from-surface to-surface-subtle/50 text-ink shadow-card hover:border-leaf/50"
+                  ? "border border-leaf bg-leaf text-white shadow-premium"
+                  : "border border-line bg-surface text-ink shadow-xs hover:border-leaf/40"
               }`}
             >
-              <span aria-hidden="true" className="text-2xl">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
+              <span aria-hidden="true" className="text-xl">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
               <span>{t(`crop.${c}`)}</span>
             </button>
           ))}

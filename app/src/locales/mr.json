@@ -74,7 +74,18 @@
     "scanCrop": "पीक स्कॅन करा",
     "myLots": "माझे लॉट",
     "todaysPrice": "आजचा भाव",
-    "myKhata": "माझे खाते"
+    "myKhata": "माझे खाते",
+    "scanCropHero": "पीक स्कॅन करा आणि विका",
+    "scanCropDesc": "झटपट AI ग्रेड आणि योग्य बाजारभाव",
+    "scanNow": "आता स्कॅन करा",
+    "marketPulse": "बाजारभाव आढावा",
+    "viewAllMandis": "सर्व बाजार समित्या पहा",
+    "recentLots": "अलीकडील लॉट",
+    "viewAllLots": "सर्व पहा",
+    "noLotsYet": "अद्याप कोणताही लॉट तयार केलेला नाही",
+    "myLotsDesc": "तुमचे लॉट ट्रॅक आणि व्यवस्थापित करा",
+    "todaysPriceDesc": "जवळपासचे बाजारभाव तपासा",
+    "myKhataDesc": "सुरक्षित पेमेंट पासबुक"
   },
   "scan": {
     "title": "{{crop}} स्कॅन करा",

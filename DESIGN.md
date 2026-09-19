@@ -91,10 +91,11 @@ Fonts are bundled locally (no Google CDN): **Baloo 2 Variable** for headlines an
 - **Bottom Dock (`BottomNav`):** Glassmorphic fixed bar (`shadow-dock backdrop-blur-md bg-surface/95`). Active tab is highlighted with an emerald pill background, glowing dot indicator, and vibrant leaf text.
 - **Language Switcher (`LanguageSwitch`):** Segmented pill switch with smooth sliding active background.
 
-### 5.2 Action Launchers (`BigTile`)
-- Modern, large mobile app launcher blocks (`min-h-36 rounded-3xl border-2 p-5`).
-- Features a category-tinted circular icon container (`h-14 w-14 rounded-2xl border-2 shadow-xs`) with an ambient background glow.
-- Tactile hover/active state with smooth spring scale transition (`active:scale-[0.98]`).
+#### 5.2 Modern Consumer Action Architecture
+- **Hero Action Banner (`FarmerHome`):** High-impact hero card inspired by Uber's "Where to?" and Swiggy's delivery hero. Positions "Scan & Sell Crop" with live AI grading promise and 56px high-contrast CTA button (`h-14 rounded-xl bg-leaf`).
+- **Quick-Service Pods (`BigTile`):** Streamlined tactile service pods (My Lots, Mandi Rates, Digital Khata) with category-tinted squircle icon badge, clean typography, live status badges, and audio buttons (`VoiceButton`).
+- **Live Market Pulse Ticker:** Prominent live rate card on the home screen displaying the best today's mandi price for the farmer's registered crop with tabular numerals and daily change pill.
+- **Unified Divided Lists (`LotCard`, `LotsPage`, `MandiList`):** Eliminates isolated floating boxes in favor of cohesive, edge-to-edge containers with hairline row dividers (`divide-y divide-line/60`), crop emblems, tabular numerals, status pills, and sleek `ChevronRight` affordances.
 
 ### 5.3 SmartFrame Camera HUD (`SmartFrameCamera`)
 - Futuristic agro-tech viewfinder overlay:
@@ -111,11 +112,12 @@ Fonts are bundled locally (no Google CDN): **Baloo 2 Variable** for headlines an
 - **Grade Breakdown:** Analytical card with multi-color animated progress gauges displaying healthy colour %, size mm, and surface quality.
 
 ### 5.5 Market Intelligence & Comparator
-- **Headline Price Card (`PriceHero`):** High-impact card with massive 56px Baloo 2 numerals, glowing trend badge (`+₹150`), and location pills.
+- **Headline Price Card (`PriceHero`):** High-impact financial card with massive 56px Baloo 2 numerals in tabular-nums, sleek trend badge (`+₹150`), location pin pill, and reason insight.
+- **Unified Mandi Rates Sheet (`MandiList`):** Grouped market rate sheet with clean heat-status indicators, tabular bold prices, and integrated heat legend.
 - **Net-₹ Compare (`ComparePage`):**
   - **Champion Mandi Card:** Highlights the highest-profit market with a glowing gold trophy badge, large "You Keep" net amount in Baloo 2, and prominent "Choose this mandi" button.
   - **Transparent Deduction Receipt:** Clear, itemized arithmetic rows (Gross Price − Road Freight − Loading/Handling = Net ₹ You Keep).
-- **Floor Price Alert (`FloorWarning`):** Bold crimson card (`border-mirchi/50 bg-mirchi-light/60 rounded-3xl p-5`) alerting farmers when prices fall below cost of production.
+- **Floor Price Alert (`FloorWarning`):** Bold crimson alert card (`border-mirchi/30 bg-mirchi-light/70 rounded-2xl p-4`) alerting farmers when prices fall below cost of production.
 
 ### 5.6 Tactile Inputs & Keypad
 - **NumberPad (`NumberPad`):** Large 5xl Baloo 2 display with 68px circular/rounded-2xl tactile keys, high-contrast pressed states, and haptic feedback.

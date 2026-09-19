@@ -19,35 +19,50 @@ export default function LotsPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="font-display text-3xl font-black text-ink">{t("nav.lots")}</h1>
-        <VoiceButton textKey="nav.lots" className="h-11 w-11 shadow-xs" />
+      {/* Header bar with count & scan action */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <h1 className="font-display text-3xl font-black text-ink">{t("nav.lots")}</h1>
+          {lots.length > 0 && (
+            <span className="rounded-full bg-surface-subtle px-2.5 py-0.5 font-display text-xs font-bold text-ink-muted border border-line tabular-nums">
+              {lots.length}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/farmer/scan"
+            className="flex h-11 items-center justify-center rounded-xl bg-leaf px-4 font-display text-sm font-bold text-white shadow-premium transition-all hover:bg-leaf-hover active:scale-95"
+          >
+            {t("home.scanNow")}
+          </Link>
+          <VoiceButton textKey="nav.lots" className="h-11 w-11 shadow-xs" />
+        </div>
       </div>
 
       {mine !== undefined && <DataAge updatedAt={new Date(dataUpdatedAt)} />}
 
       {isEmpty ? (
-        <div className="relative overflow-hidden mt-8 flex flex-col items-center gap-5 rounded-3xl border-2 border-line bg-surface p-8 text-center shadow-hero transition-all duration-300">
+        <div className="relative overflow-hidden mt-6 flex flex-col items-center gap-5 rounded-2xl border border-line bg-surface p-8 text-center shadow-card transition-all duration-300">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-leaf-light/60 blur-2xl"
-          />
-          <div
-            aria-hidden="true"
-            className="relative z-10 flex h-22 w-22 items-center justify-center rounded-3xl border-2 border-leaf/30 bg-gradient-to-br from-leaf-light to-surface text-4xl shadow-glow-leaf animate-float-gentle"
+            className="flex h-20 w-20 items-center justify-center rounded-2xl border border-leaf/30 bg-leaf-light text-4xl shadow-xs"
           >
             📦
           </div>
-          <p className="relative z-10 font-display text-lg font-bold text-ink-muted">{t("lots.empty")}</p>
+          <div>
+            <p className="font-display text-lg font-bold text-ink">{t("lots.empty")}</p>
+            <p className="font-display text-sm text-ink-muted mt-1">{t("home.scanCropDesc")}</p>
+          </div>
           <Link
             to="/farmer/scan"
-            className="relative z-10 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf px-6 font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98]"
+            className="flex h-14 w-full max-w-sm items-center justify-center rounded-xl bg-leaf px-6 font-display text-base font-bold text-white shadow-premium transition-all hover:bg-leaf-hover active:scale-[0.98]"
           >
             {t("lots.emptyAction")}
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card divide-y divide-line/60">
           {lots.map((lot) => (
             <LotCard key={lot.id} lot={lot} />
           ))}
