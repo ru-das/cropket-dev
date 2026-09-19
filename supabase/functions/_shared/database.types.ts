@@ -447,6 +447,7 @@ export type Database = {
           nearby_lot_tonnes: number
         }[]
       }
+      trigger_cron_fetch_prices: { Args: never; Returns: number }
     }
     Enums: {
       lot_status:

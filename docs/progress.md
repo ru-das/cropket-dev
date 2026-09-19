@@ -30,7 +30,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M2 — Market intelligence
 - [x] 2.1 Tables `mandis`, `mandi_prices`, `mandi_heat`, `crop_rules`, `weather_daily`, `transporters` + seed (5 Nashik mandis, 60 days of prices, weather, 6 transporters)
 - [x] 2.2 Domain formulas + tests: `money.ts`, `advice.ts` (tomato ≤ 2 days), `heat.ts`, `floor.ts`, `netRupee.ts`
-- [x] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — run by hand; recompute `mandi_heat`
+- [x] 2.3 `cron-fetch-prices` (real data.gov.in if key set) — wired with pg_cron (18:10 IST + 18:20 IST retry); recompute `mandi_heat`
 - [x] 2.4 Prices screen: `PriceHero`, `AdviceCard`, `FloorWarning`, `MandiList`, `MandiHeatmap` (if MapTiler key), `DataAge`
 - [x] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
 
@@ -1694,6 +1694,29 @@ the changed files: no findings.
 - `pnpm --dir app typecheck`: 0 errors.
 - `pnpm --dir app test`: 32 files passed, 242 tests passed.
 - `pnpm --dir app build`: production build succeeded.
+**Next:** M3 buyer marketplace.
+
+### Mandi Price pg_cron Automation & Retry (Option C) — 2026-09-19
+**What it does:**
+- Scheduled automated daily mandi price top-up via `pg_cron` and `pg_net` to call the `cron-fetch-prices` Edge Function:
+  - **Primary fetch**: runs daily at **18:10 IST** (`12:40 UTC`, cron `40 12 * * *`), immediately after APMC mandis upload evening auction prices at ~18:00 IST.
+  - **Retry fetch**: runs daily at **18:20 IST** (`12:50 UTC`, cron `50 12 * * *`) with a guard condition `WHERE NOT EXISTS (SELECT 1 FROM mandi_prices WHERE date = (now() AT TIME ZONE 'Asia/Kolkata')::date)`. If the 18:10 fetch succeeded, the retry skips cleanly; if the initial fetch failed or upstream data was delayed/empty, it retries 10 minutes later.
+- Created `public.trigger_cron_fetch_prices()` helper function (`SECURITY DEFINER`, search_path secured, granted to postgres and service_role) that retrieves `functions_url` and `cron_secret` from Supabase `vault.decrypted_secrets` and sends an HTTP POST via `net.http_post()` with a 30s timeout.
+- Added `scripts/sync-vault-secrets.sh` to populate `functions_url` and `cron_secret` in `vault.secrets` via `psql`.
+**Files touched:**
+- `scripts/sync-vault-secrets.sh`
+- `supabase/migrations/20260919161110_cron_fetch_prices.sql`
+- `supabase/tests/cron_fetch_prices.sql`
+- `app/src/lib/database.types.ts`
+- `supabase/functions/_shared/database.types.ts`
+- `docs/progress.md`
+**Verification:**
+- `bash scripts/test-sql.sh`: all 6 test suites (44 pgTAP tests) passed.
+- Tested `trigger_cron_fetch_prices()` live in Supabase: invoked Edge Function, returned HTTP 200 with real Agmarknet data (`{"rows":5,"heatRows":10,"source":"agmarknet"}`).
+- Tested retry guard: when today's row exists, retry query returns 0 rows and does not invoke HTTP.
+- `pnpm --dir app lint`: 0 errors.
+- `pnpm --dir app typecheck`: 0 errors.
+- `pnpm --dir app test`: 32 test files passed, 242 unit tests passed.
 **Next:** M3 buyer marketplace.
 
 
