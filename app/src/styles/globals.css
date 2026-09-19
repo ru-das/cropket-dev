@@ -12,51 +12,108 @@
     line-height: 1.56; /* Devanagari needs extra height, SPEC.md §6.3 */
   }
 
-  /* Visible focus ring for kiosk / keyboard use (SPEC.md §6.6) */
+  /* Custom browser selection */
+  ::selection {
+    background-color: var(--color-leaf-light);
+    color: var(--color-leaf-dark);
+  }
+
+  /* Custom smooth earthen scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-field);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-muted);
+  }
+
+  /* Visible focus ring with leaf glow */
   :focus-visible {
-    outline: 3px solid var(--color-neel);
+    outline: 3px solid var(--color-leaf);
     outline-offset: 2px;
   }
 
-  /* Tables show numbers, numbers line up (SPEC.md §6.3) */
+  /* Tables show numbers, numbers line up */
   table {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Tap feedback for every button/link that already uses the shared radius
-     utilities (SPEC.md §6.1 "very little motion" - one feedback rule for
-     every control, nothing bespoke per screen). Native `disabled` already
-     blocks `:active`, so a disabled button never scales. */
-  :where(button.rounded-button, a.rounded-button, a.rounded-card, button.rounded-2xl, a.rounded-2xl, div.rounded-card) {
+  /* Spring physics micro-interactions for tactile controls */
+  :where(button.rounded-button, a.rounded-button, a.rounded-card, button.rounded-2xl, a.rounded-2xl, div.rounded-card, button.rounded-3xl, div.rounded-3xl) {
     transition:
-      transform 120ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 200ms ease-out,
       background-color 150ms ease-out,
       border-color 150ms ease-out,
       color 150ms ease-out;
   }
-  :where(button.rounded-button, a.rounded-button, a.rounded-card, button.rounded-2xl, a.rounded-2xl):active {
-    transform: scale(0.97);
+  :where(button.rounded-button, a.rounded-button, a.rounded-card, button.rounded-2xl, a.rounded-2xl, button.rounded-3xl):active {
+    transform: scale(0.96);
   }
 
-  /* Content that appears rather than always being on screen (an offline/sync
-     strip, a new chat-style question, a grade reveal) eases in instead of
-     popping - SPEC.md §6.1 "very little motion, only on state change". */
+  /* Organic ripple keyframes for voice waveform rings */
+  @keyframes organic-ripple {
+    0% {
+      transform: scale(0.92);
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 0.45;
+    }
+    100% {
+      transform: scale(1.65);
+      opacity: 0;
+    }
+  }
+
+  .animate-organic-ripple-1 {
+    animation: organic-ripple 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+
+  .animate-organic-ripple-2 {
+    animation: organic-ripple 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite 0.45s;
+  }
+
+  .animate-organic-ripple-3 {
+    animation: organic-ripple 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite 0.9s;
+  }
+
+  /* Smooth spring fade-slide-in */
   @keyframes fade-slide-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(8px) scale(0.99);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
   .animate-fade-slide-in {
-    animation: fade-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-slide-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  /* Very little motion, and none at all if the user asked for that
-     (SPEC.md §6.1) */
+  /* Subtle floating breathing motion for badges */
+  @keyframes float-gentle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+  .animate-float-gentle {
+    animation: float-gentle 3.5s ease-in-out infinite;
+  }
+
+  /* Accessible reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -68,35 +125,39 @@
   }
 }
 
-/* Micro-elevation utilities for crisp outdoor sunlight contrast & modern app depth */
+/* Neo-Spatial Multi-Stop Shadows with Warm Earthen Ambient Dispersion */
 @utility shadow-card {
-  box-shadow: 0 2px 8px -2px rgba(15, 25, 20, 0.06), 0 1px 3px -1px rgba(15, 25, 20, 0.04);
+  box-shadow: 0 2px 8px -2px rgba(20, 28, 24, 0.04), 0 6px 18px -4px rgba(74, 53, 37, 0.05);
 }
 
 @utility shadow-dock {
-  box-shadow: 0 -4px 20px 0 rgba(15, 25, 20, 0.06);
+  box-shadow: 0 -6px 28px 0 rgba(74, 53, 37, 0.08), 0 -1px 3px 0 rgba(20, 28, 24, 0.03);
 }
 
 @utility shadow-float {
-  box-shadow: 0 12px 30px -6px rgba(15, 25, 20, 0.12), 0 4px 10px -2px rgba(15, 25, 20, 0.06);
+  box-shadow: 0 12px 32px -6px rgba(20, 28, 24, 0.12), 0 4px 12px -2px rgba(74, 53, 37, 0.06);
 }
 
 @utility shadow-xs {
-  box-shadow: 0 1px 2px 0 rgba(15, 25, 20, 0.05);
+  box-shadow: 0 1px 2px 0 rgba(20, 28, 24, 0.04);
 }
 
 @utility shadow-premium {
-  box-shadow: 0 8px 24px -4px rgba(18, 104, 53, 0.08), 0 2px 6px -1px rgba(15, 25, 20, 0.04);
+  box-shadow: 0 8px 24px -4px rgba(15, 89, 48, 0.12), 0 3px 8px -2px rgba(74, 53, 37, 0.04);
 }
 
 @utility shadow-hero {
-  box-shadow: 0 16px 36px -8px rgba(18, 104, 53, 0.14), 0 4px 12px -2px rgba(15, 25, 20, 0.06);
+  box-shadow: 0 16px 38px -8px rgba(15, 89, 48, 0.16), 0 6px 16px -3px rgba(74, 53, 37, 0.07);
 }
 
 @utility shadow-glow-leaf {
-  box-shadow: 0 0 24px -4px rgba(18, 104, 53, 0.28);
+  box-shadow: 0 0 26px -2px rgba(15, 89, 48, 0.28);
 }
 
 @utility shadow-glow-haldi {
-  box-shadow: 0 0 24px -4px rgba(234, 179, 8, 0.32);
+  box-shadow: 0 0 26px -2px rgba(217, 119, 6, 0.32);
+}
+
+@utility shadow-terracotta {
+  box-shadow: 0 0 26px -2px rgba(148, 66, 29, 0.25);
 }

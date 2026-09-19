@@ -147,14 +147,14 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
           className="aspect-3/4 w-full object-cover"
         />
 
-        {/* Ambient lighting pill */}
+        {/* Ambient lighting pill with smooth blur */}
         <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center z-10">
           <span
             className={cn(
-              "rounded-full border-2 px-4 py-1.5 font-display text-meta font-bold shadow-float backdrop-blur-md transition-all",
+              "rounded-full border-2 px-4.5 py-1.5 font-display text-meta font-bold shadow-float backdrop-blur-md transition-all duration-300",
               isDark
-                ? "border-mirchi bg-mirchi-light/95 text-mirchi-text shadow-glow-haldi"
-                : "border-pass bg-pass-light/95 text-pass-text shadow-glow-leaf",
+                ? "border-mirchi/80 bg-mirchi-light/95 text-mirchi-text shadow-glow-haldi"
+                : "border-pass/80 bg-pass-light/95 text-pass-text shadow-glow-leaf",
             )}
           >
             {isDark ? `⚠ ${t("scan.tooDark")}` : `✅ ${t("scan.lightGood")}`}
@@ -164,18 +164,18 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
         {/* Framing HUD guide */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-6 rounded-3xl border-2 transition-colors duration-200",
+            "pointer-events-none absolute inset-6 rounded-3xl border-2 transition-all duration-300",
             isDark
-              ? "border-mirchi/80 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
-              : "border-pass/80 shadow-[0_0_20px_rgba(22,163,74,0.4)]",
+              ? "border-mirchi/80 shadow-[0_0_24px_rgba(185,28,28,0.35)]"
+              : "border-pass/80 shadow-[0_0_24px_rgba(5,150,105,0.35)]",
           )}
         >
           {/* Target reticle for ₹10 coin */}
           <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/20">
+            <div className="mb-3 flex h-17 w-17 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/25 backdrop-blur-xs">
               ₹10
             </div>
-            <span className="rounded-full bg-black/60 px-4 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
+            <span className="rounded-full border border-white/20 bg-black/60 px-4 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
               {t("scan.coinHint")}
             </span>
           </div>
@@ -183,7 +183,7 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
       </div>
 
       {/* Shot progress indicator */}
-      <div className="flex items-center gap-3 rounded-full border-2 border-line bg-surface px-5 py-2 shadow-card">
+      <div className="flex items-center gap-3.5 rounded-full border-2 border-line bg-surface px-5 py-2.5 shadow-card">
         <span className="font-display text-meta font-bold text-ink">
           {t("scan.photoOf", { n: Math.min(taken + 1, shots), total: shots })}
         </span>
@@ -192,9 +192,9 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
             <span
               key={i}
               className={cn(
-                "h-3 w-3 rounded-full transition-all duration-200",
+                "h-3.5 w-3.5 rounded-full transition-all duration-300",
                 i < taken
-                  ? "bg-leaf scale-125 shadow-glow-leaf"
+                  ? "bg-leaf scale-125 shadow-glow-leaf ring-2 ring-leaf/30"
                   : "bg-line",
               )}
             />
@@ -209,9 +209,9 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
           onClick={() => void capture()}
           disabled={isDark || capturing}
           aria-label={t("scan.capture")}
-          className="group flex h-21 w-21 items-center justify-center rounded-full border-4 border-surface bg-leaf shadow-hero transition-transform duration-150 active:scale-90 disabled:opacity-40 disabled:bg-line"
+          className="group relative flex h-22 w-22 items-center justify-center rounded-full border-4 border-surface bg-leaf shadow-hero transition-transform duration-200 active:scale-90 disabled:opacity-40 disabled:bg-line"
         >
-          <div className="h-15 w-15 rounded-full border-2 border-white/80 bg-leaf-hover transition-transform group-hover:scale-95 shadow-xs" />
+          <div className="h-16 w-16 rounded-full border-2 border-white/90 bg-leaf-hover transition-transform duration-200 group-hover:scale-95 shadow-xs" />
         </button>
 
         {torchAvailable && (
@@ -219,7 +219,7 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
             type="button"
             onClick={() => void toggleFlash()}
             aria-label={t("scan.flash")}
-            className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-line bg-surface text-leaf-dark shadow-card active:scale-90 transition-all hover:border-leaf hover:bg-leaf-light/40"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-line bg-surface text-leaf-dark shadow-card active:scale-90 transition-all duration-200 hover:border-leaf hover:bg-leaf-light/40"
           >
             {torchOn ? (
               <Zap aria-hidden="true" size={24} className="text-haldi fill-haldi" />

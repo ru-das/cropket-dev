@@ -27,11 +27,42 @@ export default function PriceHero({ hero, updatedAt }: Props) {
 
   return (
     <div className="relative overflow-hidden rounded-3xl border-2 border-line bg-surface p-6 shadow-hero">
-      {/* Subtle organic light accent */}
+      {/* Dual-tone organic ambient light accents */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-leaf-light/60 blur-2xl"
+        className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-leaf-light/70 blur-3xl"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-haldi-light/60 blur-3xl"
+      />
+
+      {/* Organic SVG curvature chart backdrop */}
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 inset-x-0 h-28 w-full opacity-15"
+        preserveAspectRatio="none"
+        viewBox="0 0 400 100"
+      >
+        <defs>
+          <linearGradient id="heroPriceCurve" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--color-leaf)" stopOpacity="0.8" />
+            <stop offset="60%" stopColor="var(--color-haldi)" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="var(--color-pass)" stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0,75 C70,35 150,85 240,40 C320,15 360,50 400,25 L400,100 L0,100 Z"
+          fill="url(#heroPriceCurve)"
+        />
+        <path
+          d="M0,75 C70,35 150,85 240,40 C320,15 360,50 400,25"
+          fill="none"
+          stroke="var(--color-leaf)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+      </svg>
 
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div>
@@ -66,11 +97,11 @@ export default function PriceHero({ hero, updatedAt }: Props) {
 
       {/* Location and reasoning badge */}
       <div className="relative z-10 mt-5 flex flex-wrap items-center gap-2.5 border-t-2 border-line-subtle pt-4">
-        <div className="inline-flex items-center gap-2 rounded-xl bg-surface-subtle px-3 py-1.5 font-display text-sm font-bold text-ink border border-line">
+        <div className="inline-flex items-center gap-2 rounded-2xl bg-surface-subtle px-3.5 py-2 font-display text-sm font-bold text-ink border border-line shadow-xs">
           <MapPin size={16} className="shrink-0 text-leaf" aria-hidden="true" />
           <span>{t("prices.atMandi", { mandi: hero.mandi.name })}</span>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-xl bg-leaf-light px-3 py-1.5 font-display text-sm font-bold text-leaf-dark border border-leaf/20">
+        <div className="inline-flex items-center gap-2 rounded-2xl bg-leaf-light px-3.5 py-2 font-display text-sm font-bold text-leaf-dark border border-leaf/25 shadow-xs">
           <Sparkles size={16} className="shrink-0" aria-hidden="true" />
           <span>{t(whyKey)}</span>
         </div>

@@ -14,26 +14,33 @@ type Props = {
   href: string;
 };
 
-const CATEGORY_STYLES: Record<Props["labelKey"], { box: string; icon: string; border: string }> = {
+const CATEGORY_STYLES: Record<
+  Props["labelKey"],
+  { box: string; icon: string; border: string; glow: string }
+> = {
   "home.scanCrop": {
-    box: "bg-leaf-light/90 shadow-glow-leaf",
+    box: "bg-gradient-to-br from-leaf-light via-leaf-light/80 to-surface",
     icon: "text-leaf-dark",
-    border: "border-leaf/30",
+    border: "border-leaf/35",
+    glow: "bg-leaf-light/50",
   },
   "home.myLots": {
-    box: "bg-neel-light/90",
+    box: "bg-gradient-to-br from-neel-light via-neel-light/80 to-surface",
     icon: "text-neel-text",
-    border: "border-neel/30",
+    border: "border-neel/35",
+    glow: "bg-neel-light/50",
   },
   "home.todaysPrice": {
-    box: "bg-haldi-light/90 shadow-glow-haldi",
+    box: "bg-gradient-to-br from-haldi-light via-haldi-light/80 to-surface",
     icon: "text-haldi-text",
-    border: "border-haldi/30",
+    border: "border-haldi/35",
+    glow: "bg-haldi-light/50",
   },
   "home.myKhata": {
-    box: "bg-soil-light/90",
-    icon: "text-soil",
-    border: "border-soil/30",
+    box: "bg-gradient-to-br from-terracotta-light via-soil-light to-surface",
+    icon: "text-terracotta-dark",
+    border: "border-terracotta/35",
+    glow: "bg-terracotta-light/50",
   },
 };
 
@@ -42,19 +49,28 @@ export default function BigTile({ icon: Icon, labelKey, href }: Props) {
   const style = CATEGORY_STYLES[labelKey];
 
   return (
-    <div className="group relative flex min-h-36 flex-col items-center justify-between rounded-3xl border-2 border-line bg-surface p-4 text-center shadow-card transition-all duration-200 ease-out hover:border-leaf hover:shadow-premium hover:-translate-y-0.5 active:scale-[0.97] has-[a:active]:scale-[0.97]">
+    <div className="group relative flex min-h-40 flex-col items-center justify-between overflow-hidden rounded-3xl border-2 border-line bg-surface p-4.5 text-center shadow-card transition-all duration-300 ease-out hover:border-leaf/60 hover:shadow-premium hover:-translate-y-1 active:scale-[0.96] has-[a:active]:scale-[0.96]">
+      {/* Organic ambient light halo behind tile */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full blur-xl transition-opacity duration-300 group-hover:opacity-100 opacity-60",
+          style.glow,
+        )}
+      />
+
       <Link to={href} className="absolute inset-0 z-0" aria-label={t(labelKey)} />
       <div
         className={cn(
-          "pointer-events-none flex h-15 w-15 items-center justify-center rounded-2xl border-2 transition-transform duration-200 group-hover:scale-105",
+          "pointer-events-none relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl border-2 shadow-xs transition-transform duration-300 group-hover:scale-105",
           style.box,
           style.border,
           style.icon,
         )}
       >
-        <Icon aria-hidden="true" size={30} className="stroke-[2.2]" />
+        <Icon aria-hidden="true" size={32} className="stroke-[2.2]" />
       </div>
-      <span className="pointer-events-none mt-2 font-display text-lg font-bold text-ink leading-snug">
+      <span className="pointer-events-none relative z-10 mt-2.5 font-display text-lg font-bold text-ink leading-snug">
         {t(labelKey)}
       </span>
       <VoiceButton textKey={labelKey} className="relative z-10 mt-1 h-9 w-9 shadow-xs" />

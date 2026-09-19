@@ -12,10 +12,10 @@ export default function NetworkBanner() {
   return (
     <div
       role="status"
-      className="animate-fade-slide-in flex items-center gap-2 border-l-[6px] border-kesar border-b border-kesar/20 bg-kesar-light px-4 py-2.5 text-meta font-medium text-kesar-text shadow-xs"
+      className="animate-fade-slide-in mx-4 my-2.5 flex items-center gap-2.5 rounded-2xl border-2 border-kesar/35 bg-gradient-to-r from-kesar-light via-kesar-light/90 to-surface px-4 py-2 text-meta font-bold text-kesar-text shadow-xs"
     >
-      <span aria-hidden="true">🟧</span>
-      <span>{t("offline.banner")}</span>
+      <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-kesar animate-pulse shadow-glow-haldi shrink-0" />
+      <span className="font-display">{t("offline.banner")}</span>
     </div>
   );
 }

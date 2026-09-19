@@ -45,17 +45,17 @@ export default function SyncTrouble() {
     return (
       <div
         role="status"
-        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi border-b border-mirchi/20 bg-mirchi-light pl-4 pr-1 py-2 text-meta text-mirchi-text shadow-xs"
+        className="animate-fade-slide-in mx-4 my-2.5 flex items-center justify-between gap-2.5 rounded-2xl border-2 border-mirchi/35 bg-gradient-to-r from-mirchi-light via-mirchi-light/90 to-surface pl-4 pr-1.5 py-2 text-meta text-mirchi-text shadow-xs"
       >
-        <span className="flex items-center gap-2 font-medium">
-          <span aria-hidden="true">🔴</span>
+        <span className="flex items-center gap-2.5 font-display font-bold">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-mirchi animate-pulse shrink-0" />
           <span>{t("sync.notSaved")}</span>
         </span>
         <span className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => void retryFailed()}
-            className="flex h-10 items-center rounded-xl border border-mirchi-text bg-surface px-3.5 text-meta font-semibold text-mirchi-text shadow-xs active:scale-95 transition-all"
+            className="flex h-10 items-center rounded-xl border border-mirchi-text/40 bg-surface px-3.5 font-display text-meta font-bold text-mirchi-text shadow-xs active:scale-95 transition-all"
           >
             {t("sync.tryAgain")}
           </button>
@@ -68,10 +68,10 @@ export default function SyncTrouble() {
   return (
     <div
       role="status"
-      className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-kesar border-b border-kesar/20 bg-kesar-light pl-4 pr-1 py-2 text-meta text-kesar-text shadow-xs"
+      className="animate-fade-slide-in mx-4 my-2.5 flex items-center justify-between gap-2.5 rounded-2xl border-2 border-kesar/35 bg-gradient-to-r from-kesar-light via-kesar-light/90 to-surface pl-4 pr-1.5 py-2 text-meta text-kesar-text shadow-xs"
     >
-      <span className="flex items-center gap-2 font-medium">
-        <span aria-hidden="true">🟧</span>
+      <span className="flex items-center gap-2.5 font-display font-bold">
+        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-kesar animate-pulse shrink-0" />
         <span>{t("sync.waitingLong")}</span>
       </span>
       {dismissButton}

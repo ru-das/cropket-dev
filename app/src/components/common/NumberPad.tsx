@@ -22,9 +22,15 @@ export default function NumberPad({ value, onChange, unit }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-center gap-3 rounded-3xl border-2 border-line bg-surface p-5 shadow-hero">
-        <span className="font-display text-5xl font-black tracking-tight text-ink tabular-nums">{value}</span>
-        <span className="rounded-full border border-leaf/30 bg-leaf-light px-4 py-1 font-display text-base font-bold text-leaf-dark shadow-xs">
+      <div className="relative overflow-hidden flex items-center justify-center gap-3 rounded-3xl border-2 border-line bg-surface p-6 shadow-hero">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-leaf-light/60 blur-2xl"
+        />
+        <span className="relative z-10 font-display text-5xl font-black tracking-tight text-ink tabular-nums sm:text-6xl">
+          {value}
+        </span>
+        <span className="relative z-10 rounded-full border border-leaf/35 bg-leaf-light px-4 py-1 font-display text-base font-bold text-leaf-dark shadow-xs">
           {unit}
         </span>
       </div>
@@ -38,7 +44,7 @@ export default function NumberPad({ value, onChange, unit }: Props) {
               type="button"
               onClick={() => press(key)}
               aria-label={key === "⌫" ? t("lots.backspace") : key}
-              className="flex h-17 items-center justify-center rounded-2xl border-2 border-line bg-surface font-display text-3xl font-black text-ink shadow-card transition-all duration-150 hover:border-leaf hover:bg-leaf-light/30 active:scale-90 active:bg-leaf active:text-white"
+              className="flex h-18 items-center justify-center rounded-2xl border-2 border-line bg-gradient-to-b from-surface to-surface-subtle/50 font-display text-3xl font-black text-ink shadow-card transition-all duration-200 hover:border-leaf/60 hover:bg-leaf-light/40 active:scale-90 active:bg-leaf active:text-white"
             >
               {key}
             </button>

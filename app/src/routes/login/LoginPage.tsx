@@ -103,7 +103,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-4 flex h-16 overflow-hidden rounded-2xl border-2 border-line bg-surface shadow-card transition-all duration-150 focus-within:border-leaf focus-within:ring-4 focus-within:ring-leaf/15">
+            <div className="mt-5 flex h-17 overflow-hidden rounded-2xl border-2 border-line bg-surface shadow-card transition-all duration-200 focus-within:border-leaf focus-within:ring-4 focus-within:ring-leaf/15">
               <span className="flex items-center border-r-2 border-line bg-surface-subtle px-4 font-display text-lg font-bold text-ink">
                 +91
               </span>
@@ -121,7 +121,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="mt-3 rounded-xl border border-mirchi/30 bg-mirchi-light p-3 text-meta font-semibold text-mirchi-text">
+              <div className="mt-3 rounded-2xl border-2 border-mirchi/30 bg-mirchi-light p-3.5 text-meta font-semibold text-mirchi-text shadow-xs">
                 {error}
               </div>
             )}
@@ -130,7 +130,7 @@ export default function LoginPage() {
               type="button"
               disabled={!canSend}
               onClick={() => void handleSend()}
-              className="mt-6 flex h-15 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-premium transition-all duration-150 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+              className="mt-6 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-hero transition-all duration-200 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
             >
               {t("login.sendOtp")}
             </button>
@@ -154,12 +154,12 @@ export default function LoginPage() {
               maxLength={6}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="mt-4 h-20 w-full rounded-2xl border-2 border-line bg-surface text-center font-display text-4xl font-black tracking-[0.55em] text-ink shadow-card outline-none transition-all duration-150 focus:border-leaf focus:ring-4 focus:ring-leaf/15"
+              className="mt-5 h-20 w-full rounded-2xl border-2 border-line bg-surface text-center font-display text-4xl font-black tracking-[0.55em] text-ink shadow-card outline-none transition-all duration-200 focus:border-leaf focus:ring-4 focus:ring-leaf/15"
               placeholder="••••••"
             />
 
             {error && (
-              <div className="mt-3 rounded-xl border border-mirchi/30 bg-mirchi-light p-3 text-meta font-semibold text-mirchi-text">
+              <div className="mt-3 rounded-2xl border-2 border-mirchi/30 bg-mirchi-light p-3.5 text-meta font-semibold text-mirchi-text shadow-xs">
                 {error}
               </div>
             )}
@@ -168,7 +168,7 @@ export default function LoginPage() {
               type="button"
               disabled={!canVerify}
               onClick={() => void handleVerify()}
-              className="mt-6 flex h-15 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-premium transition-all duration-150 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
+              className="mt-6 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-hero transition-all duration-200 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
             >
               {t("login.verify")}
             </button>
@@ -177,7 +177,7 @@ export default function LoginPage() {
               type="button"
               disabled={resendIn > 0 || busy}
               onClick={() => void handleSend()}
-              className="mt-3 flex h-12 w-full items-center justify-center rounded-xl font-display text-base font-bold text-leaf-dark hover:bg-leaf-light/40 active:scale-95 transition-all disabled:text-ink-muted disabled:hover:bg-transparent"
+              className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl font-display text-base font-bold text-leaf-dark hover:bg-leaf-light/40 active:scale-95 transition-all disabled:text-ink-muted disabled:hover:bg-transparent"
             >
               {resendIn > 0
                 ? t("login.resendIn", { time: `0:${String(resendIn).padStart(2, "0")}` })

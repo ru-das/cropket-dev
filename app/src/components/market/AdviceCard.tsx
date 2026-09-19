@@ -24,36 +24,44 @@ export default function AdviceCard({ advice }: { advice: Advice }) {
 
   return (
     <div
-      className={`flex flex-col gap-3.5 rounded-3xl border-2 p-5 shadow-card transition-all ${
+      className={`relative overflow-hidden flex flex-col gap-4 rounded-3xl border-2 p-6 shadow-card transition-all duration-300 ${
         isHold
-          ? "border-haldi/40 bg-surface"
-          : "border-pass/40 bg-surface"
+          ? "border-haldi/40 bg-surface shadow-card hover:shadow-premium"
+          : "border-pass/40 bg-surface shadow-card hover:shadow-premium"
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {/* Ambient background glow */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full blur-2xl ${
+          isHold ? "bg-haldi-light/60" : "bg-pass-light/60"
+        }`}
+      />
+
+      <div className="relative z-10 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3.5">
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 ${
+            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 shadow-xs ${
               isHold
-                ? "border-haldi/40 bg-haldi-light text-haldi-text shadow-glow-haldi"
-                : "border-pass/40 bg-pass-light text-pass-text shadow-glow-leaf"
+                ? "border-haldi/40 bg-gradient-to-br from-haldi-light to-surface text-haldi-text shadow-glow-haldi"
+                : "border-pass/40 bg-gradient-to-br from-pass-light to-surface text-pass-text shadow-glow-leaf"
             }`}
           >
             {isHold ? (
-              <Hourglass aria-hidden="true" size={24} className="stroke-[2.5]" />
+              <Hourglass aria-hidden="true" size={26} className="stroke-[2.5]" />
             ) : (
-              <ShoppingBasket aria-hidden="true" size={24} className="stroke-[2.5]" />
+              <ShoppingBasket aria-hidden="true" size={26} className="stroke-[2.5]" />
             )}
           </div>
           <span className="font-display text-2xl font-black text-ink leading-tight">
             {headline}
           </span>
         </div>
-        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} className="h-10 w-10 shadow-xs" />
+        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} className="h-11 w-11 shadow-xs" />
       </div>
 
       {reasons.length > 0 && (
-        <div className="flex items-start gap-2.5 rounded-2xl border border-line bg-surface-subtle p-3.5 text-sm text-ink-muted">
+        <div className="relative z-10 flex items-start gap-3 rounded-2xl border border-line bg-surface-subtle/80 p-4 text-sm text-ink-muted shadow-xs">
           <Info size={18} className="mt-0.5 shrink-0 text-leaf" aria-hidden="true" />
           <p className="font-display font-semibold leading-relaxed text-ink">
             {t("advice.why", { reasons })}
@@ -61,7 +69,7 @@ export default function AdviceCard({ advice }: { advice: Advice }) {
         </div>
       )}
 
-      <div>
+      <div className="relative z-10 flex items-center">
         <DemoDataTag />
       </div>
     </div>

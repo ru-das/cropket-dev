@@ -164,38 +164,38 @@ export default function OnboardingPage() {
         ) : (
           <span />
         )}
-        <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface px-3 py-1 shadow-xs">
-          <div className="h-2 w-14 overflow-hidden rounded-full bg-line">
+        <div className="flex items-center gap-2.5 rounded-full border-2 border-line bg-surface px-4 py-1.5 shadow-xs">
+          <div className="h-2.5 w-16 overflow-hidden rounded-full bg-surface-subtle border border-line">
             <div
-              className="h-full bg-leaf transition-all duration-300"
+              className="h-full bg-leaf transition-all duration-300 shadow-glow-leaf"
               style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
             />
           </div>
-          <p className="text-meta font-semibold text-ink-muted">
+          <p className="text-meta font-bold text-ink-muted">
             {t("onboarding.stepOf", { step: currentIndex + 1, total: steps.length })}
           </p>
         </div>
       </div>
 
-      <div className="mx-auto mt-4 w-full max-w-sm flex-1">
+      <div className="mx-auto mt-5 w-full max-w-sm flex-1">
         {steps.slice(0, currentIndex + 1).map((step, index) => {
           const isCurrent = index === currentIndex;
           return (
             <div
               key={step}
               ref={isCurrent ? currentRef : undefined}
-              className={isCurrent ? "animate-fade-slide-in mt-4 first:mt-2" : "mt-3 first:mt-2"}
+              className={isCurrent ? "animate-fade-slide-in mt-5 first:mt-2" : "mt-3.5 first:mt-2"}
             >
               {isCurrent ? (
-                <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <p className="flex items-center gap-2 text-card font-display font-semibold text-ink">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-leaf-light text-sm">
+                <div className="rounded-3xl border-2 border-line bg-surface p-5 shadow-card transition-all duration-300">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <p className="flex items-center gap-2.5 text-card font-display font-bold text-ink">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-leaf-light border border-leaf/30 text-base shadow-xs">
                         🌾
                       </span>
                       <span>{t(questionKey(step, role))}</span>
                     </p>
-                    <VoiceButton textKey={questionKey(step, role)} />
+                    <VoiceButton textKey={questionKey(step, role)} className="h-10 w-10 shadow-xs" />
                   </div>
                   <StepInput
                     step={step}
@@ -214,22 +214,22 @@ export default function OnboardingPage() {
                   />
                 </div>
               ) : (
-                <div className="flex items-center justify-between rounded-xl border border-line/80 bg-surface-subtle px-3.5 py-2.5 shadow-xs">
-                  <span className="text-meta font-medium text-ink-muted">{t(questionKey(step, role))}</span>
-                  <span className="text-meta font-semibold text-ink">{summaryFor(step)}</span>
+                <div className="flex items-center justify-between rounded-2xl border border-line bg-surface-subtle/80 px-4 py-3 shadow-xs">
+                  <span className="font-display text-meta font-medium text-ink-muted">{t(questionKey(step, role))}</span>
+                  <span className="font-display text-meta font-bold text-ink">{summaryFor(step)}</span>
                 </div>
               )}
             </div>
           );
         })}
 
-        {error && <p className="mt-4 text-meta font-medium text-mirchi-text">{error}</p>}
+        {error && <p className="mt-4 rounded-2xl border-2 border-mirchi/30 bg-mirchi-light p-3.5 text-meta font-semibold text-mirchi-text">{error}</p>}
 
         <button
           type="button"
           disabled={primaryDisabled}
           onClick={handlePrimary}
-          className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-leaf text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:opacity-40"
+          className="mt-6 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-hero transition-all duration-200 active:scale-[0.98] disabled:opacity-40 hover:bg-leaf-hover"
         >
           {isLastStep ? t("onboarding.finish") : t("onboarding.next")}
         </button>

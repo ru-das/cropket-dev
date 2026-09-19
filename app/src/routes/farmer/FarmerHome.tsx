@@ -13,11 +13,15 @@ export default function FarmerHome() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-3 rounded-3xl border-2 border-line bg-surface p-5 shadow-premium">
-        <div className="flex items-center gap-3.5">
+      <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-3xl border-2 border-line bg-surface p-5 shadow-hero transition-all duration-300">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-gradient-to-br from-leaf-light to-terracotta-light/50 blur-2xl"
+        />
+        <div className="relative z-10 flex items-center gap-3.5">
           <div
             aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border-2 border-leaf/30 bg-leaf-light text-3xl shadow-glow-leaf"
+            className="flex h-15 w-15 shrink-0 items-center justify-center rounded-2xl border-2 border-leaf/30 bg-gradient-to-br from-leaf-light to-surface text-3xl shadow-glow-leaf animate-float-gentle"
           >
             🌾
           </div>
@@ -30,7 +34,7 @@ export default function FarmerHome() {
             </h1>
           </div>
         </div>
-        <VoiceButton textKey="home.greeting" values={{ name }} className="h-11 w-11 shadow-xs" />
+        <VoiceButton textKey="home.greeting" values={{ name }} className="relative z-10 h-11 w-11 shadow-xs" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">

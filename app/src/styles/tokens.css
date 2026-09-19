@@ -4,58 +4,71 @@
    must never use a raw hex value or an ad-hoc font-size — see CLAUDE.md §4
    "UI rules". No dark mode (SPEC.md §6.2: farmers use phones in sunlight). */
 @theme {
-  /* Base palette - Agritech Vanguard (SPEC.md §6.2) */
-  --color-leaf: #126835; /* vibrant rich emerald brand, primary buttons */
-  --color-leaf-dark: #0a4020; /* deep forest pressed state, header text */
-  --color-leaf-light: #eaf6ee; /* luminous organic tint */
-  --color-leaf-hover: #177a3f; /* interactive highlight */
-  --color-field: #f5f8f4; /* crisp, clean, sun-ready modern canvas */
-  --color-surface: #ffffff; /* pure white cards */
-  --color-surface-subtle: #f0f5ee; /* refined secondary surface */
-  --color-soil: #543e2b; /* earthy cocoa secondary */
-  --color-soil-light: #f5ede6;
-  --color-ink: #0f1914; /* sharp obsidian charcoal for peak outdoor contrast */
-  --color-ink-muted: #4e5f55; /* balanced slate-leaf secondary (strictly AA) */
-  --color-line: #d8e3d5; /* crisp structural borders */
-  --color-line-subtle: #e8efe6; /* inner card dividers */
+  /* Organic Neo-Spatial Palette — Earthy Luxury & Sunlight Clarity */
+  --color-leaf: #0f5930; /* deep forest emerald, primary brand */
+  --color-leaf-dark: #07351c; /* midnight canopy, high contrast text */
+  --color-leaf-light: #e8f5ec; /* crisp leaf-sap tint */
+  --color-leaf-hover: #15733f; /* interactive highlight */
+  --color-leaf-glow: rgba(15, 89, 48, 0.28);
 
-  /* Meaning colours - bold, aesthetic, unmistakably clear */
-  --color-haldi: #eab308; /* 🟡 money locked safely (vibrant gold) */
-  --color-haldi-text: #854d0e;
-  --color-haldi-light: #fef9c3;
-  --color-neel: #2563eb; /* 🔵 goods on the way (electric cobalt) */
-  --color-neel-text: #1e40af;
+  --color-terracotta: #94421d; /* warm baked clay / earthenware */
+  --color-terracotta-dark: #6e2e11;
+  --color-terracotta-light: #fbf0ea; /* sunbaked peach earthen wash */
+  --color-terracotta-hover: #ad5024;
+
+  --color-field: #faf6ee; /* luminous warm earthen parchment canvas */
+  --color-surface: #ffffff; /* pure porcelain card surfaces */
+  --color-surface-subtle: #f4ecdf; /* warm tactile earthen clay wash */
+  --color-surface-earthen: #ede1d1; /* deeper earthen tone */
+
+  --color-soil: #4a3525; /* rich fertile loam secondary */
+  --color-soil-light: #f3ece4;
+  --color-ink: #141c18; /* obsidian forest charcoal for peak daylight legibility */
+  --color-ink-muted: #4e6255; /* sage charcoal secondary */
+  --color-line: #e3d7c7; /* warm tactile earthen structural border */
+  --color-line-subtle: #efe5d7; /* inner card dividers */
+
+  /* Meaning colours - rich, organic, unmistakably distinct */
+  --color-haldi: #d97706; /* 🟡 turmeric amber gold (money locked safely) */
+  --color-haldi-text: #92400e;
+  --color-haldi-light: #fef3c7;
+  --color-haldi-glow: rgba(217, 119, 6, 0.32);
+
+  --color-neel: #1d4ed8; /* 🔵 sapphire indigo (goods in transit) */
+  --color-neel-text: #1e3a8a;
   --color-neel-light: #eff6ff;
-  --color-pass: #16a34a; /* 🟢 paid / done / good (triumphant green) */
-  --color-pass-text: #15803d;
-  --color-pass-light: #dcfce7;
-  --color-mirchi: #dc2626; /* 🔴 problem / below floor (alert crimson) */
-  --color-mirchi-text: #991b1b;
+
+  --color-pass: #059669; /* 🟢 triumphant harvest jade (paid / done / good) */
+  --color-pass-text: #065f46;
+  --color-pass-light: #d1fae5;
+  --color-pass-glow: rgba(5, 150, 105, 0.28);
+
+  --color-mirchi: #b91c1c; /* 🔴 crushed chili crimson (alert / below floor) */
+  --color-mirchi-text: #7f1d1d;
   --color-mirchi-light: #fee2e2;
-  --color-kesar: #ea580c; /* 🟧 offline / needs attention (deep saffron) */
-  --color-kesar-text: #9a3412;
+
+  --color-kesar: #c2410c; /* 🟧 saffron flame (offline / needs attention) */
+  --color-kesar-text: #7c2d12;
   --color-kesar-light: #ffedd5;
 
-  /* Fonts (SPEC.md §6.3). Bundled via @fontsource, imported in main.tsx.
-     "Baloo 2 Variable" is the family name the variable font package
-     registers itself under - not "Baloo 2". */
+  /* Fonts */
   --font-body: Mukta, "Noto Sans Devanagari", system-ui, sans-serif;
   --font-display: "Baloo 2 Variable", Mukta, "Noto Sans Devanagari", system-ui, sans-serif;
 
-  /* Type scale, size/line-height (SPEC.md §6.3) */
-  --text-hero: 44px; /* price, grade, ₹ */
+  /* Type scale */
+  --text-hero: 44px;
   --text-hero--line-height: 48px;
-  --text-title: 26px; /* screen title */
+  --text-title: 26px;
   --text-title--line-height: 32px;
-  --text-card: 20px; /* card title */
+  --text-card: 20px;
   --text-card--line-height: 28px;
-  --text-body: 18px; /* body - base size, not 16 */
+  --text-body: 18px;
   --text-body--line-height: 28px;
-  --text-meta: 15px; /* small / meta */
+  --text-meta: 15px;
   --text-meta--line-height: 22px;
 
-  /* Radius by hierarchy, not one radius everywhere (SPEC.md §6.4) */
-  --radius-button: 14px;
-  --radius-card: 20px;
-  --radius-sheet: 28px; /* top corners of bottom sheets */
+  /* Organic Tactile Radius Scale */
+  --radius-button: 16px;
+  --radius-card: 24px;
+  --radius-sheet: 32px;
 }

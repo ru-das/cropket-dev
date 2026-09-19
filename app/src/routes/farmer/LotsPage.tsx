@@ -27,14 +27,21 @@ export default function LotsPage() {
       {mine !== undefined && <DataAge updatedAt={new Date(dataUpdatedAt)} />}
 
       {isEmpty ? (
-        <div className="mt-8 flex flex-col items-center gap-5 rounded-3xl border-2 border-line bg-surface p-8 text-center shadow-premium">
-          <div aria-hidden="true" className="flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-leaf/30 bg-leaf-light text-4xl shadow-glow-leaf">
+        <div className="relative overflow-hidden mt-8 flex flex-col items-center gap-5 rounded-3xl border-2 border-line bg-surface p-8 text-center shadow-hero transition-all duration-300">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-leaf-light/60 blur-2xl"
+          />
+          <div
+            aria-hidden="true"
+            className="relative z-10 flex h-22 w-22 items-center justify-center rounded-3xl border-2 border-leaf/30 bg-gradient-to-br from-leaf-light to-surface text-4xl shadow-glow-leaf animate-float-gentle"
+          >
             📦
           </div>
-          <p className="font-display text-lg font-bold text-ink-muted">{t("lots.empty")}</p>
+          <p className="relative z-10 font-display text-lg font-bold text-ink-muted">{t("lots.empty")}</p>
           <Link
             to="/farmer/scan"
-            className="flex h-16 w-full items-center justify-center rounded-2xl bg-leaf px-6 font-display text-lg font-bold text-white shadow-premium transition-all hover:bg-leaf-hover active:scale-[0.98]"
+            className="relative z-10 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf px-6 font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98]"
           >
             {t("lots.emptyAction")}
           </Link>

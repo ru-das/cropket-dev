@@ -19,22 +19,26 @@ export default function WelcomePage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-field px-5 py-8">
-      {/* Ambient background glow */}
+      {/* Warm dual-tone ambient background glows */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-leaf-light/60 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-leaf-light/70 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 right-0 h-80 w-80 rounded-full bg-terracotta-light/60 blur-3xl"
       />
 
       <div className="relative z-10 w-full max-w-sm text-center">
-        {/* Brand emblem */}
-        <div className="relative mx-auto mb-5 flex h-22 w-22 items-center justify-center">
+        {/* Brand emblem with gentle breathing float */}
+        <div className="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center animate-float-gentle">
           <div
             aria-hidden="true"
-            className="absolute inset-0 rounded-3xl bg-leaf-light/80 shadow-glow-leaf transition-transform duration-300"
+            className="absolute inset-0 rounded-3xl bg-gradient-to-br from-leaf-light to-terracotta-light shadow-glow-leaf"
           />
           <div
             aria-hidden="true"
-            className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-leaf/25 bg-surface text-4xl shadow-premium"
+            className="relative flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-leaf/30 bg-surface text-4xl shadow-hero"
           >
             🌾
           </div>
@@ -43,7 +47,7 @@ export default function WelcomePage() {
         <h1 className="font-display text-5xl font-black tracking-tight text-ink">
           {t("app.name")}
         </h1>
-        <p className="mt-2 text-body font-semibold text-ink-muted">{t("app.tagline")}</p>
+        <p className="mt-2.5 text-body font-semibold text-ink-muted">{t("app.tagline")}</p>
 
         {/* Language selector cards */}
         <div role="group" aria-label={t("welcome.choose")} className="mt-10 flex flex-col gap-3.5">
@@ -52,23 +56,23 @@ export default function WelcomePage() {
               key={lang}
               type="button"
               onClick={() => choose(lang)}
-              className="group flex h-18 w-full items-center justify-between rounded-2xl border-2 border-line bg-surface px-6 text-card font-bold text-ink shadow-card transition-all duration-150 ease-out hover:border-leaf hover:bg-leaf-light/30 hover:shadow-premium active:scale-[0.98]"
+              className="group flex h-18 w-full items-center justify-between rounded-2xl border-2 border-line bg-gradient-to-r from-surface to-surface-subtle/50 px-6 text-card font-bold text-ink shadow-card transition-all duration-200 ease-out hover:border-leaf/60 hover:shadow-premium hover:-translate-y-0.5 active:scale-[0.98]"
             >
               <span className="font-display text-xl group-hover:text-leaf-dark">
                 {t(`lang.${lang}`)}
               </span>
               <div
                 aria-hidden="true"
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-subtle text-ink-muted transition-all duration-150 group-hover:bg-leaf group-hover:text-surface group-hover:translate-x-0.5"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface border border-line text-ink-muted transition-all duration-200 group-hover:border-leaf group-hover:bg-leaf group-hover:text-surface group-hover:translate-x-1 shadow-xs"
               >
-                <span className="text-base font-black">→</span>
+                <span className="text-lg font-black">→</span>
               </div>
             </button>
           ))}
         </div>
 
         <div className="mt-8 flex justify-center">
-          <VoiceButton textKey="welcome.choose" className="h-11 w-11 shadow-premium" />
+          <VoiceButton textKey="welcome.choose" className="h-12 w-12 shadow-premium" />
         </div>
       </div>
     </div>

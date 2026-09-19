@@ -133,17 +133,24 @@ export default function ComparePage() {
           {rows.map((row) => (
             <details
               key={row.mandi.id}
-              className={`group overflow-hidden rounded-3xl border-2 transition-all duration-200 ${
+              className={`group relative overflow-hidden rounded-3xl border-2 transition-all duration-300 ${
                 row.isBest
-                  ? "border-pass/80 bg-surface shadow-premium ring-4 ring-pass/10"
-                  : "border-line bg-surface shadow-card hover:border-leaf/40"
+                  ? "border-pass/80 bg-surface shadow-hero ring-4 ring-pass/15"
+                  : "border-line bg-surface shadow-card hover:border-leaf/40 hover:shadow-premium"
               }`}
             >
-              <summary className="flex min-h-18 cursor-pointer list-none items-center gap-3 p-4 transition-colors group-open:border-b-2 group-open:border-line-subtle [&::-webkit-details-marker]:hidden">
+              {row.isBest && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-pass-light/60 blur-2xl"
+                />
+              )}
+
+              <summary className="flex min-h-20 cursor-pointer list-none items-center gap-3.5 p-4.5 transition-colors group-open:border-b-2 group-open:border-line-subtle [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0 flex-1">
                   {row.isBest && (
                     <div className="mb-1.5 flex items-center gap-1">
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-pass/40 bg-pass-light px-2.5 py-0.5 font-display text-xs font-black text-pass-text shadow-xs">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-pass/40 bg-pass-light px-3 py-0.5 font-display text-xs font-black text-pass-text shadow-xs animate-pulse">
                         <Trophy
                           aria-label={t("compare.bestBadge")}
                           size={14}
@@ -174,7 +181,7 @@ export default function ComparePage() {
               </summary>
 
               {/* Receipt-style cost deductions */}
-              <div className="space-y-2.5 bg-surface-subtle p-5 font-display text-sm font-medium text-ink-muted">
+              <div className="space-y-3 bg-gradient-to-b from-surface-subtle/70 to-surface-subtle p-5 font-display text-sm font-medium text-ink-muted">
                 <div className="flex justify-between">
                   <span className="text-ink font-semibold">{t("compare.gross")}</span>
                   <span className="font-bold tabular-nums text-ink">{formatRupees(row.grossPaise)}</span>
@@ -205,7 +212,7 @@ export default function ComparePage() {
                   <span className="font-bold tabular-nums">-{formatRupees(row.lossPaise)}</span>
                 </div>
 
-                <div className="flex justify-between border-t-2 border-line pt-3 font-display text-base font-bold text-ink">
+                <div className="flex justify-between border-t-2 border-line pt-3.5 font-display text-base font-bold text-ink">
                   <span>{t("compare.columnYouKeep")}</span>
                   <span className="font-display text-2xl font-black tabular-nums text-leaf-dark">
                     {formatRupees(row.youKeepPaise)}

@@ -41,38 +41,39 @@ export default function ScanPage() {
   const cropLabel = t(`crop.${crop}`);
 
   return (
-    <div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface shadow-xs active:scale-90 transition-all hover:border-leaf"
           >
-            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
-          <h1 className="text-title font-display font-bold text-ink">
+          <h1 className="font-display text-3xl font-black text-ink tracking-tight">
             {t("scan.title", { crop: cropLabel })}
           </h1>
         </div>
-        <VoiceButton textKey="scan.title" values={{ crop: cropLabel }} />
+        <VoiceButton textKey="scan.title" values={{ crop: cropLabel }} className="h-11 w-11 shadow-xs" />
       </div>
 
       {crops.length > 1 && (
-        <div className="mt-4 flex gap-2">
+        <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
           {crops.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setSelectedCrop(c)}
               className={
-                "h-11 rounded-full border px-4 text-meta font-semibold shadow-xs transition-all active:scale-95 " +
+                "flex h-12 shrink-0 items-center gap-2 rounded-2xl px-5 font-display text-base font-bold transition-all duration-200 active:scale-95 " +
                 (c === crop
-                  ? "border-leaf bg-leaf text-white shadow-xs"
-                  : "border-line bg-surface text-ink hover:bg-surface-subtle")
+                  ? "border-2 border-leaf bg-leaf text-white shadow-hero scale-105 ring-2 ring-leaf/20"
+                  : "border-2 border-line bg-gradient-to-r from-surface to-surface-subtle/50 text-ink shadow-card hover:border-leaf/50")
               }
             >
-              {t(`crop.${c}`)}
+              <span aria-hidden="true" className="text-xl">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
+              <span>{t(`crop.${c}`)}</span>
             </button>
           ))}
         </div>
