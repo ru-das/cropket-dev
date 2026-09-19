@@ -28,12 +28,6 @@ export default function NewLotPage() {
   const { data: gradeRow } = useGradeResult(gradeResultId ?? undefined);
   const grade: Grade | null = gradeRow && isDoneGrade(gradeRow) ? (gradeRow.grade as Grade) : null;
 
-  // grade_results.crop is what ScanPage actually saved this scan's photos
-  // under (the `grade` Edge Function writes it from the same draft, before
-  // it even calls the AI service) - prefer it so the lot can never disagree
-  // with its own photos. Only missing when the grade request hasn't reached
-  // the server yet (fully offline); the farmer's own crop list is the same
-  // best-effort fallback ScanPage itself would have used.
   const crops = (profile?.crops ?? []) as Crop[];
   const crop: Crop = (gradeRow?.crop as Crop | undefined) ?? crops[0] ?? "onion";
 
@@ -42,10 +36,6 @@ export default function NewLotPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
 
-  // Automatic, not a button (unlike onboarding's "Use my location") - SPEC.md
-  // §4.7's wireframe shows the GPS line filling in on its own. A denied or
-  // failed lookup is never shown as an error here (SPEC.md §6.7 "advisory,
-  // never blocks") - the village name alone is a perfectly good fallback.
   useEffect(() => {
     getCurrentLocation()
       .then(setLocation)
@@ -89,7 +79,7 @@ export default function NewLotPage() {
           <Link
             to={`/farmer/scan/result/${gradeResultId}`}
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-button hover:bg-surface"
           >
             <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
@@ -107,7 +97,7 @@ export default function NewLotPage() {
       <p className="mt-2 text-meta text-ink-muted">📍 {locationLine}</p>
 
       {error && (
-        <p className="mt-4 rounded-card border border-line bg-surface p-4 text-body text-mirchi-text">
+        <p className="mt-4 rounded-card border border-mirchi/30 bg-mirchi/5 p-4 text-body text-mirchi-text">
           {t(error.messageKey)}
         </p>
       )}
@@ -116,7 +106,7 @@ export default function NewLotPage() {
         type="button"
         disabled={!canSave}
         onClick={() => void handleSave()}
-        className="mt-6 h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white disabled:bg-line disabled:text-ink-muted"
+        className="mt-6 h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)] disabled:bg-line disabled:text-ink-muted"
       >
         {t("lots.save")}
       </button>

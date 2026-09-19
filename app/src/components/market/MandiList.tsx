@@ -20,7 +20,7 @@ export default function MandiList({ mandiPrices }: { mandiPrices: MandiPrice[] }
         {mandiPrices.map((m) => (
           <li
             key={m.mandi.id}
-            className="flex min-h-14 items-center gap-3 rounded-card border border-line bg-surface p-3"
+            className="flex min-h-14 items-center gap-3 rounded-card border border-line-soft bg-surface p-3 shadow-[var(--shadow-soft)]"
           >
             <span aria-hidden="true" className="text-body">
               {m.heat ? HEAT_EMOJI[m.heat.colour] : NO_DATA_EMOJI}

@@ -26,7 +26,7 @@ export default function PriceHero({ hero, updatedAt }: Props) {
       : hero.modalPricePaise - hero.yesterdayModalPricePaise;
 
   return (
-    <div className="flex flex-col gap-1 rounded-card border border-line bg-surface p-4">
+    <div className="flex flex-col gap-1.5 rounded-card border border-line-soft bg-surface p-5 shadow-[var(--shadow-soft)]">
       <p className="text-hero font-display text-ink">
         {formatRupees(hero.modalPricePaise)}{" "}
         <span className="text-body font-normal text-ink-muted">{t("prices.perQuintal")}</span>
@@ -34,7 +34,7 @@ export default function PriceHero({ hero, updatedAt }: Props) {
 
       {change !== null && change !== 0 && (
         <p
-          className={`flex items-center gap-1 text-body ${change > 0 ? "text-pass-text" : "text-mirchi-text"}`}
+          className={`flex items-center gap-1 text-body font-semibold ${change > 0 ? "text-pass-text" : "text-mirchi-text"}`}
         >
           {change > 0 ? (
             <ArrowUp aria-hidden="true" size={18} />
@@ -49,8 +49,10 @@ export default function PriceHero({ hero, updatedAt }: Props) {
         {t("prices.atMandi", { mandi: hero.mandi.name })} · {t(whyKey)}
       </p>
 
-      {hero.isDemo && <DemoDataTag />}
-      <DataAge updatedAt={updatedAt} />
+      <div className="mt-1 flex items-center gap-2">
+        {hero.isDemo && <DemoDataTag />}
+        <DataAge updatedAt={updatedAt} />
+      </div>
 
       <VoiceButton
         textKey="prices.spoken"
@@ -60,7 +62,7 @@ export default function PriceHero({ hero, updatedAt }: Props) {
           why: t(whyKey),
         }}
         label={t("prices.hear")}
-        className="mt-1"
+        className="mt-2"
       />
     </div>
   );

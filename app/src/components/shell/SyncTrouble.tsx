@@ -12,16 +12,8 @@ import { syncTroubleView } from "./syncTrouble";
 export default function SyncTrouble() {
   const { t } = useTranslation();
   const snapshot = useOutboxStatus();
-  // ponytail: `now` is read once per render, not on a ticking timer - the
-  // 24 h strip can show up to a poll-interval late. Add a timer only if a
-  // demo actually needs the warning to appear the instant it crosses 24 h.
   const view = syncTroubleView(snapshot);
 
-  // Dismissing hides the strip, but a new failure (or the wait crossing
-  // 24 h again after a retry) must bring it back - so the dismissal is
-  // keyed to what's actually wrong, not just "hidden forever". This is
-  // React's "adjust state while rendering" pattern, not an effect, so
-  // there's no flash of the old strip first.
   const signal = `${view.kind}:${snapshot.failed}`;
   const [dismissed, setDismissed] = useState({ signal, hidden: false });
   if (dismissed.signal !== signal) {
@@ -35,9 +27,9 @@ export default function SyncTrouble() {
       type="button"
       onClick={() => setDismissed({ signal, hidden: true })}
       aria-label={t("common.dismiss")}
-      className="flex h-12 w-12 shrink-0 items-center justify-center"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-button text-ink-muted hover:bg-surface"
     >
-      <X aria-hidden="true" size={20} />
+      <X aria-hidden="true" size={18} />
     </button>
   );
 
@@ -45,7 +37,7 @@ export default function SyncTrouble() {
     return (
       <div
         role="status"
-        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi bg-mirchi/10 pl-4 pr-1 py-2 text-meta text-mirchi-text"
+        className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-mirchi bg-mirchi/10 pl-4 pr-1.5 py-2.5 text-meta font-medium text-mirchi-text"
       >
         <span className="flex items-center gap-2">
           <span aria-hidden="true">🔴</span>
@@ -55,7 +47,7 @@ export default function SyncTrouble() {
           <button
             type="button"
             onClick={() => void retryFailed()}
-            className="flex h-12 items-center rounded-button border border-mirchi-text px-4 text-meta font-semibold text-mirchi-text"
+            className="flex h-10 items-center rounded-button border border-mirchi-text bg-surface px-4 text-meta font-semibold text-mirchi-text shadow-[var(--shadow-soft)] hover:bg-mirchi/5"
           >
             {t("sync.tryAgain")}
           </button>
@@ -68,7 +60,7 @@ export default function SyncTrouble() {
   return (
     <div
       role="status"
-      className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-kesar bg-kesar/10 pl-4 pr-1 py-2 text-meta text-kesar-text"
+      className="animate-fade-slide-in flex items-center justify-between gap-2 border-l-[6px] border-kesar bg-kesar/10 pl-4 pr-1.5 py-2.5 text-meta font-medium text-kesar-text"
     >
       <span className="flex items-center gap-2">
         <span aria-hidden="true">🟧</span>

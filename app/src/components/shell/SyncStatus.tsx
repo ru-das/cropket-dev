@@ -2,6 +2,7 @@
 // counts come from offline/outbox.ts via AppHeader. Renders nothing when
 // total is 0 (nothing queued).
 import { useTranslation } from "react-i18next";
+import { Loader2, Check } from "lucide-react";
 
 type SyncStatusProps = {
   /** Items still waiting to upload. */
@@ -19,14 +20,12 @@ export default function SyncStatus({ pending, total }: SyncStatusProps) {
   const label = pending > 0 ? t("sync.uploading", { done, total }) : t("sync.allSaved");
 
   return (
-    <span role="status" className="text-meta text-ink-muted">
+    <span role="status" className="flex items-center gap-1 text-meta text-ink-muted">
       {pending > 0 ? (
-        <span aria-hidden="true" className="motion-safe:inline-block motion-safe:animate-spin">
-          ⟳
-        </span>
+        <Loader2 aria-hidden="true" size={14} className="motion-safe:animate-spin" />
       ) : (
-        "✓"
-      )}{" "}
+        <Check aria-hidden="true" size={14} className="text-pass-text" />
+      )}
       {label}
     </span>
   );

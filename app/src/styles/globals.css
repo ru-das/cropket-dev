@@ -30,12 +30,21 @@
   :where(button.rounded-button, a.rounded-button, a.rounded-card) {
     transition:
       transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
-      background-color 150ms ease-out,
-      border-color 150ms ease-out,
-      color 150ms ease-out;
+      background-color 200ms ease-out,
+      border-color 200ms ease-out,
+      color 200ms ease-out,
+      box-shadow 200ms ease-out;
   }
   :where(button.rounded-button, a.rounded-button, a.rounded-card):active {
     transform: scale(0.97);
+  }
+
+  /* Primary buttons get a subtle hover lift on pointer devices only */
+  @media (hover: hover) and (pointer: fine) {
+    button.rounded-button:hover:not(:disabled),
+    a.rounded-button:hover {
+      box-shadow: var(--shadow-soft);
+    }
   }
 
   /* Content that appears rather than always being on screen (an offline/sync
@@ -44,7 +53,7 @@
   @keyframes fade-slide-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(8px);
     }
     to {
       opacity: 1;
@@ -52,7 +61,47 @@
     }
   }
   .animate-fade-slide-in {
-    animation: fade-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: fade-slide-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* A gentler fade for elements that should settle rather than slide */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 200ms ease-out both;
+  }
+
+  /* Scale-in for badge reveals (the grade pay-off moment) */
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.85);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-scale-in {
+    animation: scale-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Shimmer for loading skeletons */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-line-soft) 25%,
+      var(--color-line) 50%,
+      var(--color-line-soft) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
   }
 
   /* Very little motion, and none at all if the user asked for that

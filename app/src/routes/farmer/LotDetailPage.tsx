@@ -29,7 +29,7 @@ export default function LotDetailPage() {
           <Link
             to="/farmer/lots"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-button hover:bg-surface"
           >
             <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
@@ -48,12 +48,12 @@ export default function LotDetailPage() {
         )
       )}
 
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3 rounded-card border border-line-soft bg-surface p-4 shadow-[var(--shadow-soft)]">
         {photoUrl && (
           <img
             src={photoUrl}
             alt=""
-            className="h-20 w-20 shrink-0 rounded-card border border-line object-cover"
+            className="h-20 w-20 shrink-0 rounded-button border border-line-soft object-cover"
           />
         )}
         <div className="flex flex-col gap-1">
@@ -76,7 +76,7 @@ export default function LotDetailPage() {
 
       <Link
         to={`/farmer/lots/${lot.id}/compare`}
-        className="mt-6 flex h-14 w-full items-center justify-center rounded-button border border-leaf bg-leaf text-body font-semibold text-white"
+        className="mt-6 flex h-14 w-full items-center justify-center rounded-button border border-leaf bg-leaf text-body font-semibold text-white shadow-[var(--shadow-soft)]"
       >
         {t("compare.title")}
       </Link>

@@ -10,6 +10,9 @@ import DemoDataTag from "@/components/common/DemoDataTag";
 import VoiceButton from "@/components/voice/VoiceButton";
 import type { Advice } from "@shared/advice.ts";
 
+const HOLD_TONE = "border-haldi/30 bg-haldi/5";
+const SELL_TONE = "border-pass/30 bg-pass/5";
+
 export default function AdviceCard({ advice }: { advice: Advice }) {
   const { t, i18n } = useTranslation();
   const headline =
@@ -19,16 +22,23 @@ export default function AdviceCard({ advice }: { advice: Advice }) {
   const reasons = new Intl.ListFormat(i18n.language, { style: "long", type: "conjunction" }).format(
     advice.reasons.map((reason) => t(`advice.reason.${reason}`)),
   );
+  const isHold = advice.action === "hold";
 
   return (
-    <div className="flex flex-col gap-2 rounded-card border border-line bg-surface p-4">
+    <div
+      className={`flex flex-col gap-2.5 rounded-card border p-4 shadow-[var(--shadow-soft)] ${isHold ? HOLD_TONE : SELL_TONE}`}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-2 text-body font-semibold text-ink">
-          {advice.action === "hold" ? (
-            <Hourglass aria-hidden="true" size={20} />
-          ) : (
-            <ShoppingBasket aria-hidden="true" size={20} />
-          )}
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-button ${isHold ? "bg-haldi/10 text-haldi-text" : "bg-pass/10 text-pass-text"}`}
+          >
+            {isHold ? (
+              <Hourglass aria-hidden="true" size={18} />
+            ) : (
+              <ShoppingBasket aria-hidden="true" size={18} />
+            )}
+          </div>
           {headline}
         </span>
         <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} />

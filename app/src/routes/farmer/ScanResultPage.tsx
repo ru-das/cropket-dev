@@ -5,7 +5,7 @@
 // polls until the grade function (1.3) + AI service (1.4) have answered.
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import GradeBadge from "@/components/lot/GradeBadge";
 import GradeBreakdown from "@/components/lot/GradeBreakdown";
 import { colourLabelFor, gradeView, isDoneGrade, normalizeSizeLabel } from "@/components/lot/gradeDisplay";
@@ -21,9 +21,6 @@ export default function ScanResultPage() {
   const online = useOnline();
   const { data, isLoading } = useGradeResult(id);
   const view = gradeView(data, isLoading, online);
-  // The AI service only grades onion today (ai-service/app/main.py CROP_NOT_SUPPORTED).
-  // A "failed" tomato/potato scan would otherwise retry forever with no way
-  // forward - offer to save it ungraded instead, same as the waiting states do.
   const notGradeable = data?.crop !== undefined && data.crop !== "onion";
 
   return (
@@ -33,7 +30,7 @@ export default function ScanResultPage() {
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-button hover:bg-surface"
           >
             <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
@@ -42,24 +39,31 @@ export default function ScanResultPage() {
         <VoiceButton textKey="grade.title" />
       </div>
 
-      <div className="mt-4 flex flex-col items-center gap-4">
-        {view === "loading" && <p className="text-body text-ink-muted">{t("common.loading")}</p>}
+      <div className="mt-6 flex flex-col items-center gap-5">
+        {view === "loading" && (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <Loader2 aria-hidden="true" size={32} className="animate-spin text-leaf" />
+            <p className="text-body text-ink-muted">{t("common.loading")}</p>
+          </div>
+        )}
 
         {(view === "waiting" || view === "waitingOffline") && (
           <>
             <div className="flex items-center gap-2 text-pass-text">
-              <Check aria-hidden="true" size={22} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-pass/10">
+                <Check aria-hidden="true" size={22} />
+              </div>
               <p className="text-body font-semibold">
                 {view === "waiting" ? t("scan.saved") : t("scan.savedOffline")}
               </p>
             </div>
-            <p className="text-body text-ink-muted">⏳ {t("scan.gradeNext")}</p>
-            {/* SPEC.md §4.6: "The farmer can still create the lot; it is
-                saved on the phone as a draft" - no need to wait for the
-                grade, online or off. */}
+            <div className="flex items-center gap-2 rounded-card border border-line-soft bg-surface px-4 py-3 shadow-[var(--shadow-soft)]">
+              <Loader2 aria-hidden="true" size={18} className="animate-spin text-ink-muted" />
+              <p className="text-body text-ink-muted">{t("scan.gradeNext")}</p>
+            </div>
             <Link
               to={id ? `/farmer/lots/new?grade=${id}` : "#"}
-              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
             >
               ✅ {t("grade.createLot")}
             </Link>
@@ -68,13 +72,13 @@ export default function ScanResultPage() {
 
         {view === "failed" && (
           <>
-            <p className="w-full rounded-card border border-line bg-surface p-4 text-body text-mirchi-text">
+            <p className="w-full rounded-card border border-mirchi/30 bg-mirchi/5 p-4 text-body text-mirchi-text">
               {t(notGradeable ? "grade.notGradeable" : "grade.failed")}
             </p>
             {notGradeable ? (
               <Link
                 to={id ? `/farmer/lots/new?grade=${id}` : "#"}
-                className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+                className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
               >
                 ✅ {t("grade.createLot")}
               </Link>
@@ -82,7 +86,7 @@ export default function ScanResultPage() {
               <button
                 type="button"
                 onClick={() => id && void retryGrade(id)}
-                className="h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white"
+                className="h-14 w-full rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
               >
                 {t("grade.tryAgain")}
               </button>
@@ -92,18 +96,15 @@ export default function ScanResultPage() {
 
         {view === "done" && data && isDoneGrade(data) && (
           <>
-            {/* grade is `check (grade in ('A','B','C'))` at the DB level -
-                isDoneGrade only proves "not null" to TypeScript. The reveal
-                gets a small entrance - it's the pay-off moment of the scan. */}
-            <div className="animate-fade-slide-in">
+            <div className="animate-scale-in">
               <GradeBadge grade={data.grade as Grade} kind={data.kind === "assured" ? "assured" : "indicative"} />
             </div>
             {data.needs_human_check && (
-              <p className="text-meta text-haldi-text">{t("grade.needsHumanCheck")}</p>
+              <p className="text-meta font-medium text-haldi-text">{t("grade.needsHumanCheck")}</p>
             )}
             {data.source === "mock" && <DemoDataTag />}
             {data.needs_human_check && (
-              <p className="w-full rounded-card border border-haldi bg-haldi/10 p-4 text-body text-haldi-text">
+              <p className="w-full rounded-card border border-haldi/30 bg-haldi/5 p-4 text-body text-haldi-text">
                 {t("grade.lowConfidence")}
               </p>
             )}
@@ -126,7 +127,7 @@ export default function ScanResultPage() {
             />
             <Link
               to={`/farmer/lots/new?grade=${id}`}
-              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+              className="flex h-14 w-full items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
             >
               ✅ {t("grade.createLot")}
             </Link>
@@ -136,7 +137,7 @@ export default function ScanResultPage() {
         {view !== "loading" && (
           <Link
             to="/farmer/scan"
-            className="flex h-14 items-center justify-center rounded-button border border-line px-6 text-body font-semibold text-ink"
+            className="flex h-14 items-center justify-center rounded-button border border-line bg-surface px-6 text-body font-semibold text-ink shadow-[var(--shadow-soft)]"
           >
             {t("scan.scanAgain")}
           </Link>

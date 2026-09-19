@@ -27,7 +27,7 @@ export default function ComparePage() {
   const { profile } = useAuth();
   const { data: lot, isLoading: lotLoading } = useLot(id);
 
-  const crop = lot?.crop ?? "onion"; // useMarketData needs a crop even before the lot loads
+  const crop = lot?.crop ?? "onion";
   const { data: market, dataUpdatedAt, isError, refetch } = useMarketData(crop);
 
   const farmerLocation =
@@ -46,12 +46,12 @@ export default function ComparePage() {
 
   if (isError && !market) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi bg-mirchi/10 p-4">
+      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi/30 bg-mirchi/5 p-4">
         <p className="text-body text-mirchi-text">{t("common.loadFailed")}</p>
         <button
           type="button"
           onClick={() => void refetch()}
-          className="h-12 rounded-button border border-mirchi-text px-4 text-body font-semibold text-mirchi-text"
+          className="h-12 rounded-button border border-mirchi-text bg-surface px-4 text-body font-semibold text-mirchi-text shadow-[var(--shadow-soft)]"
         >
           {t("common.tryAgain")}
         </button>
@@ -84,7 +84,7 @@ export default function ComparePage() {
           <Link
             to={`/farmer/lots/${lot.id}`}
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-button hover:bg-surface"
           >
             <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
@@ -96,11 +96,11 @@ export default function ComparePage() {
       <DataAge updatedAt={new Date(dataUpdatedAt)} />
 
       {!farmerLocation ? (
-        <p className="rounded-card border border-line bg-surface p-4 text-body text-ink-muted">
+        <p className="rounded-card border border-line-soft bg-surface p-4 text-body text-ink-muted shadow-[var(--shadow-soft)]">
           {t("compare.noLocation")}
         </p>
       ) : rows.length === 0 ? (
-        <p className="rounded-card border border-line bg-surface p-4 text-body text-ink-muted">
+        <p className="rounded-card border border-line-soft bg-surface p-4 text-body text-ink-muted shadow-[var(--shadow-soft)]">
           {t("compare.empty")}
         </p>
       ) : (
@@ -116,8 +116,8 @@ export default function ComparePage() {
               key={row.mandi.id}
               className={
                 row.isBest
-                  ? "rounded-card border border-pass bg-pass/10"
-                  : "rounded-card border border-line bg-surface"
+                  ? "rounded-card border border-pass/40 bg-pass/5 shadow-[var(--shadow-soft)]"
+                  : "rounded-card border border-line-soft bg-surface shadow-[var(--shadow-soft)]"
               }
             >
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 p-3">
@@ -142,7 +142,7 @@ export default function ComparePage() {
                   {formatRupees(row.youKeepPaise)}
                 </span>
               </summary>
-              <div className="flex flex-col gap-1 border-t border-line p-3 text-meta text-ink-muted">
+              <div className="flex flex-col gap-1 border-t border-line-soft p-3 text-meta text-ink-muted">
                 <div className="flex justify-between">
                   <span>{t("compare.gross")}</span>
                   <span>{formatRupees(row.grossPaise)}</span>

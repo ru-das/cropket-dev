@@ -12,7 +12,7 @@ export default function LotCard({ lot }: { lot: LotView }) {
   return (
     <Link
       to={`/farmer/lots/${lot.id}`}
-      className="flex min-h-14 items-center justify-between gap-3 rounded-card border border-line bg-surface p-4"
+      className="flex min-h-16 items-center justify-between gap-3 rounded-card border border-line-soft bg-surface p-4 shadow-[var(--shadow-soft)] transition-all duration-200 hover:border-leaf hover:shadow-[var(--shadow-float)]"
     >
       <div className="flex flex-col gap-1">
         <span className="text-body font-semibold text-ink">
@@ -22,7 +22,7 @@ export default function LotCard({ lot }: { lot: LotView }) {
           {lot.qrCode} · {t(`lots.status.${lot.status}`)}
         </span>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         {lot.grade && <GradeBadge grade={lot.grade} kind="indicative" size="sm" />}
         {lot.syncFailed ? (
           <span className="text-meta font-semibold text-mirchi-text">{t("lots.notSaved")}</span>

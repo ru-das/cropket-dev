@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
 import LanguageSwitch from "@/components/shell/LanguageSwitch";
 import { useAuth } from "@/app/authContext";
 import { homeFor } from "@/lib/roles";
@@ -26,8 +27,6 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
-  // Already signed in (reload, or verifyOtp just succeeded) - AuthProvider
-  // owns the profile fetch, this just follows it once it settles.
   useEffect(() => {
     if (status === "signedIn")
       navigate(profile ? homeFor(profile.role) : "/onboarding", { replace: true });
@@ -65,7 +64,6 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await verifyOtp(phoneResult.data, code);
-      // navigation happens in the effect above once AuthProvider picks up the session
     } catch (err) {
       setError(t(toAppError(err).messageKey));
       setBusy(false);
@@ -73,16 +71,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-field p-4">
-      <div className="flex items-center justify-between">
+    <div className="relative flex min-h-screen flex-col bg-field p-4">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 40% at 50% 0%, rgba(31,107,58,0.05), transparent)",
+        }}
+      />
+
+      <div className="relative flex items-center justify-between">
         {phase === "otp" ? (
           <button
             type="button"
             onClick={() => setPhase("phone")}
             aria-label={t("login.back")}
-            className="flex h-12 w-12 items-center justify-center rounded-button text-title text-ink"
+            className="flex h-12 w-12 items-center justify-center rounded-button text-title text-ink hover:bg-surface"
           >
-            ←
+            <ArrowLeft aria-hidden="true" size={24} />
           </button>
         ) : (
           <span />
@@ -90,14 +97,19 @@ export default function LoginPage() {
         <LanguageSwitch />
       </div>
 
-      <div className="mx-auto mt-10 w-full max-w-sm">
+      <div className="relative mx-auto mt-8 w-full max-w-sm">
         {phase === "phone" ? (
           <>
+            <div className="mb-6 flex flex-col items-center gap-2">
+              <div className="flex h-16 w-16 items-center justify-center rounded-card bg-leaf shadow-[var(--shadow-soft)]">
+                <span className="text-3xl">🌾</span>
+              </div>
+            </div>
             <label htmlFor="phone" className="block text-body font-semibold text-ink">
               {t("login.phoneLabel")}
             </label>
-            <div className="mt-2 flex h-14 overflow-hidden rounded-button border border-line bg-surface">
-              <span className="flex items-center border-r border-line px-3 text-body text-ink-muted">
+            <div className="mt-2 flex h-14 overflow-hidden rounded-button border border-line bg-surface shadow-[var(--shadow-soft)] focus-within:border-leaf">
+              <span className="flex items-center border-r border-line-soft px-3 text-body text-ink-muted">
                 +91
               </span>
               <input
@@ -113,13 +125,13 @@ export default function LoginPage() {
               />
             </div>
 
-            {error && <p className="mt-3 text-meta text-mirchi-text">{error}</p>}
+            {error && <p className="mt-3 text-meta font-medium text-mirchi-text">{error}</p>}
 
             <button
               type="button"
               disabled={!canSend}
               onClick={() => void handleSend()}
-              className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white disabled:opacity-40"
+              className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white shadow-[var(--shadow-soft)] disabled:opacity-40"
             >
               {t("login.sendOtp")}
             </button>
@@ -137,16 +149,16 @@ export default function LoginPage() {
               maxLength={6}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="mt-2 h-14 w-full rounded-button border border-line bg-surface text-center text-title tracking-[0.5em] text-ink outline-none"
+              className="mt-2 h-14 w-full rounded-button border border-line bg-surface text-center text-title tracking-[0.5em] text-ink shadow-[var(--shadow-soft)] outline-none focus:border-leaf"
             />
 
-            {error && <p className="mt-3 text-meta text-mirchi-text">{error}</p>}
+            {error && <p className="mt-3 text-meta font-medium text-mirchi-text">{error}</p>}
 
             <button
               type="button"
               disabled={!canVerify}
               onClick={() => void handleVerify()}
-              className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white disabled:opacity-40"
+              className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white shadow-[var(--shadow-soft)] disabled:opacity-40"
             >
               {t("login.verify")}
             </button>

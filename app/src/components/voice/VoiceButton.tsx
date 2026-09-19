@@ -50,7 +50,7 @@ export default function VoiceButton({ textKey, values, className, label }: Props
         disabled={state === "unavailable"}
         aria-label={barLabel}
         className={cn(
-          "flex h-14 w-full items-center justify-center gap-2 rounded-button border border-line bg-surface text-body font-semibold text-ink disabled:text-ink-muted",
+          "flex h-14 w-full items-center justify-center gap-2 rounded-button border border-line-soft bg-surface text-body font-semibold text-ink shadow-[var(--shadow-soft)] disabled:text-ink-muted",
           className,
         )}
       >
@@ -69,7 +69,7 @@ export default function VoiceButton({ textKey, values, className, label }: Props
       aria-label={iconLabel}
       title={iconLabel}
       className={cn(
-        "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-leaf-dark disabled:text-ink-muted",
+        "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-leaf-dark transition-colors duration-200 hover:bg-leaf/5 disabled:text-ink-muted",
         className,
       )}
     >

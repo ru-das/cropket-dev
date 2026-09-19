@@ -55,10 +55,10 @@ export default function StepInput({
             aria-pressed={role === r}
             onClick={() => onSelectRole(r)}
             className={
-              "flex h-20 flex-col items-center justify-center gap-1 rounded-card border text-meta font-semibold " +
+              "flex h-20 flex-col items-center justify-center gap-1 rounded-card border text-meta font-semibold transition-all duration-200 " +
               (role === r
-                ? "border-leaf bg-leaf/10 text-leaf-dark"
-                : "border-line bg-surface text-ink")
+                ? "border-leaf bg-leaf/10 text-leaf-dark shadow-[var(--shadow-soft)]"
+                : "border-line-soft bg-surface text-ink shadow-[var(--shadow-soft)] hover:border-leaf")
             }
           >
             <span aria-hidden="true" className="text-title">
@@ -80,7 +80,7 @@ export default function StepInput({
         autoFocus
         value={name}
         onChange={(e) => onNameChange(e.target.value)}
-        className="h-14 w-full rounded-button border border-line bg-surface px-3 text-body text-ink outline-none"
+        className="h-14 w-full rounded-button border border-line bg-surface px-3 text-body text-ink shadow-[var(--shadow-soft)] outline-none focus:border-leaf"
         placeholder={t("onboarding.namePlaceholder")}
       />
     );
@@ -96,21 +96,24 @@ export default function StepInput({
           autoFocus
           value={village}
           onChange={(e) => onVillageChange(e.target.value)}
-          className="h-14 w-full rounded-button border border-line bg-surface px-3 text-body text-ink outline-none"
+          className="h-14 w-full rounded-button border border-line bg-surface px-3 text-body text-ink shadow-[var(--shadow-soft)] outline-none focus:border-leaf"
           placeholder={t("onboarding.placePlaceholder")}
         />
         <p className="mt-1 text-meta text-ink-muted">{t("onboarding.pilotArea")}</p>
 
         {locationStatus === "saved" ? (
-          <p className="mt-3 text-meta font-semibold text-pass-text">
-            📍 {t("onboarding.locationSaved")}
+          <p className="mt-3 flex items-center gap-1.5 text-meta font-semibold text-pass-text">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-pass/10">
+              📍
+            </span>
+            {t("onboarding.locationSaved")}
           </p>
         ) : (
           <button
             type="button"
             disabled={locationStatus === "loading"}
             onClick={onUseLocation}
-            className="mt-3 h-12 w-full rounded-button border border-line bg-surface text-meta font-semibold text-leaf-dark disabled:text-ink-muted"
+            className="mt-3 h-12 w-full rounded-button border border-line-soft bg-surface text-meta font-semibold text-leaf-dark shadow-[var(--shadow-soft)] disabled:text-ink-muted"
           >
             {locationStatus === "loading"
               ? t("onboarding.gettingLocation")
@@ -147,10 +150,10 @@ export default function StepInput({
           aria-pressed={crops.includes(crop)}
           onClick={() => onToggleCrop(crop)}
           className={
-            "flex h-14 items-center gap-2 rounded-button border px-4 text-body font-semibold " +
+            "flex h-14 items-center gap-2 rounded-button border px-4 text-body font-semibold transition-all duration-200 " +
             (crops.includes(crop)
-              ? "border-leaf bg-leaf/10 text-leaf-dark"
-              : "border-line bg-surface text-ink")
+              ? "border-leaf bg-leaf/10 text-leaf-dark shadow-[var(--shadow-soft)]"
+              : "border-line-soft bg-surface text-ink shadow-[var(--shadow-soft)] hover:border-leaf")
           }
         >
           <span aria-hidden="true">{CROP_ICON[crop]}</span>
