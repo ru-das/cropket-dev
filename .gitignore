@@ -14,3 +14,10 @@ test-results/
 *.local
 *.tsbuildinfo
 guide-to-test-app.txt
+
+# AI tool local state (per-developer, not project code)
+.agent/
+.impeccable/
+.claude/agents/
+.claude/skills/
+.claude/settings.local.json
