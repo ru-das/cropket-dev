@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { ParseKeys } from "i18next";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/app/authContext";
 import { homeFor } from "@/lib/roles";
 import { createMyProfile } from "@/services/profiles";
@@ -81,8 +82,6 @@ export default function OnboardingPage() {
       const coords = await getCurrentLocation();
       setLocation(coords);
       setLocationStatus("saved");
-      // Best-effort autofill only - never overwrite a name the farmer
-      // already typed, including one typed while this call was in flight.
       const guess = await reverseGeocodeVillage(coords);
       if (guess) setVillage((current) => (current.trim() ? current : guess));
     } catch (err) {
@@ -111,8 +110,6 @@ export default function OnboardingPage() {
         name: name.trim(),
         role: parsedRole.data,
         village: village.trim() || null,
-        // A buyer's crops (if any survive a Back-and-switch-role) are never
-        // sent - a buyer row never carries crops (SPEC.md §9.2 Phase 1).
         crops: parsedRole.data === "buyer" ? [] : crops,
         location,
       });
@@ -156,17 +153,32 @@ export default function OnboardingPage() {
             type="button"
             onClick={handleBack}
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 items-center justify-center rounded-button text-title text-ink"
+            className="flex h-12 w-12 items-center justify-center rounded-button text-title text-ink hover:bg-surface"
           >
-            ←
+            <ArrowLeft aria-hidden="true" size={24} />
           </button>
         ) : (
           <span />
         )}
-        <p className="text-meta font-semibold text-ink-muted">
-          {t("onboarding.title")} ·{" "}
-          {t("onboarding.stepOf", { step: currentIndex + 1, total: steps.length })}
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {steps.map((_, i) => (
+              <span
+                key={i}
+                className={
+                  i === currentIndex
+                    ? "h-1.5 w-6 rounded-full bg-leaf"
+                    : i < currentIndex
+                      ? "h-1.5 w-6 rounded-full bg-leaf/30"
+                      : "h-1.5 w-6 rounded-full bg-line"
+                }
+              />
+            ))}
+          </div>
+          <p className="text-meta font-semibold text-ink-muted">
+            {t("onboarding.stepOf", { step: currentIndex + 1, total: steps.length })}
+          </p>
+        </div>
       </div>
 
       <div className="mx-auto mt-4 w-full max-w-sm flex-1">
@@ -208,13 +220,13 @@ export default function OnboardingPage() {
           );
         })}
 
-        {error && <p className="mt-4 text-meta text-mirchi-text">{error}</p>}
+        {error && <p className="mt-4 text-meta font-medium text-mirchi-text">{error}</p>}
 
         <button
           type="button"
           disabled={primaryDisabled}
           onClick={handlePrimary}
-          className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white disabled:opacity-40"
+          className="mt-6 h-14 w-full rounded-button bg-leaf text-body font-semibold text-white shadow-[var(--shadow-soft)] disabled:opacity-40"
         >
           {isLastStep ? t("onboarding.finish") : t("onboarding.next")}
         </button>

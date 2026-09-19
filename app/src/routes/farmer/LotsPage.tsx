@@ -4,6 +4,7 @@
 // to know which is which beyond that ordering (LotCard reads `pending`).
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { Package } from "lucide-react";
 import VoiceButton from "@/components/voice/VoiceButton";
 import LotCard from "@/components/lot/LotCard";
 import DataAge from "@/components/common/DataAge";
@@ -27,11 +28,14 @@ export default function LotsPage() {
       {mine !== undefined && <DataAge updatedAt={new Date(dataUpdatedAt)} />}
 
       {isEmpty ? (
-        <div className="mt-6 flex flex-col items-center gap-4 text-center">
+        <div className="mt-10 flex flex-col items-center gap-5 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-card bg-surface shadow-[var(--shadow-soft)]">
+            <Package aria-hidden="true" size={28} className="text-ink-muted" />
+          </div>
           <p className="text-body text-ink-muted">{t("lots.empty")}</p>
           <Link
             to="/farmer/scan"
-            className="flex h-14 items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white"
+            className="flex h-14 items-center justify-center rounded-button bg-leaf px-6 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
           >
             {t("lots.emptyAction")}
           </Link>

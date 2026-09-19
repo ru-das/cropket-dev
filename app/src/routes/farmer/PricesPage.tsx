@@ -20,8 +20,6 @@ import { useOnline } from "@/offline/network";
 import { config } from "@/lib/config";
 import { pickHeroMandi, useMarketData } from "@/services/prices";
 
-// Lazy: maplibre-gl is only fetched when a map is actually shown (CLAUDE.md
-// §4 "first screen JS < 200 KB").
 const MandiHeatmap = lazy(() => import("@/components/market/MandiHeatmap"));
 
 export default function PricesPage() {
@@ -36,17 +34,14 @@ export default function PricesPage() {
   const { data, dataUpdatedAt, isError, refetch } = useMarketData(crop ?? "onion");
 
   if (!crop) return <p className="text-body text-ink-muted">{t("common.loading")}</p>;
-  // isError with no cached data means the fetch failed and there is nothing
-  // saved to fall back to (SPEC.md §5.8 still shows the saved copy when
-  // there is one) - offer a retry instead of "Loading..." forever.
   if (isError && !data) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi bg-mirchi/10 p-4">
+      <div className="flex flex-col items-center gap-3 rounded-card border border-mirchi/30 bg-mirchi/5 p-4">
         <p className="text-body text-mirchi-text">{t("common.loadFailed")}</p>
         <button
           type="button"
           onClick={() => void refetch()}
-          className="h-12 rounded-button border border-mirchi-text px-4 text-body font-semibold text-mirchi-text"
+          className="h-12 rounded-button border border-mirchi-text bg-surface px-4 text-body font-semibold text-mirchi-text shadow-[var(--shadow-soft)]"
         >
           {t("common.tryAgain")}
         </button>
@@ -80,7 +75,7 @@ export default function PricesPage() {
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-12 w-12 shrink-0 items-center justify-center"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-button hover:bg-surface"
           >
             <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
@@ -100,8 +95,8 @@ export default function PricesPage() {
               onClick={() => setSelectedCrop(c)}
               className={
                 c === crop
-                  ? "h-12 rounded-button border border-leaf bg-leaf px-4 text-body font-semibold text-white"
-                  : "h-12 rounded-button border border-line bg-surface px-4 text-body font-semibold text-ink"
+                  ? "h-12 rounded-button border border-leaf bg-leaf px-4 text-body font-semibold text-white shadow-[var(--shadow-soft)]"
+                  : "h-12 rounded-button border border-line-soft bg-surface px-4 text-body font-semibold text-ink shadow-[var(--shadow-soft)]"
               }
             >
               {t(`crop.${c}`)}
@@ -113,7 +108,7 @@ export default function PricesPage() {
       {hero && <PriceHero hero={hero} updatedAt={new Date(dataUpdatedAt)} />}
 
       {config.maptilerKey && online && (
-        <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-card bg-line" />}>
+        <Suspense fallback={<div className="h-64 w-full animate-shimmer rounded-card" />}>
           <MandiHeatmap mandiPrices={data.mandiPrices} farmerLocation={farmerLocation} />
         </Suspense>
       )}
