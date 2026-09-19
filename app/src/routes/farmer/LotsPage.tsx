@@ -47,7 +47,7 @@ export default function LotsPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-3.5">
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
           {lots.map((lot) => (
             <LotCard key={lot.id} lot={lot} />
           ))}
@@ -56,3 +56,4 @@ export default function LotsPage() {
     </div>
   );
 }
+

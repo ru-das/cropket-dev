@@ -111,18 +111,26 @@ export default function PricesPage() {
         </div>
       )}
 
-      {hero && <PriceHero hero={hero} updatedAt={new Date(dataUpdatedAt)} />}
+      {/* Two-column on lg+: left = price hero + advice; right = map + list */}
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[1fr_1.2fr] lg:items-start lg:gap-6">
+        {/* Left column */}
+        <div className="flex flex-col gap-5">
+          {hero && <PriceHero hero={hero} updatedAt={new Date(dataUpdatedAt)} />}
+          {data.advice && <AdviceCard advice={data.advice} />}
+          {belowFloor && data.floorPaise !== null && <FloorWarning floorPaise={data.floorPaise} />}
+        </div>
 
-      {config.maptilerKey && online && (
-        <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-2xl bg-line" />}>
-          <MandiHeatmap mandiPrices={data.mandiPrices} farmerLocation={farmerLocation} />
-        </Suspense>
-      )}
-      <MandiList mandiPrices={data.mandiPrices} />
-
-      {data.advice && <AdviceCard advice={data.advice} />}
-
-      {belowFloor && data.floorPaise !== null && <FloorWarning floorPaise={data.floorPaise} />}
+        {/* Right column: heatmap + mandi list */}
+        <div className="flex flex-col gap-5">
+          {config.maptilerKey && online && (
+            <Suspense fallback={<div className="h-64 w-full animate-pulse rounded-2xl bg-line" />}>
+              <MandiHeatmap mandiPrices={data.mandiPrices} farmerLocation={farmerLocation} />
+            </Suspense>
+          )}
+          <MandiList mandiPrices={data.mandiPrices} />
+        </div>
+      </div>
     </div>
   );
 }
+

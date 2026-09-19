@@ -16,7 +16,7 @@ export default function FarmerHome() {
       <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-3xl border-2 border-line bg-surface p-5 shadow-hero transition-all duration-300">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-gradient-to-br from-leaf-light to-terracotta-light/50 blur-2xl"
+          className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-gradient-to-br from-leaf-light to-terracotta-light/50 blur-2xl md:h-52 md:w-52"
         />
         <div className="relative z-10 flex items-center gap-3.5">
           <div
@@ -37,7 +37,8 @@ export default function FarmerHome() {
         <VoiceButton textKey="home.greeting" values={{ name }} className="relative z-10 h-11 w-11 shadow-xs" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      {/* 2-col on mobile/tablet, 4-col on lg+ to use the wider canvas */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <BigTile icon={Camera} labelKey="home.scanCrop" href="/farmer/scan" />
         <BigTile icon={Package} labelKey="home.myLots" href="/farmer/lots" />
         <BigTile icon={TrendingUp} labelKey="home.todaysPrice" href="/farmer/prices" />
@@ -46,3 +47,4 @@ export default function FarmerHome() {
     </div>
   );
 }
+

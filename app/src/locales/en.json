@@ -18,7 +18,8 @@
     "home": "Home",
     "lots": "My lots",
     "khata": "Khata",
-    "me": "Me"
+    "me": "Me",
+    "sidebarLabel": "Main navigation"
   },
   "welcome": {
     "choose": "Choose your language"

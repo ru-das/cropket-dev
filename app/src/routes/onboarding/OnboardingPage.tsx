@@ -150,7 +150,7 @@ export default function OnboardingPage() {
   const primaryDisabled = isLastStep ? !canAdvance || busy || !online : !canAdvance || busy;
 
   return (
-    <div className="flex min-h-screen flex-col bg-field p-4">
+    <div className="flex min-h-screen flex-col bg-field p-4 md:p-8">
       <div className="flex items-center justify-between">
         {currentIndex > 0 ? (
           <button
@@ -177,7 +177,7 @@ export default function OnboardingPage() {
         </div>
       </div>
 
-      <div className="mx-auto mt-5 w-full max-w-sm flex-1">
+      <div className="mx-auto mt-5 w-full max-w-sm flex-1 md:max-w-lg">
         {steps.slice(0, currentIndex + 1).map((step, index) => {
           const isCurrent = index === currentIndex;
           return (

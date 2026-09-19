@@ -1575,4 +1575,53 @@ the changed files: no findings.
   `/grade` route built in 1.4 instead of the mock.
 - `ALLOWED_ORIGINS` — not set yet, so every origin can call the functions from a browser. Fine for
   now (see the auth/CORS fix above); set it to the real web URL(s) at the M5 web deploy with
-  `bash scripts/set-key.sh ALLOWED_ORIGINS`.
+  `bash scripts/set-key.sh ALLOWED_ORIGINS`
+
+### Adapt — Responsive layout for laptops, bigger phones, big screens — 2026-09-19
+
+**What it does:** Adapts every screen to look great on tablets, laptops, and large displays — not just on 320–448px phones.
+
+**Layout change:**
+- `AppShell` switches from a narrow centred phone column to a two-column layout on `md+` (≥768px): a left sidebar + wider content column. On mobile it's unchanged.
+- New `SideNav` component: hidden on mobile, shows as a 64px icon rail on md, expands to a 220px labelled sidebar on lg. Carries the brand mark, nav links (same set as BottomNav), and sync status.
+- `AppHeader` hides its brand on md+ (sidebar has it); stays slim with just the right-side controls.
+- `BottomNav` now has `md:hidden` — only shows on mobile.
+
+**Content pages:**
+- `FarmerHome`: tiles switch from 2-column to 4-column on `lg+`.
+- `LotsPage`: lot cards go from a single stack to a 2-column grid on `lg+`.
+- `PricesPage`: two-column layout on `lg+` — price hero + advice left, heatmap + mandi list right.
+- `ComparePage`: two-column on `lg+` — lot context panel left, mandi cards right.
+- `LotDetailPage`: two-column on `lg+` — lot summary + QR left, action buttons right.
+- `WelcomePage`: card widens to `max-w-md/lg`, emblem grows, ambient glows scale up.
+- `LoginPage`: centres vertically on md+, widens to `max-w-md`.
+- `OnboardingPage`: widens to `max-w-lg` on md+.
+
+**Files touched:**
+- `app/src/components/shell/AppShell.tsx` — two-column flex row on md+
+- `app/src/components/shell/SideNav.tsx` — **new** component
+- `app/src/components/shell/AppHeader.tsx` — brand hidden on md+
+- `app/src/components/shell/BottomNav.tsx` — md:hidden
+- `app/src/routes/farmer/FarmerHome.tsx` — 4-col grid on lg+
+- `app/src/routes/farmer/LotsPage.tsx` — 2-col grid on lg+
+- `app/src/routes/farmer/LotDetailPage.tsx` — 2-col on lg+
+- `app/src/routes/farmer/PricesPage.tsx` — 2-col on lg+
+- `app/src/routes/farmer/ComparePage.tsx` — 2-col on lg+
+- `app/src/routes/welcome/WelcomePage.tsx` — wider card on md+
+- `app/src/routes/login/LoginPage.tsx` — wider + centred on md+
+- `app/src/routes/onboarding/OnboardingPage.tsx` — wider on md+
+- `app/src/locales/{en,hi,mr}.json` — added `nav.sidebarLabel`
+
+**Mocked:** nothing — purely layout/CSS changes, no data or logic changes.
+
+**Test by hand:**
+1. `pnpm dev` → open in a laptop browser at ≥768px → should see the left sidebar rail (icon-only), wider content area, no bottom nav.
+2. Resize to 1024px+ → sidebar should expand to show labels next to icons.
+3. Resize to <768px → bottom nav returns, sidebar disappears, layout is identical to before.
+4. Check FarmerHome at lg+ — 4 tiles in a row.
+5. Check LotsPage at lg+ — 2 lot cards side by side.
+6. Check PricesPage at lg+ — price hero on left, mandi list on right.
+7. WelcomePage / LoginPage / Onboarding — centred card, bigger on wider screens.
+
+**Next:** M3 buyer marketplace.
+

@@ -74,8 +74,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-field p-4">
-      <div className="flex items-center justify-between">
+    <div className="flex min-h-screen flex-col bg-field p-4 md:items-center md:justify-center md:p-8">
+      <div className="flex w-full items-center justify-between md:max-w-md">
         {phase === "otp" ? (
           <button
             type="button"
@@ -91,7 +91,7 @@ export default function LoginPage() {
         <LanguageSwitch />
       </div>
 
-      <div className="mx-auto mt-10 w-full max-w-sm">
+      <div className="mx-auto mt-10 w-full max-w-sm md:max-w-md md:mt-8">
         {phase === "phone" ? (
           <div className="flex flex-col gap-2">
             <div>

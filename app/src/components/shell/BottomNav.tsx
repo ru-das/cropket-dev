@@ -30,7 +30,7 @@ export default function BottomNav() {
   if (tabs.length === 0) return null;
 
   return (
-    <nav className="sticky bottom-0 z-20 flex border-t-2 border-line/70 bg-surface/90 px-3.5 py-2 shadow-dock backdrop-blur-2xl">
+    <nav className="sticky bottom-0 z-20 flex border-t-2 border-line/70 bg-surface/90 px-3.5 py-2 shadow-dock backdrop-blur-2xl md:hidden">
       {tabs.map(({ to, labelKey, Icon, end }) => (
         <NavLink
           key={to}
