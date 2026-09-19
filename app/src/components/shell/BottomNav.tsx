@@ -30,7 +30,7 @@ export default function BottomNav() {
   if (tabs.length === 0) return null;
 
   return (
-    <nav className="sticky bottom-0 z-20 flex border-t border-line bg-surface/95 px-2 py-1 shadow-dock backdrop-blur-md">
+    <nav className="sticky bottom-0 z-20 flex border-t-2 border-line/80 bg-surface/95 px-3 py-1.5 shadow-dock backdrop-blur-xl">
       {tabs.map(({ to, labelKey, Icon, end }) => (
         <NavLink
           key={to}
@@ -38,10 +38,10 @@ export default function BottomNav() {
           end={end}
           className={({ isActive }) =>
             cn(
-              "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1 text-meta transition-all duration-150 active:scale-95",
+              "flex min-h-16 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-1 text-meta transition-all duration-200 active:scale-90",
               isActive
-                ? "bg-leaf-light font-bold text-leaf-dark shadow-xs"
-                : "font-medium text-ink-muted hover:text-ink",
+                ? "bg-leaf-light font-black text-leaf-dark border-2 border-leaf/30 shadow-xs"
+                : "font-semibold text-ink-muted hover:text-ink",
             )
           }
         >
@@ -50,9 +50,9 @@ export default function BottomNav() {
               <Icon
                 aria-hidden="true"
                 size={22}
-                className={cn("transition-transform duration-150", isActive && "scale-110")}
+                className={cn("transition-transform duration-200", isActive && "scale-115 text-leaf-dark stroke-[2.5]")}
               />
-              <span className="text-xs leading-none tracking-tight">{t(labelKey)}</span>
+              <span className="font-display text-xs leading-none tracking-tight">{t(labelKey)}</span>
             </>
           )}
         </NavLink>

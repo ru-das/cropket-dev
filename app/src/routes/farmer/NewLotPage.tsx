@@ -83,32 +83,36 @@ export default function NewLotPage() {
     : (profile?.village ?? t("lots.locationUnknown"));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Link
             to={`/farmer/scan/result/${gradeResultId}`}
             aria-label={t("onboarding.back")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs active:scale-90 transition-all"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface shadow-xs active:scale-90 transition-all hover:border-leaf"
           >
-            <ArrowLeft aria-hidden="true" size={20} className="text-ink" />
+            <ArrowLeft aria-hidden="true" size={22} className="text-ink" />
           </Link>
-          <h1 className="text-title font-display font-bold text-ink">{t("lots.newTitle")}</h1>
+          <h1 className="font-display text-3xl font-black text-ink">{t("lots.newTitle")}</h1>
         </div>
-        <VoiceButton textKey="lots.newTitle" />
+        <VoiceButton textKey="lots.newTitle" className="h-11 w-11 shadow-xs" />
       </div>
 
-      <p className="text-meta font-semibold uppercase tracking-wider text-ink-muted">{cropLabel}</p>
+      <div className="flex items-center gap-2">
+        <span className="rounded-full border border-leaf/30 bg-leaf-light px-3.5 py-1 font-display text-sm font-bold text-leaf-dark shadow-xs">
+          {cropLabel}
+        </span>
+      </div>
 
       <NumberPad value={kg} onChange={setKg} unit={t("lots.kg")} />
 
-      <p className="inline-flex items-center gap-1.5 self-start rounded-full border border-line bg-surface px-3.5 py-1 text-meta font-medium text-ink-muted shadow-xs">
+      <p className="inline-flex items-center gap-2 self-start rounded-full border-2 border-line bg-surface px-4 py-1.5 font-display text-sm font-bold text-ink-muted shadow-xs">
         <span>📍</span>
         <span>{locationLine}</span>
       </p>
 
       {error && (
-        <p className="rounded-2xl border border-mirchi/30 bg-mirchi-light p-4 text-body font-medium text-mirchi-text shadow-card">
+        <p className="rounded-2xl border-2 border-mirchi/40 bg-mirchi-light p-4 font-display text-base font-bold text-mirchi-text shadow-card">
           {t(error.messageKey)}
         </p>
       )}
@@ -117,7 +121,7 @@ export default function NewLotPage() {
         type="button"
         disabled={!canSave}
         onClick={() => void handleSave()}
-        className="mt-4 flex h-14 w-full items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:bg-line disabled:text-ink-muted"
+        className="mt-2 flex h-16 w-full items-center justify-center rounded-2xl bg-leaf px-6 font-display text-xl font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98] disabled:bg-line disabled:text-ink-muted disabled:shadow-none"
       >
         {t("lots.save")}
       </button>

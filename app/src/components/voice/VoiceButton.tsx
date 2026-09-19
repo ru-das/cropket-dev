@@ -50,8 +50,8 @@ export default function VoiceButton({ textKey, values, className, label }: Props
         disabled={state === "unavailable"}
         aria-label={barLabel}
         className={cn(
-          "flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface shadow-card text-body font-semibold text-ink hover:bg-surface-subtle disabled:text-ink-muted",
-          state === "speaking" && "border-leaf bg-leaf-light text-leaf-dark",
+          "flex h-15 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-line bg-surface shadow-card font-display text-base font-bold text-ink hover:border-leaf hover:bg-surface-subtle disabled:text-ink-muted transition-all active:scale-[0.98]",
+          state === "speaking" && "border-leaf bg-leaf-light text-leaf-dark shadow-glow-leaf",
           className,
         )}
       >
@@ -70,8 +70,8 @@ export default function VoiceButton({ textKey, values, className, label }: Props
       aria-label={iconLabel}
       title={iconLabel}
       className={cn(
-        "relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-xs text-leaf-dark hover:border-leaf/60 hover:bg-leaf-light/40 active:scale-90 transition-all disabled:text-ink-muted disabled:border-line disabled:bg-surface",
-        state === "speaking" && "border-leaf bg-leaf-light text-leaf-dark ring-3 ring-leaf/20",
+        "relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface shadow-xs text-leaf-dark hover:border-leaf hover:bg-leaf-light/50 active:scale-90 transition-all duration-150 disabled:text-ink-muted disabled:border-line disabled:bg-surface",
+        state === "speaking" && "border-leaf bg-leaf-light text-leaf-dark ring-4 ring-leaf/20 shadow-glow-leaf",
         className,
       )}
     >

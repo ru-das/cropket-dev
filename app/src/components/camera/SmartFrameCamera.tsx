@@ -134,9 +134,9 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex flex-col items-center gap-5">
       <div
-        className="relative w-full overflow-hidden rounded-2xl bg-black shadow-card border border-line"
+        className="relative w-full overflow-hidden rounded-3xl bg-black shadow-hero border-2 border-line"
         aria-label={t("scan.title", { crop: t(`crop.${crop}`) })}
       >
         <video
@@ -148,31 +148,34 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
         />
 
         {/* Ambient lighting pill */}
-        <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center z-10">
+        <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center z-10">
           <span
             className={cn(
-              "rounded-full border px-3.5 py-1 text-meta font-semibold shadow-card backdrop-blur-md",
+              "rounded-full border-2 px-4 py-1.5 font-display text-meta font-bold shadow-float backdrop-blur-md transition-all",
               isDark
-                ? "border-mirchi/40 bg-mirchi-light/95 text-mirchi-text"
-                : "border-pass/40 bg-pass-light/95 text-pass-text",
+                ? "border-mirchi bg-mirchi-light/95 text-mirchi-text shadow-glow-haldi"
+                : "border-pass bg-pass-light/95 text-pass-text shadow-glow-leaf",
             )}
           >
             {isDark ? `⚠ ${t("scan.tooDark")}` : `✅ ${t("scan.lightGood")}`}
           </span>
         </div>
 
-        {/* Framing guide */}
+        {/* Framing HUD guide */}
         <div
           className={cn(
-            "pointer-events-none absolute inset-6 rounded-2xl border-2 transition-colors duration-200",
-            isDark ? "border-mirchi shadow-[0_0_15px_rgba(200,48,43,0.3)]" : "border-pass shadow-[0_0_15px_rgba(46,158,79,0.3)]",
+            "pointer-events-none absolute inset-6 rounded-3xl border-2 transition-colors duration-200",
+            isDark
+              ? "border-mirchi/80 shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+              : "border-pass/80 shadow-[0_0_20px_rgba(22,163,74,0.4)]",
           )}
         >
+          {/* Target reticle for ₹10 coin */}
           <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-            <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-white/90 bg-black/30 font-display text-base font-bold text-white shadow-xs">
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/20">
               ₹10
             </div>
-            <span className="rounded-full bg-black/50 px-3 py-1 text-center text-meta font-medium text-white backdrop-blur-sm">
+            <span className="rounded-full bg-black/60 px-4 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
               {t("scan.coinHint")}
             </span>
           </div>
@@ -180,17 +183,19 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
       </div>
 
       {/* Shot progress indicator */}
-      <div className="flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-1.5 shadow-xs">
-        <span className="text-meta font-semibold text-ink">
+      <div className="flex items-center gap-3 rounded-full border-2 border-line bg-surface px-5 py-2 shadow-card">
+        <span className="font-display text-meta font-bold text-ink">
           {t("scan.photoOf", { n: Math.min(taken + 1, shots), total: shots })}
         </span>
-        <div className="ml-1 flex gap-1.5" aria-hidden="true">
+        <div className="ml-1 flex gap-2" aria-hidden="true">
           {Array.from({ length: shots }, (_, i) => (
             <span
               key={i}
               className={cn(
-                "h-2.5 w-2.5 rounded-full transition-all duration-150",
-                i < taken ? "bg-leaf scale-110" : "bg-line",
+                "h-3 w-3 rounded-full transition-all duration-200",
+                i < taken
+                  ? "bg-leaf scale-125 shadow-glow-leaf"
+                  : "bg-line",
               )}
             />
           ))}
@@ -198,15 +203,15 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
       </div>
 
       {/* Capture controls */}
-      <div className="flex items-center justify-center gap-5 mt-1">
+      <div className="flex items-center justify-center gap-6 mt-1">
         <button
           type="button"
           onClick={() => void capture()}
           disabled={isDark || capturing}
           aria-label={t("scan.capture")}
-          className="flex h-19 w-19 items-center justify-center rounded-full border-4 border-white bg-leaf shadow-float transition-transform active:scale-90 disabled:opacity-40 disabled:bg-line"
+          className="group flex h-21 w-21 items-center justify-center rounded-full border-4 border-surface bg-leaf shadow-hero transition-transform duration-150 active:scale-90 disabled:opacity-40 disabled:bg-line"
         >
-          <div className="h-14 w-14 rounded-full border-2 border-white/60 bg-leaf" />
+          <div className="h-15 w-15 rounded-full border-2 border-white/80 bg-leaf-hover transition-transform group-hover:scale-95 shadow-xs" />
         </button>
 
         {torchAvailable && (
@@ -214,12 +219,12 @@ export default function SmartFrameCamera({ crop, shots = 3, minBrightness = 70, 
             type="button"
             onClick={() => void toggleFlash()}
             aria-label={t("scan.flash")}
-            className="flex h-12 w-12 items-center justify-center rounded-full border border-line bg-surface text-leaf-dark shadow-card active:scale-90 transition-all"
+            className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-line bg-surface text-leaf-dark shadow-card active:scale-90 transition-all hover:border-leaf hover:bg-leaf-light/40"
           >
             {torchOn ? (
-              <Zap aria-hidden="true" size={20} className="text-haldi" />
+              <Zap aria-hidden="true" size={24} className="text-haldi fill-haldi" />
             ) : (
-              <ZapOff aria-hidden="true" size={20} />
+              <ZapOff aria-hidden="true" size={24} />
             )}
           </button>
         )}

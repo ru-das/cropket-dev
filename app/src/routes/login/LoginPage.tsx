@@ -91,14 +91,20 @@ export default function LoginPage() {
         <LanguageSwitch />
       </div>
 
-      <div className="mx-auto mt-8 w-full max-w-sm">
+      <div className="mx-auto mt-10 w-full max-w-sm">
         {phase === "phone" ? (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="phone" className="block text-body font-semibold text-ink">
-              {t("login.phoneLabel")}
-            </label>
-            <div className="mt-2 flex h-14 overflow-hidden rounded-xl border border-line bg-surface shadow-card focus-within:border-leaf focus-within:ring-2 focus-within:ring-leaf/20">
-              <span className="flex items-center border-r border-line bg-surface-subtle px-4 text-body font-semibold text-ink-muted">
+          <div className="flex flex-col gap-2">
+            <div>
+              <h2 className="font-display text-3xl font-black tracking-tight text-ink">
+                {t("login.phoneLabel")}
+              </h2>
+              <p className="mt-1 text-meta font-medium text-ink-muted">
+                {t("login.phonePlaceholder")}
+              </p>
+            </div>
+
+            <div className="mt-4 flex h-16 overflow-hidden rounded-2xl border-2 border-line bg-surface shadow-card transition-all duration-150 focus-within:border-leaf focus-within:ring-4 focus-within:ring-leaf/15">
+              <span className="flex items-center border-r-2 border-line bg-surface-subtle px-4 font-display text-lg font-bold text-ink">
                 +91
               </span>
               <input
@@ -109,27 +115,37 @@ export default function LoginPage() {
                 maxLength={10}
                 value={phoneRaw}
                 onChange={(e) => setPhoneRaw(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                className="flex-1 px-4 text-body font-medium text-ink outline-none"
-                placeholder={t("login.phonePlaceholder")}
+                className="flex-1 px-4 font-display text-2xl font-bold tracking-wider text-ink outline-none placeholder:text-base placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-muted/50"
+                placeholder="98765 43210"
               />
             </div>
 
-            {error && <p className="mt-3 text-meta font-medium text-mirchi-text">{error}</p>}
+            {error && (
+              <div className="mt-3 rounded-xl border border-mirchi/30 bg-mirchi-light p-3 text-meta font-semibold text-mirchi-text">
+                {error}
+              </div>
+            )}
 
             <button
               type="button"
               disabled={!canSend}
               onClick={() => void handleSend()}
-              className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-leaf text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:opacity-40"
+              className="mt-6 flex h-15 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-premium transition-all duration-150 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
             >
               {t("login.sendOtp")}
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="otp" className="block text-body font-semibold text-ink">
-              {t("login.otpLabel")}
-            </label>
+          <div className="flex flex-col gap-2">
+            <div>
+              <h2 className="font-display text-3xl font-black tracking-tight text-ink">
+                {t("login.otpLabel")}
+              </h2>
+              <p className="mt-1 text-meta font-medium text-ink-muted">
+                +91 {phoneRaw}
+              </p>
+            </div>
+
             <input
               id="otp"
               type="text"
@@ -138,16 +154,21 @@ export default function LoginPage() {
               maxLength={6}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="mt-2 h-16 w-full rounded-xl border border-line bg-surface text-center font-display text-title font-bold tracking-[0.5em] text-ink shadow-card outline-none focus:border-leaf focus:ring-2 focus:ring-leaf/20"
+              className="mt-4 h-20 w-full rounded-2xl border-2 border-line bg-surface text-center font-display text-4xl font-black tracking-[0.55em] text-ink shadow-card outline-none transition-all duration-150 focus:border-leaf focus:ring-4 focus:ring-leaf/15"
+              placeholder="••••••"
             />
 
-            {error && <p className="mt-3 text-meta font-medium text-mirchi-text">{error}</p>}
+            {error && (
+              <div className="mt-3 rounded-xl border border-mirchi/30 bg-mirchi-light p-3 text-meta font-semibold text-mirchi-text">
+                {error}
+              </div>
+            )}
 
             <button
               type="button"
               disabled={!canVerify}
               onClick={() => void handleVerify()}
-              className="mt-6 flex h-14 w-full items-center justify-center rounded-xl bg-leaf text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98] disabled:opacity-40"
+              className="mt-6 flex h-15 w-full items-center justify-center rounded-2xl bg-leaf text-card font-bold text-white shadow-premium transition-all duration-150 ease-out hover:bg-leaf-hover active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none"
             >
               {t("login.verify")}
             </button>
@@ -156,7 +177,7 @@ export default function LoginPage() {
               type="button"
               disabled={resendIn > 0 || busy}
               onClick={() => void handleSend()}
-              className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-meta font-semibold text-leaf-dark hover:bg-leaf-light/40 active:scale-95 transition-all disabled:text-ink-muted disabled:hover:bg-transparent"
+              className="mt-3 flex h-12 w-full items-center justify-center rounded-xl font-display text-base font-bold text-leaf-dark hover:bg-leaf-light/40 active:scale-95 transition-all disabled:text-ink-muted disabled:hover:bg-transparent"
             >
               {resendIn > 0
                 ? t("login.resendIn", { time: `0:${String(resendIn).padStart(2, "0")}` })

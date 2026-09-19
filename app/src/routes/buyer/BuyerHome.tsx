@@ -19,35 +19,35 @@ export default function BuyerHome() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neel-light text-neel-dark">
-            <Building2 size={24} aria-hidden="true" />
+      <div className="rounded-3xl border-2 border-line bg-surface p-6 shadow-premium">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-neel/30 bg-neel-light text-neel-text shadow-xs">
+            <Building2 size={32} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-display text-2xl font-bold tracking-tight text-ink">
+            <h1 className="truncate font-display text-2xl font-black tracking-tight text-ink">
               {t("home.greeting", { name: profile?.name ?? "" })}
             </h1>
-            <span className="mt-0.5 inline-block rounded-full bg-neel-light px-2.5 py-0.5 text-xs font-bold text-neel-dark">
+            <span className="mt-1 inline-block rounded-full border border-neel/30 bg-neel-light px-3 py-0.5 font-display text-xs font-bold text-neel-text">
               {t("role.buyer")}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-line bg-surface-subtle/50 p-8 text-center shadow-card">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neel-light text-neel-dark">
-          <Sparkles size={24} aria-hidden="true" />
+      <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-8 text-center shadow-card">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-neel-light text-neel-text border border-neel/20">
+          <Sparkles size={28} aria-hidden="true" />
         </div>
-        <p className="mt-3 font-display text-lg font-bold text-ink">{t("common.comingSoon")}</p>
+        <p className="mt-4 font-display text-xl font-bold text-ink">{t("common.comingSoon")}</p>
       </div>
 
       <button
         type="button"
         onClick={() => void handleSignOut()}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light text-body font-bold text-mirchi-text shadow-xs transition-transform hover:bg-mirchi/15 active:scale-97"
+        className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light font-display text-lg font-bold text-mirchi-text shadow-card transition-all hover:bg-mirchi-light/80 active:scale-95"
       >
-        <LogOut size={18} aria-hidden="true" />
+        <LogOut size={20} aria-hidden="true" />
         <span>{t("me.signOut")}</span>
       </button>
     </div>

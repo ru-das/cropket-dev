@@ -74,37 +74,37 @@ export default function PricesPage() {
     isBelowFloor(hero.modalPricePaise, data.floorPaise);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Link
             to="/farmer"
             aria-label={t("onboarding.back")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-xs transition-transform active:scale-95"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface text-ink shadow-xs transition-transform hover:border-leaf active:scale-90"
           >
-            <ArrowLeft aria-hidden="true" size={20} />
+            <ArrowLeft aria-hidden="true" size={22} />
           </Link>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+          <h1 className="font-display text-3xl font-black tracking-tight text-ink">
             {t("prices.title", { crop: t(`crop.${crop}`) })}
           </h1>
         </div>
-        <VoiceButton textKey="prices.title" values={{ crop: t(`crop.${crop}`) }} />
+        <VoiceButton textKey="prices.title" values={{ crop: t(`crop.${crop}`) }} className="h-11 w-11 shadow-xs" />
       </div>
 
       {crops.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none">
           {crops.map((c) => (
             <button
               key={c}
               type="button"
               onClick={() => setSelectedCrop(c)}
-              className={`flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-bold transition-all active:scale-97 ${
+              className={`flex h-12 shrink-0 items-center gap-2 rounded-2xl px-5 font-display text-base font-bold transition-all active:scale-95 ${
                 c === crop
-                  ? "bg-leaf text-white shadow-card"
-                  : "border border-line bg-surface text-ink shadow-xs"
+                  ? "border-2 border-leaf bg-leaf text-white shadow-premium scale-105"
+                  : "border-2 border-line bg-surface text-ink shadow-card hover:border-leaf/40"
               }`}
             >
-              <span aria-hidden="true">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
+              <span aria-hidden="true" className="text-xl">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
               <span>{t(`crop.${c}`)}</span>
             </button>
           ))}

@@ -14,13 +14,13 @@ export default function PlaceholderPage({ titleKey }: PlaceholderPageProps) {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{t(titleKey)}</h1>
+      <h1 className="font-display text-3xl font-black tracking-tight text-ink">{t(titleKey)}</h1>
 
-      <div className="rounded-2xl border border-dashed border-line bg-surface-subtle/50 p-8 text-center shadow-card">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-subtle text-ink-muted">
-          <Clock size={24} aria-hidden="true" />
+      <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-8 text-center shadow-card">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-line bg-surface-subtle text-ink-muted">
+          <Clock size={28} aria-hidden="true" />
         </div>
-        <p className="mt-3 font-display text-lg font-bold text-ink">{t("common.comingSoon")}</p>
+        <p className="mt-4 font-display text-xl font-bold text-ink">{t("common.comingSoon")}</p>
       </div>
     </div>
   );

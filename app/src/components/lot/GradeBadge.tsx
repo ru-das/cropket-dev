@@ -14,21 +14,39 @@ type Props = {
   size?: "lg" | "sm";
 };
 
-const TONE: Record<Grade, string> = {
-  A: "border-pass/40 bg-pass-light text-pass-text",
-  B: "border-haldi/40 bg-haldi-light text-haldi-text",
-  C: "border-kesar/40 bg-kesar-light text-kesar-text",
+const TONE: Record<Grade, { box: string; glow: string; text: string; border: string }> = {
+  A: {
+    box: "bg-pass-light/95",
+    glow: "shadow-glow-leaf",
+    text: "text-pass-text",
+    border: "border-pass/50",
+  },
+  B: {
+    box: "bg-haldi-light/95",
+    glow: "shadow-glow-haldi",
+    text: "text-haldi-text",
+    border: "border-haldi/50",
+  },
+  C: {
+    box: "bg-kesar-light/95",
+    glow: "shadow-glow-haldi",
+    text: "text-kesar-text",
+    border: "border-kesar/50",
+  },
 };
 
 export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   const { t } = useTranslation();
+  const tone = TONE[grade];
 
   if (size === "sm") {
     return (
       <span
         className={cn(
-          "inline-flex items-center rounded-full border px-3 py-1 text-meta font-semibold shadow-xs",
-          TONE[grade],
+          "inline-flex items-center rounded-full border-2 px-3.5 py-1 font-display text-meta font-bold shadow-xs",
+          tone.box,
+          tone.border,
+          tone.text,
         )}
       >
         {t("grade.badge", { grade })}
@@ -39,12 +57,21 @@ export default function GradeBadge({ grade, kind, size = "lg" }: Props) {
   return (
     <div
       className={cn(
-        "mx-auto flex min-w-[130px] flex-col items-center gap-1.5 rounded-2xl border-2 px-8 py-5 shadow-card",
-        TONE[grade],
+        "relative mx-auto flex min-w-[160px] flex-col items-center gap-2 rounded-3xl border-3 px-10 py-6 text-center shadow-hero transition-transform duration-300",
+        tone.box,
+        tone.border,
+        tone.text,
+        tone.glow,
       )}
     >
-      <span className="text-hero font-display font-bold leading-none">{t("grade.badge", { grade })}</span>
-      <span className="text-meta font-medium tracking-wide uppercase opacity-90">{t(`grade.kind.${kind}`)}</span>
+      <span className="font-display text-6xl font-black leading-none tracking-tight">
+        {t("grade.badge", { grade })}
+      </span>
+      <div className="flex items-center gap-1.5 rounded-full bg-surface/70 px-3.5 py-0.5 shadow-xs backdrop-blur-sm">
+        <span className="font-display text-sm font-bold tracking-wide">
+          {t(`grade.kind.${kind}`)}
+        </span>
+      </div>
     </div>
   );
 }

@@ -4,39 +4,37 @@
    must never use a raw hex value or an ad-hoc font-size — see CLAUDE.md §4
    "UI rules". No dark mode (SPEC.md §6.2: farmers use phones in sunlight). */
 @theme {
-  /* Base palette (SPEC.md §6.2) */
-  --color-leaf: #1f6b3a; /* brand, primary buttons, links */
-  --color-leaf-dark: #154d2a; /* pressed state, header text */
-  --color-leaf-light: #e8f5ec; /* soft green for active tabs and badges */
-  --color-leaf-hover: #19562e;
-  --color-field: #f4f7f2; /* fresh, sunlit agricultural backdrop */
-  --color-surface: #ffffff; /* cards, sheets */
-  --color-surface-subtle: #f9faf7; /* soft secondary card/tile background */
-  --color-soil: #5a4632; /* secondary text accents, salvage board */
-  --color-soil-light: #f7f3ed;
-  --color-ink: #1b2420; /* main text */
-  --color-ink-muted: #526058; /* secondary text, strictly AA on --field */
-  --color-line: #dfe5dc; /* borders, dividers */
-  --color-line-subtle: #edf2ea; /* inner card dividers */
+  /* Base palette - Agritech Vanguard (SPEC.md §6.2) */
+  --color-leaf: #126835; /* vibrant rich emerald brand, primary buttons */
+  --color-leaf-dark: #0a4020; /* deep forest pressed state, header text */
+  --color-leaf-light: #eaf6ee; /* luminous organic tint */
+  --color-leaf-hover: #177a3f; /* interactive highlight */
+  --color-field: #f5f8f4; /* crisp, clean, sun-ready modern canvas */
+  --color-surface: #ffffff; /* pure white cards */
+  --color-surface-subtle: #f0f5ee; /* refined secondary surface */
+  --color-soil: #543e2b; /* earthy cocoa secondary */
+  --color-soil-light: #f5ede6;
+  --color-ink: #0f1914; /* sharp obsidian charcoal for peak outdoor contrast */
+  --color-ink-muted: #4e5f55; /* balanced slate-leaf secondary (strictly AA) */
+  --color-line: #d8e3d5; /* crisp structural borders */
+  --color-line-subtle: #e8efe6; /* inner card dividers */
 
-  /* Meaning colours - same everywhere: Khata, badges, banners, map.
-     Each has a "-text" pair for AA-contrast text/icons on its own fill,
-     and a "-light" pair for soft, modern tint badges. */
-  --color-haldi: #f2b705; /* 🟡 money locked safely */
-  --color-haldi-text: #7a5a00;
-  --color-haldi-light: #fef8e7;
-  --color-neel: #2f5da8; /* 🔵 goods on the way */
-  --color-neel-text: #1e3f75;
-  --color-neel-light: #eff4fc;
-  --color-pass: #2e9e4f; /* 🟢 paid / done / good */
-  --color-pass-text: #1d6b34;
-  --color-pass-light: #eaf7ee;
-  --color-mirchi: #c8302b; /* 🔴 problem / below floor */
-  --color-mirchi-text: #9a231f;
-  --color-mirchi-light: #fdf2f2;
-  --color-kesar: #e07b1f; /* 🟧 offline / needs attention */
-  --color-kesar-text: #8a4a0f;
-  --color-kesar-light: #fdf5ec;
+  /* Meaning colours - bold, aesthetic, unmistakably clear */
+  --color-haldi: #eab308; /* 🟡 money locked safely (vibrant gold) */
+  --color-haldi-text: #854d0e;
+  --color-haldi-light: #fef9c3;
+  --color-neel: #2563eb; /* 🔵 goods on the way (electric cobalt) */
+  --color-neel-text: #1e40af;
+  --color-neel-light: #eff6ff;
+  --color-pass: #16a34a; /* 🟢 paid / done / good (triumphant green) */
+  --color-pass-text: #15803d;
+  --color-pass-light: #dcfce7;
+  --color-mirchi: #dc2626; /* 🔴 problem / below floor (alert crimson) */
+  --color-mirchi-text: #991b1b;
+  --color-mirchi-light: #fee2e2;
+  --color-kesar: #ea580c; /* 🟧 offline / needs attention (deep saffron) */
+  --color-kesar-text: #9a3412;
+  --color-kesar-light: #ffedd5;
 
   /* Fonts (SPEC.md §6.3). Bundled via @fontsource, imported in main.tsx.
      "Baloo 2 Variable" is the family name the variable font package
@@ -45,10 +43,10 @@
   --font-display: "Baloo 2 Variable", Mukta, "Noto Sans Devanagari", system-ui, sans-serif;
 
   /* Type scale, size/line-height (SPEC.md §6.3) */
-  --text-hero: 40px; /* price, grade, ₹ */
-  --text-hero--line-height: 44px;
-  --text-title: 24px; /* screen title */
-  --text-title--line-height: 30px;
+  --text-hero: 44px; /* price, grade, ₹ */
+  --text-hero--line-height: 48px;
+  --text-title: 26px; /* screen title */
+  --text-title--line-height: 32px;
   --text-card: 20px; /* card title */
   --text-card--line-height: 28px;
   --text-body: 18px; /* body - base size, not 16 */
@@ -57,7 +55,7 @@
   --text-meta--line-height: 22px;
 
   /* Radius by hierarchy, not one radius everywhere (SPEC.md §6.4) */
-  --radius-button: 12px;
-  --radius-card: 16px;
-  --radius-sheet: 24px; /* top corners of bottom sheets */
+  --radius-button: 14px;
+  --radius-card: 20px;
+  --radius-sheet: 28px; /* top corners of bottom sheets */
 }

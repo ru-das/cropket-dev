@@ -14,7 +14,7 @@ export default function LanguageSwitch() {
     <div
       role="group"
       aria-label={t("lang.switchLabel")}
-      className="inline-flex items-center rounded-full border border-line bg-surface-subtle p-0.5 shadow-xs"
+      className="inline-flex items-center rounded-full border-2 border-line bg-surface-subtle p-1 shadow-xs"
     >
       {LANGS.map((lang) => {
         const active = current === lang;
@@ -26,7 +26,7 @@ export default function LanguageSwitch() {
             aria-label={t(`lang.${lang}`)}
             onClick={() => setLang(lang)}
             className={cn(
-              "h-9 min-w-9 rounded-full px-2.5 text-meta font-semibold transition-all duration-150",
+              "h-9 min-w-9 rounded-full px-3 font-display text-sm font-bold transition-all duration-150",
               active
                 ? "bg-leaf text-white shadow-xs"
                 : "text-ink-muted hover:text-ink active:scale-95",

@@ -24,34 +24,40 @@ export default function AdviceCard({ advice }: { advice: Advice }) {
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-2xl border p-4 shadow-card ${
+      className={`flex flex-col gap-3.5 rounded-3xl border-2 p-5 shadow-card transition-all ${
         isHold
-          ? "border-line border-l-[6px] border-l-haldi bg-surface"
-          : "border-line border-l-[6px] border-l-leaf bg-surface"
+          ? "border-haldi/40 bg-surface"
+          : "border-pass/40 bg-surface"
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <div
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-              isHold ? "bg-haldi-light text-haldi-text" : "bg-leaf-light text-leaf-dark"
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 ${
+              isHold
+                ? "border-haldi/40 bg-haldi-light text-haldi-text shadow-glow-haldi"
+                : "border-pass/40 bg-pass-light text-pass-text shadow-glow-leaf"
             }`}
           >
             {isHold ? (
-              <Hourglass aria-hidden="true" size={20} />
+              <Hourglass aria-hidden="true" size={24} className="stroke-[2.5]" />
             ) : (
-              <ShoppingBasket aria-hidden="true" size={20} />
+              <ShoppingBasket aria-hidden="true" size={24} className="stroke-[2.5]" />
             )}
           </div>
-          <span className="font-display text-lg font-bold text-ink">{headline}</span>
+          <span className="font-display text-2xl font-black text-ink leading-tight">
+            {headline}
+          </span>
         </div>
-        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} />
+        <VoiceButton textKey="advice.spoken" values={{ headline, reasons }} className="h-10 w-10 shadow-xs" />
       </div>
 
       {reasons.length > 0 && (
-        <div className="flex items-start gap-2 rounded-xl bg-surface-subtle p-3 text-xs text-ink-muted">
-          <Info size={15} className="mt-0.5 shrink-0 text-ink-muted" aria-hidden="true" />
-          <p className="font-medium leading-relaxed">{t("advice.why", { reasons })}</p>
+        <div className="flex items-start gap-2.5 rounded-2xl border border-line bg-surface-subtle p-3.5 text-sm text-ink-muted">
+          <Info size={18} className="mt-0.5 shrink-0 text-leaf" aria-hidden="true" />
+          <p className="font-display font-semibold leading-relaxed text-ink">
+            {t("advice.why", { reasons })}
+          </p>
         </div>
       )}
 

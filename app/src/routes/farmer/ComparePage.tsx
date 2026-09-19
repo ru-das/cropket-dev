@@ -92,80 +92,80 @@ export default function ComparePage() {
     <div className="space-y-4">
       {/* Header bar */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Link
             to={`/farmer/lots/${lot.id}`}
             aria-label={t("onboarding.back")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-xs transition-transform active:scale-95"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface text-ink shadow-xs transition-transform hover:border-leaf active:scale-90"
           >
-            <ArrowLeft aria-hidden="true" size={20} />
+            <ArrowLeft aria-hidden="true" size={22} />
           </Link>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+          <h1 className="font-display text-3xl font-black tracking-tight text-ink">
             {t("compare.title")}
           </h1>
         </div>
-        <VoiceButton textKey="compare.title" />
+        <VoiceButton textKey="compare.title" className="h-11 w-11 shadow-xs" />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-body font-medium text-ink-muted">{subtitle}</p>
+      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-xs">
+        <p className="font-display text-base font-bold text-ink-muted">{subtitle}</p>
         <DataAge updatedAt={new Date(dataUpdatedAt)} />
       </div>
 
       {!farmerLocation ? (
-        <div className="rounded-2xl border border-line bg-surface p-5 text-center shadow-card">
-          <p className="text-body text-ink-muted">{t("compare.noLocation")}</p>
+        <div className="rounded-3xl border-2 border-line bg-surface p-6 text-center shadow-card">
+          <p className="font-display text-base font-bold text-ink-muted">{t("compare.noLocation")}</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-surface p-5 text-center shadow-card">
-          <p className="text-body text-ink-muted">{t("compare.empty")}</p>
+        <div className="rounded-3xl border-2 border-line bg-surface p-6 text-center shadow-card">
+          <p className="font-display text-base font-bold text-ink-muted">{t("compare.empty")}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {/* Table column headers */}
-          <div className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+          <div className="flex items-center gap-2 px-4 font-display text-xs font-bold uppercase tracking-wider text-ink-muted">
             <span className="flex-1">{t("compare.columnPlace")}</span>
-            <span className="w-20 text-right">{t("compare.columnPrice")}</span>
-            <span className="w-24 text-right">{t("compare.columnYouKeep")}</span>
+            <span className="w-22 text-right">{t("compare.columnPrice")}</span>
+            <span className="w-28 text-right">{t("compare.columnYouKeep")}</span>
           </div>
 
           {/* Mandi comparison cards */}
           {rows.map((row) => (
             <details
               key={row.mandi.id}
-              className={`group overflow-hidden rounded-2xl border transition-all ${
+              className={`group overflow-hidden rounded-3xl border-2 transition-all duration-200 ${
                 row.isBest
-                  ? "border-2 border-pass/60 bg-surface shadow-card"
-                  : "border-line bg-surface shadow-card"
+                  ? "border-pass/80 bg-surface shadow-premium ring-4 ring-pass/10"
+                  : "border-line bg-surface shadow-card hover:border-leaf/40"
               }`}
             >
-              <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 p-3.5 transition-colors group-open:border-b group-open:border-line-subtle [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-18 cursor-pointer list-none items-center gap-3 p-4 transition-colors group-open:border-b-2 group-open:border-line-subtle [&::-webkit-details-marker]:hidden">
                 <div className="min-w-0 flex-1">
                   {row.isBest && (
-                    <div className="mb-1 flex items-center gap-1">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-pass-light px-2 py-0.5 text-xs font-bold text-pass-dark">
+                    <div className="mb-1.5 flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-pass/40 bg-pass-light px-2.5 py-0.5 font-display text-xs font-black text-pass-text shadow-xs">
                         <Trophy
                           aria-label={t("compare.bestBadge")}
-                          size={12}
-                          className="shrink-0"
+                          size={14}
+                          className="shrink-0 text-pass-text"
                         />
                         <span>{t("compare.bestBadge")}</span>
                       </span>
                     </div>
                   )}
-                  <p className="truncate text-body font-bold text-ink">{row.mandi.name}</p>
+                  <p className="truncate font-display text-lg font-bold text-ink">{row.mandi.name}</p>
                 </div>
 
-                <div className="w-20 text-right">
-                  <span className="text-body font-medium tabular-nums text-ink">
+                <div className="w-22 text-right">
+                  <span className="font-display text-base font-bold tabular-nums text-ink-muted">
                     {formatRupees(row.pricePerQuintalPaise)}
                   </span>
                 </div>
 
-                <div className="w-24 text-right">
+                <div className="w-28 text-right">
                   <span
-                    className={`font-display text-lg font-black tabular-nums ${
-                      row.isBest ? "text-pass-dark" : "text-ink"
+                    className={`font-display text-2xl font-black tabular-nums ${
+                      row.isBest ? "text-pass-text" : "text-ink"
                     }`}
                   >
                     {formatRupees(row.youKeepPaise)}
@@ -174,16 +174,16 @@ export default function ComparePage() {
               </summary>
 
               {/* Receipt-style cost deductions */}
-              <div className="space-y-2 bg-surface-subtle/60 p-4 text-xs font-medium text-ink-muted">
+              <div className="space-y-2.5 bg-surface-subtle p-5 font-display text-sm font-medium text-ink-muted">
                 <div className="flex justify-between">
-                  <span className="text-ink">{t("compare.gross")}</span>
-                  <span className="font-semibold tabular-nums text-ink">{formatRupees(row.grossPaise)}</span>
+                  <span className="text-ink font-semibold">{t("compare.gross")}</span>
+                  <span className="font-bold tabular-nums text-ink">{formatRupees(row.grossPaise)}</span>
                 </div>
                 <div className="flex justify-between text-mirchi-text">
-                  <span className="truncate pr-2">
+                  <span className="truncate pr-2 font-semibold">
                     {t("compare.transport")}
                     {market.cheapestTransporter && (
-                      <span className="text-ink-muted">
+                      <span className="text-ink-muted font-normal">
                         {" "}
                         (
                         {t("compare.transportVia", {
@@ -194,26 +194,26 @@ export default function ComparePage() {
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 font-semibold tabular-nums">-{formatRupees(row.transportPaise)}</span>
+                  <span className="shrink-0 font-bold tabular-nums">-{formatRupees(row.transportPaise)}</span>
                 </div>
-                <div className="flex justify-between text-mirchi-text">
+                <div className="flex justify-between text-mirchi-text font-semibold">
                   <span>{t("compare.fees")}</span>
-                  <span className="font-semibold tabular-nums">-{formatRupees(row.feesPaise)}</span>
+                  <span className="font-bold tabular-nums">-{formatRupees(row.feesPaise)}</span>
                 </div>
-                <div className="flex justify-between text-mirchi-text">
+                <div className="flex justify-between text-mirchi-text font-semibold">
                   <span>{t("compare.weightLoss")}</span>
-                  <span className="font-semibold tabular-nums">-{formatRupees(row.lossPaise)}</span>
+                  <span className="font-bold tabular-nums">-{formatRupees(row.lossPaise)}</span>
                 </div>
 
-                <div className="flex justify-between border-t border-line pt-2 text-sm font-bold text-ink">
+                <div className="flex justify-between border-t-2 border-line pt-3 font-display text-base font-bold text-ink">
                   <span>{t("compare.columnYouKeep")}</span>
-                  <span className="font-display text-base font-black tabular-nums text-leaf-dark">
+                  <span className="font-display text-2xl font-black tabular-nums text-leaf-dark">
                     {formatRupees(row.youKeepPaise)}
                   </span>
                 </div>
 
                 {row.isDemo && (
-                  <div className="pt-1">
+                  <div className="pt-2">
                     <DemoDataTag />
                   </div>
                 )}

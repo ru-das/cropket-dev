@@ -18,29 +18,29 @@ export default function LotsPage() {
   const isEmpty = pending !== undefined && mine !== undefined && lots.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-title font-display font-bold text-ink">{t("nav.lots")}</h1>
-        <VoiceButton textKey="nav.lots" />
+        <h1 className="font-display text-3xl font-black text-ink">{t("nav.lots")}</h1>
+        <VoiceButton textKey="nav.lots" className="h-11 w-11 shadow-xs" />
       </div>
 
       {mine !== undefined && <DataAge updatedAt={new Date(dataUpdatedAt)} />}
 
       {isEmpty ? (
-        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface p-8 text-center shadow-card">
-          <div aria-hidden="true" className="flex h-16 w-16 items-center justify-center rounded-full border border-leaf/20 bg-leaf-light text-3xl shadow-xs">
+        <div className="mt-8 flex flex-col items-center gap-5 rounded-3xl border-2 border-line bg-surface p-8 text-center shadow-premium">
+          <div aria-hidden="true" className="flex h-20 w-20 items-center justify-center rounded-3xl border-2 border-leaf/30 bg-leaf-light text-4xl shadow-glow-leaf">
             📦
           </div>
-          <p className="text-body font-medium text-ink-muted">{t("lots.empty")}</p>
+          <p className="font-display text-lg font-bold text-ink-muted">{t("lots.empty")}</p>
           <Link
             to="/farmer/scan"
-            className="flex h-14 items-center justify-center rounded-xl bg-leaf px-6 text-body font-semibold text-white shadow-xs transition-all active:scale-[0.98]"
+            className="flex h-16 w-full items-center justify-center rounded-2xl bg-leaf px-6 font-display text-lg font-bold text-white shadow-premium transition-all hover:bg-leaf-hover active:scale-[0.98]"
           >
             {t("lots.emptyAction")}
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3.5">
           {lots.map((lot) => (
             <LotCard key={lot.id} lot={lot} />
           ))}

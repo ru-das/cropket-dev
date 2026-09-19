@@ -23,20 +23,20 @@ export default function MePage() {
   return (
     <div className="space-y-5">
       {/* Title */}
-      <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{t("nav.me")}</h1>
+      <h1 className="font-display text-3xl font-black tracking-tight text-ink">{t("nav.me")}</h1>
 
       {/* Profile Card */}
-      <div className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+      <div className="rounded-3xl border-2 border-line bg-surface p-6 shadow-premium">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-leaf-light text-leaf-dark">
-            <User size={28} aria-hidden="true" />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-leaf/30 bg-leaf-light text-leaf-dark shadow-glow-leaf">
+            <User size={32} aria-hidden="true" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate font-display text-xl font-bold text-ink">
+            <h2 className="truncate font-display text-2xl font-black text-ink">
               {profile?.name}
             </h2>
             <div className="mt-1 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-line-subtle bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
+              <span className="inline-flex items-center gap-1 rounded-full border border-leaf/30 bg-leaf-light px-3 py-0.5 font-display text-xs font-bold text-leaf-dark">
                 {profile && t(`role.${profile.role}`)}
               </span>
             </div>
@@ -44,19 +44,19 @@ export default function MePage() {
         </div>
 
         {/* Contact and details */}
-        <div className="mt-4 space-y-2 border-t border-line-subtle pt-3 text-xs text-ink-muted">
+        <div className="mt-5 space-y-2.5 border-t-2 border-line-subtle pt-4 text-sm text-ink-muted">
           {profile?.phone && (
-            <div className="flex items-center gap-2">
-              <Phone size={14} className="shrink-0 text-leaf" aria-hidden="true" />
-              <span className="font-medium tabular-nums text-ink">{profile.phone}</span>
-              <ShieldCheck size={14} className="text-leaf" aria-hidden="true" />
+            <div className="flex items-center gap-2 font-display">
+              <Phone size={16} className="shrink-0 text-leaf" aria-hidden="true" />
+              <span className="font-bold tabular-nums text-ink">{profile.phone}</span>
+              <ShieldCheck size={16} className="text-leaf" aria-hidden="true" />
             </div>
           )}
 
           {profile?.lat !== null && profile?.lat !== undefined && (
-            <div className="flex items-center gap-2">
-              <MapPin size={14} className="shrink-0 text-ink-muted" aria-hidden="true" />
-              <span className="font-mono text-ink-muted">
+            <div className="flex items-center gap-2 font-display">
+              <MapPin size={16} className="shrink-0 text-ink-muted" aria-hidden="true" />
+              <span className="text-ink-muted font-bold">
                 {profile.lat.toFixed(4)}, {profile.lng?.toFixed(4)}
               </span>
             </div>
@@ -65,11 +65,11 @@ export default function MePage() {
 
         {/* Crops badges */}
         {crops.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line-subtle pt-2">
+          <div className="mt-4 flex flex-wrap gap-2 border-t-2 border-line-subtle pt-3">
             {crops.map((c) => (
               <span
                 key={c}
-                className="inline-flex items-center gap-1 rounded-lg bg-leaf-light px-2.5 py-1 text-xs font-semibold text-leaf-dark"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-leaf/20 bg-leaf-light px-3 py-1 font-display text-xs font-bold text-leaf-dark"
               >
                 <span aria-hidden="true">{c === "onion" ? "🧅" : c === "tomato" ? "🍅" : "🥔"}</span>
                 <span>{t(`crop.${c}`)}</span>
@@ -80,9 +80,9 @@ export default function MePage() {
       </div>
 
       {/* Language Preferences Card */}
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+      <div className="rounded-3xl border-2 border-line bg-surface p-5 shadow-card">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-body font-semibold text-ink">{t("lang.switchLabel")}</span>
+          <span className="font-display text-lg font-bold text-ink">{t("lang.switchLabel")}</span>
           <LanguageSwitch />
         </div>
       </div>
@@ -91,9 +91,9 @@ export default function MePage() {
       <button
         type="button"
         onClick={() => void handleSignOut()}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light text-body font-bold text-mirchi-text shadow-xs transition-transform hover:bg-mirchi/15 active:scale-97"
+        className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light font-display text-lg font-bold text-mirchi-text shadow-card transition-all hover:bg-mirchi-light/80 active:scale-95"
       >
-        <LogOut size={18} aria-hidden="true" />
+        <LogOut size={20} aria-hidden="true" />
         <span>{t("me.signOut")}</span>
       </button>
     </div>

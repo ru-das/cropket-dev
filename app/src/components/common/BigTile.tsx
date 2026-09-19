@@ -14,31 +14,50 @@ type Props = {
   href: string;
 };
 
-const CATEGORY_STYLES: Record<Props["labelKey"], string> = {
-  "home.scanCrop": "bg-leaf-light text-leaf-dark border-leaf/20",
-  "home.myLots": "bg-neel-light text-neel-text border-neel/20",
-  "home.todaysPrice": "bg-haldi-light text-haldi-text border-haldi/20",
-  "home.myKhata": "bg-soil-light text-soil border-soil/20",
+const CATEGORY_STYLES: Record<Props["labelKey"], { box: string; icon: string; border: string }> = {
+  "home.scanCrop": {
+    box: "bg-leaf-light/90 shadow-glow-leaf",
+    icon: "text-leaf-dark",
+    border: "border-leaf/30",
+  },
+  "home.myLots": {
+    box: "bg-neel-light/90",
+    icon: "text-neel-text",
+    border: "border-neel/30",
+  },
+  "home.todaysPrice": {
+    box: "bg-haldi-light/90 shadow-glow-haldi",
+    icon: "text-haldi-text",
+    border: "border-haldi/30",
+  },
+  "home.myKhata": {
+    box: "bg-soil-light/90",
+    icon: "text-soil",
+    border: "border-soil/30",
+  },
 };
 
 export default function BigTile({ icon: Icon, labelKey, href }: Props) {
   const { t } = useTranslation();
+  const style = CATEGORY_STYLES[labelKey];
 
   return (
-    <div className="relative flex min-h-32 flex-col items-center justify-between rounded-2xl border border-line bg-surface p-4 text-center shadow-card transition-all duration-150 ease-out hover:border-leaf/40 active:scale-[0.97] has-[a:active]:scale-[0.97]">
-      <Link to={href} className="absolute inset-0" aria-label={t(labelKey)} />
+    <div className="group relative flex min-h-36 flex-col items-center justify-between rounded-3xl border-2 border-line bg-surface p-4 text-center shadow-card transition-all duration-200 ease-out hover:border-leaf hover:shadow-premium hover:-translate-y-0.5 active:scale-[0.97] has-[a:active]:scale-[0.97]">
+      <Link to={href} className="absolute inset-0 z-0" aria-label={t(labelKey)} />
       <div
         className={cn(
-          "pointer-events-none flex h-13 w-13 items-center justify-center rounded-2xl border shadow-xs transition-transform duration-150",
-          CATEGORY_STYLES[labelKey],
+          "pointer-events-none flex h-15 w-15 items-center justify-center rounded-2xl border-2 transition-transform duration-200 group-hover:scale-105",
+          style.box,
+          style.border,
+          style.icon,
         )}
       >
-        <Icon aria-hidden="true" size={26} />
+        <Icon aria-hidden="true" size={30} className="stroke-[2.2]" />
       </div>
-      <span className="pointer-events-none mt-2 text-body font-semibold text-ink leading-tight">
+      <span className="pointer-events-none mt-2 font-display text-lg font-bold text-ink leading-snug">
         {t(labelKey)}
       </span>
-      <VoiceButton textKey={labelKey} className="relative z-10 mt-2 h-9 w-9" />
+      <VoiceButton textKey={labelKey} className="relative z-10 mt-1 h-9 w-9 shadow-xs" />
     </div>
   );
 }

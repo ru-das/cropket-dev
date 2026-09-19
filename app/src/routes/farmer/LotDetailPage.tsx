@@ -38,65 +38,65 @@ export default function LotDetailPage() {
     <div className="space-y-5">
       {/* Header bar */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Link
             to="/farmer/lots"
             aria-label={t("onboarding.back")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-xs transition-transform active:scale-95"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-line bg-surface text-ink shadow-xs transition-transform hover:border-leaf active:scale-90"
           >
-            <ArrowLeft aria-hidden="true" size={20} />
+            <ArrowLeft aria-hidden="true" size={22} />
           </Link>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">
+          <h1 className="font-display text-3xl font-black tracking-tight text-ink">
             {t("lots.detailTitle", { code: lot.qrCode })}
           </h1>
         </div>
-        <VoiceButton textKey="lots.detailTitle" values={{ code: lot.qrCode }} />
+        <VoiceButton textKey="lots.detailTitle" values={{ code: lot.qrCode }} className="h-11 w-11 shadow-xs" />
       </div>
 
       {/* Sync / pending warning notice */}
       {lot.syncFailed ? (
-        <div className="flex items-center gap-2.5 rounded-xl border border-mirchi/30 bg-mirchi-light px-3.5 py-2.5 text-mirchi-text">
-          <AlertCircle size={18} className="shrink-0" aria-hidden="true" />
-          <p className="text-meta font-semibold">{t("lots.notSaved")}</p>
+        <div className="flex items-center gap-3 rounded-2xl border-2 border-mirchi/40 bg-mirchi-light p-4 text-mirchi-text">
+          <AlertCircle size={20} className="shrink-0" aria-hidden="true" />
+          <p className="font-display text-meta font-bold">{t("lots.notSaved")}</p>
         </div>
       ) : (
         lot.pending && (
-          <div className="flex items-center gap-2.5 rounded-xl border border-kesar/30 bg-kesar-light px-3.5 py-2.5 text-kesar-text">
-            <Clock size={18} className="shrink-0" aria-hidden="true" />
-            <p className="text-meta font-semibold">{t("lots.onPhoneOnly")}</p>
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-kesar/40 bg-kesar-light p-4 text-kesar-text">
+            <Clock size={20} className="shrink-0" aria-hidden="true" />
+            <p className="font-display text-meta font-bold">{t("lots.onPhoneOnly")}</p>
           </div>
         )
       )}
 
       {/* Lot summary card */}
-      <div className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+      <div className="rounded-3xl border-2 border-line bg-surface p-5 shadow-premium">
         <div className="flex items-center gap-4">
           {photoUrl ? (
             <img
               src={photoUrl}
               alt=""
-              className="h-20 w-20 shrink-0 rounded-xl border border-line object-cover shadow-xs"
+              className="h-22 w-22 shrink-0 rounded-2xl border-2 border-line object-cover shadow-xs"
             />
           ) : (
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl border border-line-subtle bg-leaf-light text-2xl">
+            <div className="flex h-22 w-22 shrink-0 items-center justify-center rounded-2xl border-2 border-leaf/20 bg-leaf-light text-3xl shadow-glow-leaf">
               <span aria-hidden="true">{lot.crop === "onion" ? "🧅" : lot.crop === "tomato" ? "🍅" : "🥔"}</span>
             </div>
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate font-display text-xl font-bold text-ink">
+              <span className="truncate font-display text-2xl font-black text-ink">
                 {t(`crop.${lot.crop}`)}
               </span>
-              <span className="rounded-full border border-line-subtle bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
+              <span className="rounded-full border-2 border-line bg-surface-subtle px-3 py-0.5 font-display text-xs font-bold text-ink-muted">
                 {t(`lots.status.${lot.status}`)}
               </span>
             </div>
-            <p className="mt-0.5 text-body font-semibold text-ink-muted">
+            <p className="mt-1 font-display text-lg font-bold text-ink-muted">
               {lot.quantityKg} {t("lots.kg")}
             </p>
             {lot.grade && (
-              <div className="mt-2">
-                <GradeBadge grade={lot.grade} kind="indicative" />
+              <div className="mt-2.5">
+                <GradeBadge grade={lot.grade} kind="indicative" size="sm" />
               </div>
             )}
           </div>
@@ -111,10 +111,10 @@ export default function LotDetailPage() {
       {/* Action link: Compare Net-₹ */}
       <Link
         to={`/farmer/lots/${lot.id}/compare`}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-leaf text-body font-bold text-white shadow-card transition-all hover:bg-leaf-dark active:scale-97"
+        className="flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-leaf font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98]"
       >
         <span>{t("compare.title")}</span>
-        <ArrowRight aria-hidden="true" size={20} />
+        <ArrowRight aria-hidden="true" size={22} />
       </Link>
     </div>
   );

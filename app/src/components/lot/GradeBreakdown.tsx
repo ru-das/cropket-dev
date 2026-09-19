@@ -28,18 +28,20 @@ function BarRow({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-20 shrink-0 text-meta font-medium text-ink">{label}</span>
-      <div aria-hidden="true" className="h-2.5 flex-1 overflow-hidden rounded-full bg-line/80">
+      <span className="w-22 shrink-0 font-display text-meta font-bold text-ink">{label}</span>
+      <div aria-hidden="true" className="h-3 flex-1 overflow-hidden rounded-full bg-line/60">
         <div
           className={
             tone === "mirchi"
-              ? "h-full rounded-full bg-mirchi transition-all duration-300"
-              : "h-full rounded-full bg-pass transition-all duration-300"
+              ? "h-full rounded-full bg-mirchi transition-all duration-500"
+              : "h-full rounded-full bg-pass transition-all duration-500 shadow-glow-leaf"
           }
           style={{ width: `${Math.round(fraction * 100)}%` }}
         />
       </div>
-      <span className="w-16 shrink-0 text-right text-meta font-semibold text-ink">{value}</span>
+      <span className="w-20 shrink-0 text-right font-display text-meta font-bold text-ink tabular-nums">
+        {value}
+      </span>
     </div>
   );
 }
@@ -48,7 +50,7 @@ export default function GradeBreakdown({ sizeLabel, colourPct, damagePct, confid
   const { t } = useTranslation();
 
   return (
-    <div className="flex w-full flex-col gap-2.5 rounded-xl border border-line/80 bg-surface-subtle p-3.5 shadow-xs">
+    <div className="flex w-full flex-col gap-3.5 rounded-3xl border-2 border-line bg-surface p-5 shadow-card">
       <BarRow
         label={t("grade.size")}
         value={t(`grade.sizeLabel.${normalizeSizeLabel(sizeLabel)}`)}
@@ -65,9 +67,9 @@ export default function GradeBreakdown({ sizeLabel, colourPct, damagePct, confid
         fraction={damagePct / 100}
         tone="mirchi"
       />
-      <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-2">
-        <span className="text-meta font-medium text-mirchi-text">{t("grade.damageHint")}</span>
-        <span className="inline-flex items-center rounded-full border border-line bg-surface px-2.5 py-0.5 text-meta font-medium text-ink-muted shadow-xs">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-2 border-t-2 border-line-subtle pt-3">
+        <span className="font-display text-sm font-bold text-mirchi-text">{t("grade.damageHint")}</span>
+        <span className="inline-flex items-center rounded-full border-2 border-line bg-surface-subtle px-3 py-1 font-display text-xs font-bold text-ink-muted shadow-xs">
           {t("grade.confidence", { pct: Math.round(confidence) })}
         </span>
       </div>

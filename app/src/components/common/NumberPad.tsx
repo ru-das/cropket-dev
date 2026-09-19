@@ -21,14 +21,14 @@ export default function NumberPad({ value, onChange, unit }: Props) {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-center gap-2 rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <span className="font-display text-hero font-bold tracking-tight text-ink">{value}</span>
-        <span className="rounded-full bg-leaf-light px-3 py-1 font-display text-body font-semibold text-leaf-dark shadow-xs">
+    <div className="space-y-4">
+      <div className="flex items-center justify-center gap-3 rounded-3xl border-2 border-line bg-surface p-5 shadow-hero">
+        <span className="font-display text-5xl font-black tracking-tight text-ink tabular-nums">{value}</span>
+        <span className="rounded-full border border-leaf/30 bg-leaf-light px-4 py-1 font-display text-base font-bold text-leaf-dark shadow-xs">
           {unit}
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3.5">
         {KEYS.map((key, i) =>
           key === null ? (
             <span key={i} aria-hidden="true" />
@@ -38,7 +38,7 @@ export default function NumberPad({ value, onChange, unit }: Props) {
               type="button"
               onClick={() => press(key)}
               aria-label={key === "⌫" ? t("lots.backspace") : key}
-              className="flex h-16 items-center justify-center rounded-2xl border border-line bg-surface font-display text-title font-bold text-ink shadow-card transition-all duration-120 hover:border-leaf/40 hover:bg-surface-subtle active:scale-95 active:bg-leaf-light active:text-leaf-dark"
+              className="flex h-17 items-center justify-center rounded-2xl border-2 border-line bg-surface font-display text-3xl font-black text-ink shadow-card transition-all duration-150 hover:border-leaf hover:bg-leaf-light/30 active:scale-90 active:bg-leaf active:text-white"
             >
               {key}
             </button>

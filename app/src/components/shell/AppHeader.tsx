@@ -11,14 +11,14 @@ export default function AppHeader() {
   const { unresolved } = useOutboxStatus();
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-surface/95 px-4 py-2.5 backdrop-blur-md">
-      <span className="flex items-center gap-1.5 text-card font-display font-bold tracking-tight text-leaf-dark">
-        <span aria-hidden="true" className="text-xl">🌾</span>
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b-2 border-line/80 bg-surface/90 px-4 py-2.5 backdrop-blur-xl shadow-xs">
+      <span className="flex items-center gap-2 font-display text-2xl font-black tracking-tight text-ink">
+        <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-xl bg-leaf-light border border-leaf/30 text-xl shadow-xs">
+          🌾
+        </span>
         <span>{t("app.name")}</span>
       </span>
-      <div className="flex items-center gap-2">
-        {/* pending===total: nothing tracks a per-batch "done" count yet -
-            see the ponytail note on outbox.ts's snapshot. */}
+      <div className="flex items-center gap-2.5">
         <SyncStatus pending={unresolved} total={unresolved} />
         <LanguageSwitch />
       </div>
