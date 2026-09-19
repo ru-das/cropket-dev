@@ -77,13 +77,6 @@ export default function SideNav() {
           >
             {({ isActive }) => (
               <>
-                {/* Active dot indicator */}
-                {isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-1.5 top-1/2 hidden h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-leaf shadow-glow-leaf lg:block"
-                  />
-                )}
                 <Icon
                   aria-hidden="true"
                   size={22}

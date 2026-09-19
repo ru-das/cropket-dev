@@ -25,7 +25,7 @@ export default function AppShell() {
           <SyncTrouble />
 
           {/* Page content — extra horizontal padding and wider line-length on md+ */}
-          <main className="flex-1 p-4 pb-6 md:p-6 md:pb-8 lg:p-8">
+          <main className="flex-1 p-4 pb-28 md:p-6 md:pb-8 lg:p-8">
             {/* Max readable line-length container for form/text pages */}
             <div className="mx-auto w-full max-w-prose lg:max-w-none">
               <Outlet />
