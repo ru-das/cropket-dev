@@ -1774,6 +1774,10 @@ the changed files: no findings.
 
 **Verification:**
 - `pnpm --dir app typecheck`: 0 errors.
+- `pnpm --dir app lint`: 0 errors.
+- `pnpm --dir app test`: 32 files passed, 242 tests passed.
+
+**Fix applied after commit (lint):** The `no-hard-coded-text` ESLint rule flagged `alt="CropKet"` in `AppLogo.tsx` and `WelcomePage.tsx`. Fixed by replacing with `alt={t("app.name")}` in both; `AppLogo` also needed `useTranslation` added. Committed separately as `fix(lint): use t("app.name") for wordmark alt text`.
 
 **Next:** M3 buyer marketplace.
 
