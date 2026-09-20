@@ -1,5 +1,6 @@
 // Reusable brand mark: logo icon + optional wordmark PNG.
 // Used in AppHeader (mobile), SideNav (desktop), WelcomePage, etc.
+import { useTranslation } from "react-i18next";
 import logoSrc from "@/assets/cropket-logo.png";
 import textSrc from "@/assets/cropket-text.png";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ export default function AppLogo({
   logoClassName,
   textClassName,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <span className={cn("flex items-center gap-2", className)}>
       <img
@@ -32,7 +34,7 @@ export default function AppLogo({
       {showText && (
         <img
           src={textSrc}
-          alt="CropKet"
+          alt={t("app.name")}
           className={cn("h-8 w-auto object-contain", textClassName)}
         />
       )}

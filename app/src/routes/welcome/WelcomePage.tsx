@@ -51,7 +51,7 @@ export default function WelcomePage() {
         <h1 className="sr-only">{t("app.name")}</h1>
         <img
           src={textSrc}
-          alt="CropKet"
+          alt={t("app.name")}
           className="mx-auto h-12 w-auto object-contain md:h-16"
         />
         <p className="mt-2.5 text-body font-semibold text-ink-muted">{t("app.tagline")}</p>
