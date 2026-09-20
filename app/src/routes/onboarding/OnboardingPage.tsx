@@ -22,6 +22,7 @@ import type { Crop } from "@shared/crops.ts";
 import { stepsFor, type StepId } from "./steps";
 import StepInput, { type LocationStatus } from "./StepInputs";
 import { ROLE_OPTIONS, CROP_ICON } from "./constants";
+import logoSrc from "@/assets/cropket-logo.png";
 
 function questionKey(step: StepId, role: SignupRoleT | null): ParseKeys {
   switch (step) {
@@ -190,9 +191,12 @@ export default function OnboardingPage() {
                 <div className="rounded-3xl border-2 border-line bg-surface p-5 shadow-card transition-all duration-300">
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <p className="flex items-center gap-2.5 text-card font-display font-bold text-ink">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-leaf-light border border-leaf/30 text-base shadow-xs">
-                        🌾
-                      </span>
+                      <img
+                        src={logoSrc}
+                        alt=""
+                        aria-hidden
+                        className="h-8 w-8 shrink-0 object-contain"
+                      />
                       <span>{t(questionKey(step, role))}</span>
                     </p>
                     <VoiceButton textKey={questionKey(step, role)} className="h-10 w-10 shadow-xs" />

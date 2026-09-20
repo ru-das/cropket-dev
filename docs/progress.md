@@ -1718,5 +1718,62 @@ the changed files: no findings.
 - `pnpm --dir app typecheck`: 0 errors.
 - `pnpm --dir app test`: 32 test files passed, 242 unit tests passed.
 **Next:** M3 buyer marketplace.
+### Branding PNG replacement — 2026-09-20
+**What it does:** Replaces the placeholder wheat-glyph SVG icon and plain-text "Cropket" headings with the real brand assets — a full-colour logo PNG and a stylised CropKet wordmark PNG — everywhere in the app.
 
+**What changed:**
+
+*Icons & favicon (all under `app/public/icons/` + `app/public/favicon.ico`):*
+- Generated 8 resized logo variants: 16, 32, 48 px (favicon sizes), 192, 512 px (PWA), 180 px (apple-touch-icon), and maskable 192/512 (logo centred at 80% on a `#F3F6F0` bg so any OS mask shape looks good).
+- Generated a multi-res `favicon.ico` (16 + 32 + 48).
+- Deleted the old hand-drawn wheat SVGs (`icon.svg`, `icon-maskable.svg`) — replaced entirely by PNGs.
+
+*HTML / PWA manifest:*
+- `app/index.html`: updated favicon `<link>` tags to point at the new PNG + `.ico` files; added explicit `sizes="180x180"` on apple-touch-icon.
+- `app/vite.config.ts`: added `icon-maskable-192.png` (192 px maskable) to the PWA manifest icons array — Android prefers this size for the home-screen grid.
+
+*React components:*
+- Created `app/src/components/common/AppLogo.tsx` — a small reusable component that renders the logo PNG + optional wordmark PNG side by side (props: `showText`, `logoClassName`, `textClassName`, `className`). Used in header and sidebar.
+- `AppHeader.tsx`: replaced the 🌾 emoji + `t("app.name")` text with `<AppLogo>` (mobile only; md+ sidebar unchanged). Removed the now-unused `useTranslation` import.
+- `SideNav.tsx`: replaced the 🌾 + text block with `<AppLogo showText={false}>` on the narrow md rail and `<AppLogo>` (logo + wordmark) on the lg expanded sidebar, using two responsive `<span>` wrappers.
+- `WelcomePage.tsx`: replaced the 🌾 floating emblem with the logo PNG (animation + glow ring kept). Replaced the `<h1>` text heading with the wordmark PNG; the original `<h1>` is still rendered as `sr-only` so screen readers announce the page title correctly.
+- `FarmerHome.tsx`: replaced the 🌾 greeting bar icon with the logo PNG at 48×48.
+- `OnboardingPage.tsx`: replaced the 🌾 question-step badge with the logo PNG at 32×32.
+
+*Source PNGs:* copied from project root to `app/src/assets/` (Vite-imported, cache-busted on build). The originals at the repo root were kept.
+
+**Mocked:** nothing — these are pure static assets, no API or DB involved.
+
+**Test by hand:**
+1. `pnpm dev` → Welcome screen: logo animates with float + glow; wordmark PNG below it; tagline and language buttons unchanged.
+2. Mobile width (360 px): AppHeader shows logo + wordmark. Switch to ≥ 768 px: header brand disappears, sidebar shows logo-only icon on the rail, logo + wordmark text on the expanded sidebar.
+3. `/farmer` home: logo appears in the greeting bar next to the farmer's name.
+4. `/onboarding` (first login): logo appears as the question-step badge.
+5. Browser tab icon: the Cropket logo (not the old wheat glyph). Bookmarking on iOS: the logo on `#F3F6F0` background.
+6. DevTools → Application → Manifest: all four icon variants listed (any-192, any-512, maskable-192, maskable-512).
+7. `pnpm build && pnpm preview` → install the PWA → home-screen icon is the maskable logo.
+
+**Files touched:**
+- `cropket-logo.png` → `app/src/assets/cropket-logo.png` (copied)
+- `cropket-text.png` → `app/src/assets/cropket-text.png` (copied)
+- `app/public/favicon.ico` (new)
+- `app/public/icons/icon-16.png`, `icon-32.png`, `icon-48.png` (new)
+- `app/public/icons/icon-192.png`, `icon-512.png` (replaced)
+- `app/public/icons/apple-touch-icon.png` (replaced, 180×180)
+- `app/public/icons/icon-maskable-192.png` (new)
+- `app/public/icons/icon-maskable-512.png` (replaced)
+- `app/public/icons/icon.svg`, `icon-maskable.svg` (deleted)
+- `app/index.html`
+- `app/vite.config.ts`
+- `app/src/components/common/AppLogo.tsx` (new)
+- `app/src/components/shell/AppHeader.tsx`
+- `app/src/components/shell/SideNav.tsx`
+- `app/src/routes/welcome/WelcomePage.tsx`
+- `app/src/routes/farmer/FarmerHome.tsx`
+- `app/src/routes/onboarding/OnboardingPage.tsx`
+
+**Verification:**
+- `pnpm --dir app typecheck`: 0 errors.
+
+**Next:** M3 buyer marketplace.
 

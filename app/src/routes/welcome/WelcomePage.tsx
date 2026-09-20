@@ -5,6 +5,8 @@ import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "@/lib/i18n";
 import VoiceButton from "@/components/voice/VoiceButton";
+import logoSrc from "@/assets/cropket-logo.png";
+import textSrc from "@/assets/cropket-text.png";
 
 const LANGS: Lang[] = ["en", "hi", "mr"];
 
@@ -37,17 +39,21 @@ export default function WelcomePage() {
             aria-hidden="true"
             className="absolute inset-0 rounded-3xl bg-gradient-to-br from-leaf-light to-terracotta-light shadow-glow-leaf"
           />
-          <div
-            aria-hidden="true"
-            className="relative flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-leaf/30 bg-surface text-4xl shadow-hero md:h-28 md:w-28 md:text-5xl"
-          >
-            🌾
-          </div>
+          <img
+            src={logoSrc}
+            alt=""
+            aria-hidden
+            className="relative h-20 w-20 object-contain md:h-28 md:w-28"
+          />
         </div>
 
-        <h1 className="font-display text-5xl font-black tracking-tight text-ink md:text-6xl">
-          {t("app.name")}
-        </h1>
+        {/* Wordmark — visually replaces the h1 text; screen readers still get t("app.name") as page title */}
+        <h1 className="sr-only">{t("app.name")}</h1>
+        <img
+          src={textSrc}
+          alt="CropKet"
+          className="mx-auto h-12 w-auto object-contain md:h-16"
+        />
         <p className="mt-2.5 text-body font-semibold text-ink-muted">{t("app.tagline")}</p>
 
         {/* Language selector cards */}

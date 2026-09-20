@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/app/authContext";
 import SyncStatus from "./SyncStatus";
 import { useOutboxStatus } from "@/offline/outbox";
+import AppLogo from "@/components/common/AppLogo";
 
 const TABS_BY_ROLE = {
   farmer: [
@@ -44,16 +45,13 @@ export default function SideNav() {
       )}
     >
       {/* Brand mark — compact on md rail, full on lg sidebar */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b-2 border-line/70 px-3 lg:px-5">
-        <span
-          aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-leaf/30 bg-gradient-to-br from-leaf-light via-leaf-light/80 to-terracotta-light text-xl shadow-xs"
-        >
-          🌾
+      <div className="flex h-16 shrink-0 items-center border-b-2 border-line/70 px-3 lg:px-5">
+        {/* Logo-only on md rail; logo + wordmark on lg sidebar */}
+        <span className="lg:hidden">
+          <AppLogo showText={false} logoClassName="h-9 w-9" />
         </span>
-        {/* App name only shows on lg+ sidebar */}
-        <span className="hidden font-display text-xl font-black tracking-tight text-ink lg:block">
-          {t("app.name")}
+        <span className="hidden lg:flex">
+          <AppLogo logoClassName="h-9 w-9" textClassName="h-7" />
         </span>
       </div>
 
