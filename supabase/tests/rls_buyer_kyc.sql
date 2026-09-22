@@ -67,8 +67,12 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"33333333-3333-3333-3333-333333333333","phone":"0000000003","role":"authenticated"}';
 
+-- Scoped to this test's own two rows, not a raw count(*) - cropket-dev is
+-- shared between dev and the demo (CLAUDE.md "Simple setup"), so a real
+-- buyer_kyc row left behind by manual testing must never change this count.
 select is(
-  (select count(*)::int from buyer_kyc),
+  (select count(*)::int from buyer_kyc
+   where buyer_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2,
   'an admin selects every buyer_kyc row'
 );

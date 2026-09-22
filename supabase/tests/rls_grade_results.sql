@@ -68,14 +68,20 @@ insert into lots (id, farmer_id, crop, quantity_kg, qr_code, grade, grade_result
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"33333333-3333-3333-3333-333333333333","phone":"0000000003","role":"authenticated"}';
 
+-- Scoped to this test's own two rows, not a raw count(*)/limit 1 - cropket-
+-- dev is shared between dev and the demo (CLAUDE.md "Simple setup"), so a
+-- real listed lot's grade_results row left behind elsewhere must never
+-- change this count or which row "limit 1" happens to pick.
 select is(
-  (select count(*)::int from grade_results),
+  (select count(*)::int from grade_results
+   where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')),
   1,
   'a buyer sees only the grade_results row of a listed lot'
 );
 
 select is(
-  (select id from grade_results limit 1),
+  (select id from grade_results
+   where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')),
   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
   'the visible row is the listed lot''s grade, not the other farmer''s undiscoverable one'
 );
