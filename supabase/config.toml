@@ -431,3 +431,7 @@ import_map = "./functions/deno.json"
 [functions.route-distance]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.kyc-verify]
+verify_jwt = false
+import_map = "./functions/deno.json"

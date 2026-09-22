@@ -1326,6 +1326,7 @@ Rules:
 | `DATA_GOV_API_KEY`, `AGMARKNET_RESOURCE_ID` | `cron-fetch-prices` |
 | `CASHFREE_ENV` (`sandbox`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION` | `escrow-pay`, `cashfree-webhook`, `escrow-release` |
 | `ORS_API_KEY` | `route-distance` |
+| `DIGILOCKER_API_KEY` | `kyc-verify` |
 | `MAPPLS_CLIENT_ID`, `MAPPLS_CLIENT_SECRET` | optional maps adapter |
 | `BHASHINI_USER_ID`, `BHASHINI_API_KEY`, `BHASHINI_PIPELINE_ID` | `tts` |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` (base64) | `push-send` |

@@ -13,6 +13,8 @@ const CODE_TO_MESSAGE_KEY = {
   CAMERA_UNAVAILABLE: "errors.cameraUnavailable",
   UPLOAD_FAILED: "errors.uploadFailed",
   AI_UNAVAILABLE: "errors.aiUnavailable",
+  KYC_ALREADY_VERIFIED: "errors.kycAlreadyVerified",
+  KYC_UNAVAILABLE: "errors.kycUnavailable",
 } as const;
 
 // A literal union matching real locale keys, not `string` - so every call

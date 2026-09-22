@@ -39,6 +39,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      buyer_kyc: {
+        Row: {
+          business_name: string
+          buyer_id: string
+          created_at: string
+          gst_number: string
+          pan_last4: string
+          source: string
+          status: string
+          verified_at: string | null
+        }
+        Insert: {
+          business_name: string
+          buyer_id: string
+          created_at?: string
+          gst_number: string
+          pan_last4: string
+          source: string
+          status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          business_name?: string
+          buyer_id?: string
+          created_at?: string
+          gst_number?: string
+          pan_last4?: string
+          source?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyer_kyc_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crop_rules: {
         Row: {
           crop: string
