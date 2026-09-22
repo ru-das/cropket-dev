@@ -294,6 +294,17 @@
     "recent": "Recent bids",
     "offlineReason": "Needs internet to place a bid"
   },
+  "bids": {
+    "title": "Offers for {{code}}",
+    "viewOffers": "Offers ({{count}})",
+    "youGet": "You get {{amount}}",
+    "accept": "Accept",
+    "sayNo": "Say no",
+    "none": "No offers yet",
+    "inMegaLot": "In a mega lot - sells together",
+    "bestOffer": "Best offer {{price}}",
+    "consentTitle": "Please check before you agree"
+  },
   "mega": {
     "tag": "Mega lot ({{count}})",
     "title": "Mega lot - {{crop}}",
@@ -327,6 +338,8 @@
     "lotNotListable": "This lot cannot be listed right now.",
     "buyerNotVerified": "Finish KYC to place bids.",
     "lotNotListed": "This lot is no longer taking bids.",
+    "lotNotFound": "We could not find this lot.",
+    "bidNotActive": "This offer has already changed. Refresh and try again.",
     "unknown": "Something went wrong. Try again."
   }
 }

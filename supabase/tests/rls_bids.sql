@@ -4,6 +4,14 @@
 -- scoping. place_bid.sql covers the actual bidding rules (verified/banned,
 -- listed, floor, rate limit) - this file is about what a client can and
 -- cannot touch directly. Everything here rolls back.
+--
+-- 3.5 (20260923100000_lot_bids.sql) grants update(status) + a
+-- bids_reject_own_lot policy so a farmer can say no to an offer on their
+-- own lot - test 5 below was rewritten for that (a bare permission-denied
+-- exception is no longer what a non-owner's attempt produces; RLS now
+-- filters the row out instead, same as any other row-level policy). The
+-- reject path itself (farmer rejects their own lot's bid, a buyer can't
+-- reject, 'accepted' is refused) is covered in lot_bids.sql, not here.
 begin;
 select plan(8);
 
@@ -77,11 +85,20 @@ reset role;
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"d0000002-0000-0000-0000-000000000002","phone":"0000000022","role":"authenticated"}';
 
--- 5. no update grant
-select throws_ok(
-  $$ update bids set status = 'accepted' where id = 'f0000001-0000-0000-0000-000000000001' $$,
-  null, null,
-  'a client cannot update a bid - no grant (accept_bid, 3.6, will use service role)'
+-- 5. update(status) is granted (3.5, for the reject path below), but RLS
+-- still filters out a bid this caller has no policy over - d0000002 is
+-- neither the lot's farmer nor the bid's own buyer, so the row simply isn't
+-- matched, same as a SELECT would filter it. Accepting a bid stays
+-- accept_bid's job (3.6, service role) regardless.
+with upd as (
+  update bids set status = 'accepted'
+  where id = 'f0000001-0000-0000-0000-000000000001'
+  returning 1
+)
+select is(
+  (select count(*)::int from upd),
+  0,
+  'a buyer cannot update a bid they neither own nor own the lot of - RLS filters it out'
 );
 
 -- 6. no delete grant

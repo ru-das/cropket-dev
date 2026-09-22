@@ -6,7 +6,7 @@ import { Clock } from "lucide-react";
 
 type PlaceholderPageProps = {
   /** i18n key for the screen title, e.g. "nav.lots". */
-  titleKey: "nav.lots" | "nav.khata" | "home.scanCrop" | "home.todaysPrice";
+  titleKey: "nav.lots" | "nav.khata" | "home.scanCrop" | "home.todaysPrice" | "bids.consentTitle";
 };
 
 export default function PlaceholderPage({ titleKey }: PlaceholderPageProps) {

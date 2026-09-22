@@ -647,6 +647,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      lot_bids: {
+        Args: { p_lot_id: string }
+        Returns: {
+          bid_id: string
+          buyer_name: string
+          buyer_verified: boolean
+          created_at: string
+          price_per_quintal_paise: number
+        }[]
+      }
       mandi_heat_inputs: {
         Args: { p_date: string }
         Returns: {

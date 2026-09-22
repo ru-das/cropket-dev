@@ -7,11 +7,14 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShoppingCart } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShoppingCart, Gavel } from "lucide-react";
+import { formatRupees } from "@shared/money.ts";
 import GradeBadge from "@/components/lot/GradeBadge";
 import QRLabel from "@/components/lot/QRLabel";
 import VoiceButton from "@/components/voice/VoiceButton";
 import { useLot, useLotPhoto, useListLot } from "@/services/lots";
+import { useLotBids, useLotBidsRealtime, useMyLotBids, highestBid } from "@/services/bids";
+import { useMegaLotForLot } from "@/services/megaLots";
 import { useOnline } from "@/offline/network";
 import { toAppError, type AppError } from "@/lib/errors";
 
@@ -23,6 +26,17 @@ export default function LotDetailPage() {
   const online = useOnline();
   const listLot = useListLot();
   const [sellError, setSellError] = useState<AppError | null>(null);
+  // Mega lots: read-only for the member farmer (decided with the user for
+  // 3.5 - SPEC §5.3 gives accept to the FPO, which doesn't exist in the
+  // seed yet; see 3.4's handoff note "next / known gaps"). Only fetched
+  // once the lot is actually bundled, so a plain listed lot never pays for
+  // this lookup.
+  const { data: megaLotId } = useMegaLotForLot(lot?.status === "in_mega" ? lot.id : undefined);
+  const { data: megaBids } = useLotBids("mega_lot", megaLotId ?? undefined);
+  useLotBidsRealtime("mega_lot", megaLotId ?? undefined);
+  const megaTopBid = highestBid(megaBids ?? []);
+  const { data: myBids } = useMyLotBids(lot?.status === "listed" ? lot.id : undefined);
+  useLotBidsRealtime("lot", lot?.status === "listed" ? lot.id : undefined);
 
   async function handleSell() {
     if (!id) return;
@@ -151,6 +165,25 @@ export default function LotDetailPage() {
                   <p className="text-center text-meta font-semibold text-mirchi-text">{t(sellError.messageKey)}</p>
                 )
               )}
+            </div>
+          )}
+
+          {lot.status === "listed" && (
+            <Link
+              to={`/farmer/lots/${lot.id}/bids`}
+              className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl bg-leaf font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98]"
+            >
+              <Gavel aria-hidden="true" size={22} />
+              <span>{t("bids.viewOffers", { count: myBids?.length ?? 0 })}</span>
+            </Link>
+          )}
+
+          {lot.status === "in_mega" && (
+            <div className="rounded-2xl border-2 border-haldi/40 bg-haldi-light p-4 text-center">
+              <p className="font-display text-meta font-bold text-haldi-text">{t("bids.inMegaLot")}</p>
+              <p className="mt-1 font-display text-lg font-black text-ink tabular-nums">
+                {megaTopBid ? t("bids.bestOffer", { price: formatRupees(megaTopBid.pricePerQuintalPaise) }) : t("bid.none")}
+              </p>
             </div>
           )}
 

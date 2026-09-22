@@ -14,6 +14,7 @@ export const megaLotKeys = {
   market: () => ["megaLots", "market"] as const,
   byId: (id: string) => ["megaLot", id] as const,
   items: (id: string) => ["megaLot", id, "items"] as const,
+  forLot: (lotId: string) => ["megaLot", "forLot", lotId] as const,
 };
 
 export type MegaLotItemView = {
@@ -106,5 +107,28 @@ export function useMegaLotItems(megaLotId: string | undefined) {
     queryKey: megaLotKeys.items(megaLotId ?? ""),
     queryFn: () => listMegaLotItems(megaLotId as string),
     enabled: megaLotId !== undefined,
+  });
+}
+
+async function getMegaLotIdForLot(lotId: string): Promise<string | null> {
+  // mega_lot_items_select lets a farmer keep seeing their own row (see that
+  // policy's comment) - this is the only lookup LotDetailPage needs to know
+  // "my lot is bundled" (SPEC.md §9.2 Phase 3 "3.5" read-only mega line).
+  const { data, error } = await supabase
+    .from("mega_lot_items")
+    .select("mega_lot_id")
+    .eq("lot_id", lotId)
+    .maybeSingle();
+  if (error) throw toAppError(error);
+  return data?.mega_lot_id ?? null;
+}
+
+/** The mega lot a farmer's own lot was bundled into, or null if it hasn't
+ * been (or the bundle no longer exists). LotDetailPage's read-only line. */
+export function useMegaLotForLot(lotId: string | undefined) {
+  return useQuery({
+    queryKey: megaLotKeys.forLot(lotId ?? ""),
+    queryFn: () => getMegaLotIdForLot(lotId as string),
+    enabled: lotId !== undefined,
   });
 }

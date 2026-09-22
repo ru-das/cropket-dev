@@ -39,7 +39,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
 - [x] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [x] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
-- [ ] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
+- [x] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
 - [ ] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
 
 ## M4 — Escrow and Digital Khata
@@ -2170,4 +2170,64 @@ app/src` - 0 anti-patterns.
   candidate query and picks up every nearby listed lot, not just newly listed ones.
 - **Next item: 3.5** Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning) - this is
   also where the mega-lot-accept gap above most naturally gets closed.
+
+### 3.5 Farmer bids screen — 2026-09-23
+
+**What it does:** until now a farmer had no way to see who was bidding on their listed lot -
+`LiveBidBox` is buyer-only. The farmer opens a listed lot's new "Offers" button and sees every
+active bid as a `BidRow` (buyer's business name + `VerifiedBadge`, price, "you get ₹X"), best price
+first, live (same `bids:lot:{id}` Realtime channel 3.3 built). A below-floor offer shows the same
+red `FloorWarning` the buyer's own `LiveBidBox` shows, from the same `@shared/floor.ts` call, so
+neither side ever sees a different number. "Say no" rejects a bid in place (RLS policy, no
+function needed). **"Accept" does not transact** - it navigates to
+`/farmer/lots/:id/bids/:bidId/consent` (decided with the user: 3.6 owns `accept_bid` + voice
+consent and will swap that route's placeholder element for the real screen, so nothing here is
+throwaway). A farmer whose lot got swept into a mega lot (3.4) sees a **read-only** "In a mega lot -
+best offer ₹X" line instead of any buttons (also decided with the user: SPEC §5.3 gives mega-lot
+accept to the FPO, and there's still no FPO in the seed - 3.4's dangling gap stays a gap, just a
+visible one now instead of a silent dead end).
+**Files:** `supabase/migrations/20260923100000_lot_bids.sql` (new - `lot_bids(p_lot_id)` security
+definer function returning the buyer's business name + verified flag without widening
+`buyer_kyc`'s RLS past select-own/admin, since that row also carries `gst_number`/`pan_last4`; a
+`bids_reject_own_lot` update policy + `grant update (status)`, `with check (status = 'rejected')`
+so a farmer can never self-accept), `supabase/tests/lot_bids.sql` (new, 9 checks),
+`supabase/tests/rls_bids.sql` (test 5 rewritten - it asserted "no update grant at all", which this
+migration changes on purpose; it now asserts RLS filters out a row the caller has no policy over,
+0 rows affected, not an exception), `app/src/services/bids.ts` (`FarmerBidView`, `useMyLotBids`,
+`useRejectBid` - the farmer's query key nests under the existing `bidKeys.forTarget("lot", id)`
+prefix, so 3.3's `useLotBidsRealtime` invalidates it with no change to that hook),
+`app/src/services/megaLots.ts` (`useMegaLotForLot` - reads `mega_lot_items` by `lot_id`, a policy
+3.4 already left in place for exactly this), `app/src/lib/errors.ts` (`LOT_NOT_FOUND`,
+`BID_NOT_ACTIVE`), `app/src/components/trade/BidRow.tsx` (new), `app/src/routes/farmer/BidsPage.tsx`
+(new, route `/farmer/lots/:id/bids`), `app/src/routes/farmer/LotDetailPage.tsx` ("Offers (n)"
+button when listed, read-only mega-lot line when `in_mega`), `app/src/routes/PlaceholderPage.tsx`
+(titleKey union gains `bids.consentTitle`), `app/src/app/router.tsx` (2 new routes, the consent one
+pointing at `PlaceholderPage` until 3.6), `app/src/locales/{en,hi,mr}.json` (`bids.*` + 2 error
+keys), `app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts`
+(regenerated after the migration).
+**Mocked:** nothing - real bids, real RLS, real Realtime, verified live against `cropket-dev`.
+**How to test by hand:** two browser windows, farmer `9090910001`, verified buyer `9090910002` /
+OTP `910002` - list a lot as the farmer, bid on it twice as the buyer (once above, once below the
+reference floor); the farmer's lot detail shows "Offers (2)"; opening it shows both rows, best
+price first, the buyer's business name + verified tick, and a red floor warning on the low one; a
+third bid from the buyer window updates the farmer's list with no reload (the `bids:lot:{id}`
+Realtime proof 3.3 and 3.4 both left unchecked in a browser - checked here); "Say no" removes a row
+and the buyer's own `LiveBidBox` no longer counts it; "Accept" lands on the placeholder consent
+screen; bundling a lot into a mega lot shows the read-only best-offer line with no buttons;
+airplane mode disables both buttons with a calm reason; 360 px width in all three languages.
+**Tests:** `supabase/tests/lot_bids.sql` (9/9 - farmer reads own bids best-first with buyer name,
+rejected bids excluded, another farmer/unknown lot both refused with `LOT_NOT_FOUND`, the buyer
+can't reject their own bid, the farmer can, `status='accepted'` and a price edit are both refused).
+`bash scripts/test-sql.sh` - full suite green, 13/13 files including the rewritten
+`rls_bids.sql` and (unlike 3.4's run) `rls_buyer_kyc.sql` too - didn't reproduce its known
+flakiness this time. `pnpm lint && pnpm typecheck && pnpm test` (277 tests) `&& pnpm build` all
+pass. `impeccable detect app/src` - 0 anti-patterns.
+**Next / known gaps:**
+- Mega-lot bids still cannot be accepted by anyone - needs an FPO seeded, `mega_lots.fpo_id`
+  actually written, and a real `/fpo/megalots` screen (`FpoHome.tsx` is still a placeholder). 3.5
+  makes the dead end visible (the read-only best-offer line) instead of silent.
+- A rejected buyer gets no notification - push is out of prototype scope.
+- No un-reject once a farmer says no.
+- **Next item: 3.6** Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid`
+  RPC - replaces this item's placeholder consent route with the real screen.
 

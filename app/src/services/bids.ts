@@ -32,8 +32,25 @@ export type BidView = {
   createdAt: string;
 };
 
+/** One bid on the farmer's own lot (SPEC.md §4.12 BidRow) - unlike BidView,
+ * this carries the buyer's identity, because the farmer is the one person
+ * this screen is allowed to show it to (lot_bids() RPC, not client RLS -
+ * buyer_kyc itself stays select-own + admin-only). */
+export type FarmerBidView = {
+  id: string;
+  pricePerQuintalPaise: number;
+  createdAt: string;
+  buyerName: string;
+  buyerVerified: boolean;
+};
+
 export const bidKeys = {
   forTarget: (targetType: BidTargetType, targetId: string) => ["bids", targetType, targetId] as const,
+  // Deliberately nested under forTarget("lot", lotId)'s own key array (not a
+  // sibling key) - useLotBidsRealtime's invalidateQueries({queryKey: ["bids","lot",lotId]})
+  // matches by prefix, so a new bid refreshes this list too with no change
+  // to that hook.
+  forMyLot: (lotId: string) => ["bids", "lot", lotId, "farmer"] as const,
 };
 
 function toBidView(row: BidRow): BidView {
@@ -118,6 +135,57 @@ export function usePlaceBid() {
     mutationFn: placeBid,
     onSuccess: (_result, input) => {
       void queryClient.invalidateQueries({ queryKey: bidKeys.forTarget(input.targetType, input.targetId) });
+    },
+  });
+}
+
+type FarmerBidRow = Database["public"]["Functions"]["lot_bids"]["Returns"][number];
+
+function toFarmerBidView(row: FarmerBidRow): FarmerBidView {
+  return {
+    id: row.bid_id,
+    pricePerQuintalPaise: row.price_per_quintal_paise,
+    createdAt: row.created_at,
+    buyerName: row.buyer_name,
+    buyerVerified: row.buyer_verified,
+  };
+}
+
+async function listMyLotBids(lotId: string): Promise<FarmerBidView[]> {
+  const { data, error } = await supabase.rpc("lot_bids", { p_lot_id: lotId });
+  if (error) throw rpcError(error);
+  return (data ?? []).map(toFarmerBidView);
+}
+
+/** Every active bid on a lot the caller owns, best price first (lot_bids()
+ * RPC - SPEC.md §4.12, §9.2 Phase 3 "3.5"). BidsPage's list. */
+export function useMyLotBids(lotId: string | undefined) {
+  return useQuery({
+    queryKey: bidKeys.forMyLot(lotId ?? ""),
+    queryFn: () => listMyLotBids(lotId as string),
+    enabled: lotId !== undefined,
+  });
+}
+
+async function rejectBid(bidId: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("bids")
+    .update({ status: "rejected" })
+    .eq("id", bidId)
+    .select("id");
+  if (error) throw rpcError(error);
+  // RLS (bids_reject_own_lot) filters out a row the caller doesn't own the
+  // lot of instead of throwing - an empty result means "refused", same
+  // honesty rule §5 gives every other silently-filtered write.
+  if (!data || data.length === 0) throw new AppError("BID_NOT_ACTIVE");
+}
+
+/** "Say no" on BidsPage - farmer-only, own-lot-only (bids_reject_own_lot). */
+export function useRejectBid(lotId: string) {
+  return useMutation<void, AppError, string>({
+    mutationFn: rejectBid,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bidKeys.forMyLot(lotId) });
     },
   });
 }
