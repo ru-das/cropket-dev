@@ -5,6 +5,7 @@ import { formatAgo, isStale, STALE_AFTER_MS } from "@/lib/dataAge";
 
 const now = new Date("2026-09-16T12:00:00Z");
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 60 * 60 * 1000);
+const minutesAgo = (m: number) => new Date(now.getTime() - m * 60 * 1000);
 
 describe("isStale", () => {
   it("is not stale at 5 hours old", () => {
@@ -29,6 +30,10 @@ describe("isStale", () => {
 });
 
 describe("formatAgo", () => {
+  it("reads in minutes under 1h, in English (LiveBidBox's recent-bids list)", () => {
+    expect(formatAgo(minutesAgo(2), "en", now)).toBe("2 minutes ago");
+  });
+
   it("reads in hours under 48h, in English", () => {
     expect(formatAgo(hoursAgo(7), "en", now)).toBe("7 hours ago");
   });

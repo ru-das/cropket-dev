@@ -37,7 +37,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M3 — Buyer marketplace
 - [x] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
 - [x] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
-- [ ] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
+- [x] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [ ] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
 - [ ] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
 - [ ] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
@@ -2009,4 +2009,86 @@ pass. `impeccable detect --json app/src` → `[]`.
   shows them; mega lots are 3.4, trust/ratings are P1 (out of prototype scope).
 - `.limit(200)` + client-side filtering, see the `ponytail:` comment in `marketplace.ts` for the
   upgrade path once a real number of lots exist.
+
+### 3.3 Bids + `place_bid` RPC + `LiveBidBox` (Realtime) — 2026-09-22
+
+**What it does:** the first thing that makes a marketplace card worth tapping. `BuyerLotCard` is
+now a `Link` to a new `/buyer/lots/:id` detail page (photo, `GradeBadge`, `GradeBreakdown` - reused
+as-is from the farmer's own `LotDetailPage`/`useGradeResult()`, RLS already opened both to a listed
+lot's buyer in 3.2b) with a `LiveBidBox` beside it: highest bid, a reference-floor line, a bid
+form, and a recent-bids list that updates live through Supabase Realtime - the first Realtime
+subscription and the first `supabase.rpc()` call in this project. Recent bids show price + time
+only, not the bidder's business name - `buyer_kyc` stays select-own + admin-only (a call made with
+the user up front); the farmer sees buyer identity in 3.5's `BidRow`, where it actually drives a
+decision.
+**How it's enforced:** `place_bid` (`security definer`) is the *only* writer to `bids` - `bids` has
+no client insert grant at all, tighter than SPEC §5.6's literal "insert RLS policy" reading, so the
+verified/not-banned check and the atomic rate-limit bump live in one place. It checks, in order:
+signed in, `profiles.role='buyer' and kyc_status='verified' and banned=false`, `target_type='lot'`
+(mega lots don't exist until 3.4 - the column, the RPC and `BidTargetType` all reject anything
+else for now), the target lot is `status='listed'` (row-locked `for update`, AGENTS.md §4), a
+10-bids-per-minute-per-buyer cap in a new `rate_limits` table (SPEC §5.2) that self-heals at the
+cap since a `RATE_LIMITED` raise rolls its own bump back with the rest of the transaction, then
+inserts the bid and computes `below_floor` by mirroring `floor.ts`'s percentile math in SQL (MSP or
+nearest-rank 20th-percentile of `mandi_prices`, same Asia/Kolkata day boundary as `todayIso()`) -
+**a below-floor bid still succeeds**, it only comes back flagged (CLAUDE.md §6 "the floor price
+warns, never blocks"). Two select policies on `bids`: anyone can read bids on a lot that is
+currently `listed`, and a buyer can always read their own bid even after it isn't. `rate_limits`
+has RLS on and zero grants - only `place_bid` ever touches it.
+**Column naming call:** `bids.price_per_quintal_paise`, not SPEC §5.6's shorthand
+`price_per_quintal` - every money value elsewhere in this codebase ends in `_paise`
+(`modal_price_paise`) and both `money.ts`/`floor.ts` already name the value
+`pricePerQuintalPaise`. Followed the code, not the doc table; called out in the migration's header
+comment.
+**Files:** `supabase/migrations/20260922160000_bids.sql` (new - `bids`, `rate_limits`,
+`place_bid()`, `alter publication supabase_realtime add table bids`),
+`supabase/functions/_shared/domain/schemas/bid.ts` (new), `app/src/services/bids.ts` (new -
+`useLotBids`, `useLotBidsRealtime`, `usePlaceBid`, `highestBid`), `app/src/components/trade/`
+(new folder) `LiveBidBox.tsx`, `app/src/components/common/RequireOnline.tsx` (new - AGENTS.md §4's
+"wrap money and trading buttons" convention, only inlined by hand until now),
+`app/src/routes/buyer/BuyerLotDetailPage.tsx` (new), `app/src/app/router.tsx`
+(`/buyer/lots/:id`), `app/src/components/lot/BuyerLotCard.tsx` (now a `Link`),
+`app/src/lib/errors.ts` (`BUYER_NOT_VERIFIED`, `LOT_NOT_LISTED` + a new `rpcError()` helper - RPC
+errors come back as the raised exception text, not the `{ok:false,error:{code}}` shape
+`callFunction.ts` already unwraps), `app/src/lib/dataAge.ts` (`formatAgo()` gained minute
+granularity for the recent-bids list; the existing 6-hour `<DataAge>` caller is unaffected),
+`app/src/locales/{en,hi,mr}.json` (`bid.*`, 9 keys + 2 new error keys),
+`supabase/tests/{place_bid.sql, rls_bids.sql}` (new).
+**Mocked:** nothing new - `below_floor` runs against real seeded `mandi_prices`; with no history
+the floor is `null` and no warning shows, never a guessed ₹0.
+**Verified live against `cropket-dev`, not just pgTAP** (curl, farmer `9090910001`/`910001`, buyer
+`9090910002`/`910002` real-verified through the actual `kyc-verify` function for this test - it is
+now a genuinely verified buyer, useful for your own manual testing too): an unverified buyer's
+`place_bid` call returns `BUYER_NOT_VERIFIED`; the verified buyer's bid returns
+`{bid_id, is_highest:true, below_floor:false}`; a second buyer who never bid can read that bid back
+through `bids_select_listed`; a bid at ₹1,000/quintal against the real onion floor of ₹1,684.51
+returns `below_floor:true` and still succeeds. Test lot, bids and `rate_limits` rows deleted
+afterward via `psql`. **Not verified: the Realtime websocket push itself** - no browser tool was
+available this session, so the live "buyer B's screen updates with no reload" behavior described
+below needs a manual check.
+**Test by hand:** two browser windows, buyer `9090910002` / OTP `910002` (now verified) in one,
+any other buyer in the other -
+1. Farmer `9090910001` lists a graded lot; both buyers open `/buyer` → tap it → `/buyer/lots/:id`.
+2. The verified buyer types a price and taps "Place bid" → the highest bid and recent-bids list
+   update on **both** windows without a reload (the live realtime proof).
+3. The unverified buyer's form is disabled with "Finish KYC to place bids."; neither buyer's window
+   shows the other's business name in the recent-bids list.
+4. DevTools → Offline → the "Place bid" button is disabled with a reason line, nothing queues.
+5. Type a price below the reference floor shown → the red floor warning shows before submitting;
+   submitting still succeeds and the warning stays.
+6. Check at 360 px and in all three languages.
+**Tests:** `supabase/tests/place_bid.sql` (11/11 - highest/not-highest, below-floor still inserts,
+unverified/banned buyer, draft/unknown lot, `mega_lot` rejected, 11th-bid-in-a-minute rate limit),
+`supabase/tests/rls_bids.sql` (8/8 - no insert/update/delete grant on `bids`, select scoped to
+listed-or-own, `rate_limits` fully locked down). `bash scripts/test-sql.sh` - full suite green on
+`cropket-dev`. `app/tests/unit/domain/schemas/bid.test.ts` (7 new), `app/tests/unit/dataAge.test.ts`
+(+1 for minute granularity). `pnpm lint && pnpm typecheck && pnpm test` (274 tests, all green) and
+`pnpm build` all pass.
+**Next / known gaps:**
+- **Next item: 3.4** Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger) -
+  `place_bid`'s `target_type` check and `bids.mega_lot_id` (no FK yet) are both already shaped for
+  it; 3.4 opens the RPC with `create or replace function`, not a new one.
+- 3.5 (farmer's bids screen) is what finally shows a buyer's business name and trust score next to
+  their bid - `LiveBidBox`'s recent-bids list deliberately doesn't.
+- No push notification to the farmer on a new bid (P1, out of prototype scope).
 

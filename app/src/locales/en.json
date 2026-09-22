@@ -282,6 +282,17 @@
     "empty": "No lots match yet.",
     "emptyHint": "Try fewer filters, or check back soon."
   },
+  "bid": {
+    "highest": "Highest bid",
+    "none": "No bids yet",
+    "live": "Live",
+    "referenceFloor": "Reference floor {{floor}}",
+    "yourBid": "Your bid (₹ per quintal)",
+    "total": "Total {{total}}",
+    "place": "Place bid",
+    "recent": "Recent bids",
+    "offlineReason": "Needs internet to place a bid"
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…",
@@ -305,6 +316,8 @@
     "kycAlreadyVerified": "You are already verified.",
     "kycUnavailable": "The KYC check did not work. Try again.",
     "lotNotListable": "This lot cannot be listed right now.",
+    "buyerNotVerified": "Finish KYC to place bids.",
+    "lotNotListed": "This lot is no longer taking bids.",
     "unknown": "Something went wrong. Try again."
   }
 }

@@ -2,9 +2,10 @@
 // buyer view"). Unlike the farmer's text-only LotCard, this one shows the
 // real scan photo - BuyerHome signs every card's photo in one batched call
 // (services/lots.ts useListedLotPhotos()), so this component just renders
-// whatever URL it's handed. Not a Link yet: bidding (3.3) is what makes a
-// card worth tapping into, so it stays a plain card until then.
+// whatever URL it's handed. A Link to the lot detail page (3.3's
+// LiveBidBox) - bidding is what makes a card worth tapping into.
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import GradeBadge from "@/components/lot/GradeBadge";
 import type { MarketLotWithDistance } from "@/routes/buyer/marketplace";
 
@@ -12,7 +13,10 @@ export default function BuyerLotCard({ lot, photoUrl }: { lot: MarketLotWithDist
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface p-4 shadow-card">
+    <Link
+      to={`/buyer/lots/${lot.id}`}
+      className="flex flex-col gap-3 rounded-2xl border-2 border-line bg-surface p-4 shadow-card transition-all hover:border-leaf active:scale-[0.98]"
+    >
       {photoUrl ? (
         <img
           src={photoUrl}
@@ -38,6 +42,6 @@ export default function BuyerLotCard({ lot, photoUrl }: { lot: MarketLotWithDist
           {lot.km === null ? t("market.noLocation") : t("market.approxDistance", { km: Math.round(lot.km) })}
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

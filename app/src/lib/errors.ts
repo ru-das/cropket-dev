@@ -16,6 +16,12 @@ const CODE_TO_MESSAGE_KEY = {
   KYC_ALREADY_VERIFIED: "errors.kycAlreadyVerified",
   KYC_UNAVAILABLE: "errors.kycUnavailable",
   LOT_NOT_LISTABLE: "errors.lotNotListable",
+  BUYER_NOT_VERIFIED: "errors.buyerNotVerified",
+  LOT_NOT_LISTED: "errors.lotNotListed",
+  // Never reachable through the UI (RequireAuth already guards every screen
+  // that calls place_bid) - reuses the existing copy rather than a new key
+  // for a defensive-only path.
+  NOT_SIGNED_IN: "errors.profileNotFound",
 } as const;
 
 // A literal union matching real locale keys, not `string` - so every call
@@ -56,4 +62,25 @@ export function toAppError(err: unknown): AppError {
     return new AppError("NETWORK_ERROR", err instanceof Error ? err.message : String(err));
   }
   return new AppError("UNKNOWN", err instanceof Error ? err.message : String(err));
+}
+
+/**
+ * Wraps a `supabase.rpc()` error as an AppError (place_bid, and every later
+ * RPC: accept_bid in 3.6, escrow_transition in M4). AGENTS.md §5 "SQL
+ * functions raise exceptions with the code as the message ... the app reads
+ * the first word of the message as the code" - a PostgrestError's `.message`
+ * is exactly that raised text (e.g. "BUYER_NOT_VERIFIED"), unlike an Edge
+ * Function's `{ ok: false, error: { code } }` shape that callFunction.ts
+ * unwraps instead.
+ */
+export function rpcError(err: unknown): AppError {
+  if (err instanceof AppError) return err;
+  if (!navigator.onLine || isFetchFailure(err)) {
+    return new AppError("NETWORK_ERROR", err instanceof Error ? err.message : String(err));
+  }
+  const message = err instanceof Error ? err.message : (err as { message?: unknown } | null)?.message;
+  if (typeof message === "string" && message.trim()) {
+    return new AppError(message.trim().split(/\s/)[0], message);
+  }
+  return toAppError(err);
 }
