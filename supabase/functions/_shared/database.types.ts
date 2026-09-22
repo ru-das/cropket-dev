@@ -39,6 +39,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      bids: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          lot_id: string | null
+          mega_lot_id: string | null
+          price_per_quintal_paise: number
+          status: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          lot_id?: string | null
+          mega_lot_id?: string | null
+          price_per_quintal_paise: number
+          status?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          lot_id?: string | null
+          mega_lot_id?: string | null
+          price_per_quintal_paise?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buyer_kyc: {
         Row: {
           business_name: string
@@ -404,6 +449,24 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       route_cache: {
         Row: {
           fetched_at: string
@@ -492,6 +555,18 @@ export type Database = {
           crop: string
           mandi_id: string
           nearby_lot_tonnes: number
+        }[]
+      }
+      place_bid: {
+        Args: {
+          p_price_per_quintal_paise: number
+          p_target_id: string
+          p_target_type: string
+        }
+        Returns: {
+          below_floor: boolean
+          bid_id: string
+          is_highest: boolean
         }[]
       }
       trigger_cron_fetch_prices: { Args: never; Returns: number }
