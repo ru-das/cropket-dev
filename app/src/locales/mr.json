@@ -264,6 +264,24 @@
     "reject": "नाकारा",
     "submittedOn": "{{date}} रोजी पाठवले"
   },
+  "market": {
+    "title": "बाजारपेठ",
+    "lotCount": "तुमच्याजवळ {{count}} लॉट",
+    "noLocationHint": "अंतरानुसार पाहण्यासाठी लोकेशन चालू करा",
+    "filterCrop": "पीक",
+    "anyCrop": "कोणतेही पीक",
+    "filterGrade": "ग्रेड",
+    "filterDistance": "अंतर",
+    "anyDistance": "कोणतेही अंतर",
+    "approxDistance": "~{{km}} किमी",
+    "filterMinKg": "किमान किती किलो",
+    "sortLabel": "यानुसार क्रम लावा",
+    "sortNewest": "नवीन आधी",
+    "sortNearest": "जवळचे आधी",
+    "noLocation": "अंतर माहीत नाही",
+    "empty": "अजून कोणताही लॉट सापडला नाही.",
+    "emptyHint": "कमी फिल्टर वापरून पहा, किंवा थोड्या वेळाने पुन्हा पहा."
+  },
   "common": {
     "comingSoon": "ही स्क्रीन लवकरच येईल.",
     "loading": "लोड होत आहे…",

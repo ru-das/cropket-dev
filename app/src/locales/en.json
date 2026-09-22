@@ -264,6 +264,24 @@
     "reject": "Reject",
     "submittedOn": "Submitted {{date}}"
   },
+  "market": {
+    "title": "Marketplace",
+    "lotCount": "{{count}} lots near you",
+    "noLocationHint": "Turn on location to sort by distance",
+    "filterCrop": "Crop",
+    "anyCrop": "Any crop",
+    "filterGrade": "Grade",
+    "filterDistance": "Distance",
+    "anyDistance": "Any distance",
+    "approxDistance": "~{{km}} km",
+    "filterMinKg": "Minimum quantity (kg)",
+    "sortLabel": "Sort by",
+    "sortNewest": "Newest",
+    "sortNearest": "Nearest",
+    "noLocation": "Distance unknown",
+    "empty": "No lots match yet.",
+    "emptyHint": "Try fewer filters, or check back soon."
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…",

@@ -20,6 +20,7 @@ import { lotCode } from "@shared/lotCode.ts";
 import type { Crop } from "@shared/crops.ts";
 import type { Grade } from "@shared/schemas/grade.ts";
 import type { Database } from "@/lib/database.types";
+import type { MarketLot } from "@/routes/buyer/marketplace";
 
 type LotRow = Database["public"]["Tables"]["lots"]["Row"];
 export type LotStatus = LotRow["status"];
@@ -50,6 +51,8 @@ export const lotKeys = {
   pending: (unresolved: number, failed: number) => ["lots", "pending", unresolved, failed] as const,
   byId: (id: string) => ["lot", id] as const,
   photo: (gradeResultId: string) => ["lotPhoto", gradeResultId] as const,
+  market: () => ["lots", "market"] as const,
+  marketPhotos: (gradeResultIds: string[]) => ["lots", "marketPhotos", [...gradeResultIds].sort()] as const,
 };
 
 function toServerLotView(row: LotRow): LotView {
@@ -248,5 +251,75 @@ export function useLotPhoto(gradeResultId: string | null | undefined) {
     queryFn: () => lotPhotoUrl(gradeResultId as string),
     enabled: Boolean(gradeResultId),
     staleTime: 50_000, // the signed URL itself expires at 60 s
+  });
+}
+
+async function listMarketLots(): Promise<MarketLot[]> {
+  const { data, error } = await supabase
+    .from("lots")
+    .select("id, crop, grade, quantity_kg, grade_result_id, lat, lng, created_at")
+    .eq("status", "listed")
+    .order("created_at", { ascending: false })
+    .limit(200); // ponytail: one page, see marketplace.ts's header comment
+  if (error) throw toAppError(error);
+
+  // A listed lot always has a grade and a grade_result_id (RLS's with check
+  // requires the grade; NewLotPage always sets both together) - this filter
+  // is a safety net for an unexpected row, not a rule the type system knows.
+  return (data ?? [])
+    .filter((row) => row.grade !== null && row.grade_result_id !== null)
+    .map((row) => ({
+      id: row.id,
+      crop: row.crop as Crop,
+      grade: row.grade as Grade,
+      quantityKg: row.quantity_kg,
+      gradeResultId: row.grade_result_id as string,
+      location: row.lat !== null && row.lng !== null ? { lat: row.lat, lng: row.lng } : null,
+      createdAt: row.created_at,
+    }));
+}
+
+/** Every listed lot, any farmer's - the buyer marketplace grid (BuyerHome). */
+export function useListedLots() {
+  return useQuery({ queryKey: lotKeys.market(), queryFn: listMarketLots });
+}
+
+async function listMarketPhotos(gradeResultIds: string[]): Promise<Record<string, string>> {
+  if (gradeResultIds.length === 0) return {};
+
+  const { data: grades, error } = await supabase
+    .from("grade_results")
+    .select("id, photo_paths")
+    .in("id", gradeResultIds);
+  if (error) throw toAppError(error);
+
+  const paths = (grades ?? [])
+    .map((g) => ({ gradeResultId: g.id, path: g.photo_paths[0] }))
+    .filter((g): g is { gradeResultId: string; path: string } => Boolean(g.path));
+  if (paths.length === 0) return {};
+
+  // One plural call for the whole grid instead of one signed URL per card
+  // (the reason LotCard stays text-only for the farmer's own list too) -
+  // same call the `grade` Edge Function already uses.
+  const { data: signed } = await supabase.storage
+    .from("crop-photos")
+    .createSignedUrls(paths.map((p) => p.path), 60);
+
+  const urlByPath = new Map((signed ?? []).filter((s) => !s.error).map((s) => [s.path, s.signedUrl]));
+  const result: Record<string, string> = {};
+  for (const { gradeResultId, path } of paths) {
+    const url = urlByPath.get(path);
+    if (url) result[gradeResultId] = url;
+  }
+  return result;
+}
+
+/** Signed photo URLs for a page of market lots, keyed by grade_result_id. */
+export function useListedLotPhotos(gradeResultIds: string[]) {
+  return useQuery({
+    queryKey: lotKeys.marketPhotos(gradeResultIds),
+    queryFn: () => listMarketPhotos(gradeResultIds),
+    enabled: gradeResultIds.length > 0,
+    staleTime: 50_000, // the signed URLs themselves expire at 60 s
   });
 }

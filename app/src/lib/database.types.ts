@@ -181,6 +181,8 @@ export type Database = {
           grade: string | null
           grade_result_id: string | null
           id: string
+          lat: number | null
+          lng: number | null
           location: unknown
           qr_code: string
           quantity_kg: number
@@ -194,6 +196,8 @@ export type Database = {
           grade?: string | null
           grade_result_id?: string | null
           id: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
           qr_code: string
           quantity_kg: number
@@ -207,6 +211,8 @@ export type Database = {
           grade?: string | null
           grade_result_id?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           location?: unknown
           qr_code?: string
           quantity_kg?: number

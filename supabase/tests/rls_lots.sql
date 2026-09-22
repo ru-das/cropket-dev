@@ -1,6 +1,8 @@
 -- RLS for `lots` (SPEC.md §5.6, §9.2 Phase 1 "1.6", Phase 3 "3.2"). Same
--- select/insert pattern as rls_grade_results.sql, plus 3.2's listing update:
--- a farmer can move their own graded draft to listed, and nothing else.
+-- select/insert pattern as rls_grade_results.sql, plus 3.2's listing update
+-- and 3.2b's buyer-facing read: a farmer can move their own graded draft to
+-- listed and nothing else; a buyer sees every listed lot (any farmer's) and
+-- no draft at all.
 -- Two different failure shapes here, both worth knowing: a USING mismatch
 -- (wrong farmer, or the row isn't in 'draft') makes the row invisible to the
 -- UPDATE, so it silently touches 0 rows - those checks assert the row is
@@ -9,15 +11,17 @@
 -- raises an error, same as the missing quantity_kg column grant.
 -- Everything here rolls back.
 begin;
-select plan(12);
+select plan(15);
 
 insert into auth.users (id, phone) values
   ('11111111-1111-1111-1111-111111111111', '0000000001'),
-  ('22222222-2222-2222-2222-222222222222', '0000000002');
+  ('22222222-2222-2222-2222-222222222222', '0000000002'),
+  ('33333333-3333-3333-3333-333333333333', '0000000003');
 
 insert into profiles (id, name, role, phone) values
   ('11111111-1111-1111-1111-111111111111', 'Ramesh', 'farmer', '0000000001'),
-  ('22222222-2222-2222-2222-222222222222', 'Sunita', 'farmer', '0000000002');
+  ('22222222-2222-2222-2222-222222222222', 'Sunita', 'farmer', '0000000002'),
+  ('33333333-3333-3333-3333-333333333333', 'Sharma Traders', 'buyer', '0000000003');
 
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","phone":"0000000001","role":"authenticated"}';
@@ -128,6 +132,37 @@ select throws_ok(
              'onion', 0, 'L-000000') $$,
   null, null,
   'quantity_kg must be > 0'
+);
+
+-- 3.2b: a buyer's read of the marketplace. By now only 'eeeeeeee...' is
+-- 'listed' - 'aaaaaaaa...' and 'cccccccc...' are both still 'draft'.
+reset role;
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"33333333-3333-3333-3333-333333333333","phone":"0000000003","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from lots),
+  1,
+  'a buyer sees only listed lots, from any farmer'
+);
+
+select is(
+  (select id from lots limit 1),
+  'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+  'a buyer sees the listed lot, not either draft'
+);
+
+-- Niphad-ish coordinates, very different lat/lng so a swap is obvious - the
+-- same trap app/tests/unit/domain/geo.test.ts guards on the client side.
+-- 'aaaaaaaa...' is a draft, invisible under the buyer's own select policy,
+-- so this reads it as the table owner (bypasses RLS) - a generated-column
+-- correctness check, not another RLS-isolation check.
+reset role;
+
+select is(
+  (select (lat, lng) from lots where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
+  row (20.0::double precision, 73.79::double precision),
+  'lots.lat/lng read back latitude then longitude, not swapped'
 );
 
 select * from finish(true);

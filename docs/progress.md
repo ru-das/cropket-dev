@@ -36,7 +36,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M3 — Buyer marketplace
 - [x] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
-- [~] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
+- [x] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
 - [ ] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [ ] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
 - [ ] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
@@ -1931,10 +1931,82 @@ have no grant, the `quantity_kg > 0` check). `bash scripts/test-sql.sh lots` - 1
 is a thin Supabase call with no branching logic of its own; the real logic lives in the RLS policy,
 which the SQL test covers) and `pnpm build` all pass. `impeccable detect --json app/src` → `[]`.
 **Next / known gaps:**
-- **Next: 3.2b**, the buyer marketplace itself (`/buyer` grid + filters) - this half only gives
-  farmers something to list *into*.
 - No second "Sell on Cropket" button on `ComparePage`, which SPEC §4.9 also draws it on - one
   insertion point is enough for the flow; revisit if the demo script wants both.
 - No un-list (`listed → draft`) - not needed until a farmer needs to pull a lot back, out of scope
   for now.
+
+### 3.2b Buyer marketplace — 2026-09-22
+
+**What it does:** the other half of 3.2 (SPEC.md §4.10) - `/buyer` (`BuyerHome`, which had only a
+"Coming soon" card) is now a real grid of every listed lot, any farmer's, with a real scan photo,
+filterable by crop, grade, distance and minimum quantity, sortable nearest/newest. Cards aren't
+`Link`s yet - bidding (3.3) is what makes tapping one worth building, so `BuyerLotCard` is a plain
+card for now, same call the plan made with the user up front. Browsing stays open to an unverified
+buyer (only bidding is blocked, SPEC.md §4.10) - no new route guard, `BuyerHome` keeps its existing
+KYC banner.
+**How it's enforced:** three narrow new select policies, nothing else - `lots_select_listed`
+(`status = 'listed'`, any farmer), and matching ones on `grade_results` and the `crop-photos`
+bucket scoped through *that* lot being listed. A draft's photo, grade and row stay exactly as
+private as before; only what a farmer already chose to list becomes visible. `lots` carries no
+phone number, so this needs no column allow-list to keep "buyer queries never return the farmer's
+phone" (`AGENTS.md` §4) true. `lots` also grew generated `lat`/`lng` columns, the same fix
+`mandis`/`profiles` already got - PostgREST serves `geography` as hex EWKB the browser can't read.
+**Distance is client-side, on purpose:** `route-distance` (2.5) is `requireRole(["farmer"])` and
+one ORS call per lot per filter tick would be wasteful anyway, so `filterAndSortLots()`
+(`routes/buyer/marketplace.ts`, pure, no Supabase) reuses `straightLineRoute()` from
+`@shared/geo.ts` - the exact same haversine × 1.3 number the Net-₹ comparator already shows, tagged
+`<DemoDataTag>` since it isn't a real road route. All four filters run over one already-fetched,
+`.limit(200)` query, so ticking a checkbox re-renders instantly with no refetch - a `ponytail:`
+comment in `marketplace.ts` names the upgrade path (an `ST_DWithin` RPC + a GiST index) if listed
+lots ever outgrow one page.
+**Photos are signed in one batched call, not one per card:** `useListedLotPhotos()` collects every
+visible lot's `grade_result_id`, does one `grade_results` select and one plural
+`storage.createSignedUrls()` call (the same plural call the `grade` function already uses) for the
+whole grid - this is the reason `LotCard`'s own header comment gave for staying text-only, now
+actually built the way it was reserved for.
+**Verified live against `cropket-dev`, not just pgTAP** (curl, farmer `9090910001`/`910001`, buyer
+`9090910002`/`910002`): a graded draft lot is invisible to the buyer; `PATCH status=listed` by the
+farmer makes it appear immediately with `lat: 20, lng: 73.79` read back correctly (not swapped);
+the buyer's own `PATCH status=sold` attempt returns `200` with an empty array - 0 rows touched, not
+an error, because buyers have no update grant on `lots` at all. Test row deleted afterward via
+`psql` so `cropket-dev` stays clean.
+**Files:** `supabase/migrations/20260922150000_lots_marketplace.sql` (new - `lat`/`lng`, the
+status index, three select policies), `app/src/routes/buyer/marketplace.ts` (new -
+`filterAndSortLots()`, pure), `app/src/routes/buyer/BuyerHome.tsx` (rewritten in place - same
+route, no new one), `app/src/services/lots.ts` (`useListedLots()`, `useListedLotPhotos()`),
+`app/src/components/lot/BuyerLotCard.tsx` (new), `app/src/components/market/LotFilters.tsx` (new),
+`app/src/locales/{en,hi,mr}.json` (`market.*`, 16 keys), `supabase/tests/{rls_lots.sql (plan 12 →
+15), rls_grade_results.sql (plan 4 → 6), rls_crop_photos.sql (plan 5 → 7)}` (all extended, not
+replaced).
+**Mocked:** the distance shown on every card (straight-line × 1.3, tagged `<DemoDataTag>` on the
+filter panel) - everything else (the lots, the photos, the grades) is real.
+**Test by hand:** buyer `9090910002` / OTP `910002`, with at least one lot already listed (3.2a's
+hand-test step 1) -
+1. `/buyer` → the listed lot appears with its real scan photo, grade badge, kg and `~N km`.
+2. Filters: pick a different crop → it disappears. Untick its grade → it disappears. Set distance
+   below its actual km → it disappears. Minimum kg above its quantity → empty state shows, with a
+   hint to loosen the filters.
+3. Sort Nearest ↔ Newest reorders the grid. If the buyer's own profile has no GPS from onboarding,
+   the "Turn on location to sort by distance" hint shows and sort quietly falls back to newest.
+4. Any other farmer's `draft` lots, and lots belonging to a different farmer than the one who
+   listed, do not leak in - confirm with `psql` that drafts exist but aren't in the grid.
+5. `pnpm build && pnpm preview` → repeat 1-3 on the production build.
+**Tests:** `app/tests/unit/buyer/marketplace.test.ts` (new, 12 cases - crop/grade/quantity/distance
+filters, empty-grade-list-means-any, a location-less lot kept without a distance filter and dropped
+with one, nearest sort with null-km last, nearest falls back to newest with no buyer location,
+newest default, empty input). `supabase/tests/rls_lots.sql` (15/15 - the six new/changed checks
+from 3.2a plus three for the buyer read + the lat/lng order trap), `rls_grade_results.sql` (6/6),
+`rls_crop_photos.sql` (7/7). `bash scripts/test-sql.sh` - full suite green on `cropket-dev`.
+`pnpm lint && pnpm typecheck && pnpm test` (266 tests, all green - 12 new) and `pnpm build` all
+pass. `impeccable detect --json app/src` → `[]`.
+**Next / known gaps:**
+- **Next item: 3.3** `bids` + `place_bid` RPC + RLS + `LiveBidBox` with Realtime - the first thing
+  that makes a marketplace card worth tapping.
+- Cards aren't clickable - `/buyer/lots/:id` with the real detail view (photos, `GradeBreakdown`,
+  trust stars, `LiveBidBox`) is 3.3's, not built here.
+- No village, trust stars, mega-lot badge or salvage filter on the card - SPEC §4.10's wireframe
+  shows them; mega lots are 3.4, trust/ratings are P1 (out of prototype scope).
+- `.limit(200)` + client-side filtering, see the `ponytail:` comment in `marketplace.ts` for the
+  upgrade path once a real number of lots exist.
 

@@ -264,6 +264,24 @@
     "reject": "अस्वीकार करें",
     "submittedOn": "{{date}} को भेजा गया"
   },
+  "market": {
+    "title": "बाज़ार",
+    "lotCount": "आपके पास {{count}} लॉट",
+    "noLocationHint": "दूरी के हिसाब से देखने के लिए लोकेशन चालू करें",
+    "filterCrop": "फसल",
+    "anyCrop": "कोई भी फसल",
+    "filterGrade": "ग्रेड",
+    "filterDistance": "दूरी",
+    "anyDistance": "कोई भी दूरी",
+    "approxDistance": "~{{km}} किमी",
+    "filterMinKg": "कम से कम कितना किलो",
+    "sortLabel": "इस हिसाब से क्रम",
+    "sortNewest": "नए पहले",
+    "sortNearest": "पास वाले पहले",
+    "noLocation": "दूरी पता नहीं",
+    "empty": "अभी कोई लॉट नहीं मिला।",
+    "emptyHint": "कम फ़िल्टर लगाकर देखें, या थोड़ी देर बाद फिर देखें।"
+  },
   "common": {
     "comingSoon": "यह स्क्रीन जल्द आएगी।",
     "loading": "लोड हो रहा है…",

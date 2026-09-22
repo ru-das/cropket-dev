@@ -1,18 +1,45 @@
-// Buyer home - real marketplace tiles land in M3 (SPEC.md §4.10). For now
-// this exists so login routes buyers to their own home, not the farmer one.
-// Sign out lives here since buyer has no bottom nav / Me tab yet.
+// Buyer home = the marketplace (SPEC.md §4.10, §9.2 Phase 3 "3.2b"). Browsing
+// is open to every buyer, verified or not - only bidding (3.3) is blocked -
+// so this page adds no RequireRole/kyc guard, just the banner it already had.
+// All four filters run client-side over one fetch (routes/buyer/marketplace.ts
+// filterAndSortLots()); photos for the whole page are signed in one batched
+// call (services/lots.ts useListedLotPhotos()) instead of one per card.
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, Link } from "react-router";
-import { Building2, LogOut, Sparkles, TriangleAlert } from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { Building2, LogOut, PackageSearch, TriangleAlert } from "lucide-react";
 import { useAuth } from "@/app/authContext";
 import { signOut } from "@/services/auth";
+import { useListedLots, useListedLotPhotos } from "@/services/lots";
 import VerifiedBadge from "@/components/common/VerifiedBadge";
+import DemoDataTag from "@/components/common/DemoDataTag";
+import BuyerLotCard from "@/components/lot/BuyerLotCard";
+import LotFilters from "@/components/market/LotFilters";
+import { filterAndSortLots, DEFAULT_MARKET_FILTERS } from "@/routes/buyer/marketplace";
+import type { LatLng } from "@shared/geo.ts";
 
 export default function BuyerHome() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile } = useAuth();
   const verified = profile?.kyc_status === "verified";
+
+  const [filters, setFilters] = useState(DEFAULT_MARKET_FILTERS);
+  const { data: lots, isLoading } = useListedLots();
+  const gradeResultIds = useMemo(() => (lots ?? []).map((l) => l.gradeResultId), [lots]);
+  const { data: photos } = useListedLotPhotos(gradeResultIds);
+
+  const lat = profile?.lat;
+  const lng = profile?.lng;
+  const buyerLocation: LatLng | null = useMemo(
+    () => (lat !== null && lat !== undefined && lng !== null && lng !== undefined ? { lat, lng } : null),
+    [lat, lng],
+  );
+
+  const visible = useMemo(
+    () => filterAndSortLots(lots ?? [], filters, buyerLocation),
+    [lots, filters, buyerLocation],
+  );
 
   async function handleSignOut() {
     await signOut();
@@ -57,11 +84,42 @@ export default function BuyerHome() {
         </Link>
       )}
 
-      <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-8 text-center shadow-card">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-neel-light text-neel-text border border-neel/20">
-          <Sparkles size={28} aria-hidden="true" />
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-display text-xl font-black text-ink">{t("market.title")}</h2>
+        {!buyerLocation && <span className="text-meta text-ink-muted">{t("market.noLocationHint")}</span>}
+      </div>
+
+      <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[260px_1fr] lg:items-start lg:gap-6">
+        <div className="rounded-3xl border-2 border-line bg-surface p-5 shadow-card">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="font-display text-meta font-bold text-ink">{t("market.filterDistance")}</span>
+            <DemoDataTag />
+          </div>
+          <LotFilters filters={filters} onChange={setFilters} />
         </div>
-        <p className="mt-4 font-display text-xl font-bold text-ink">{t("common.comingSoon")}</p>
+
+        <div className="flex flex-col gap-4">
+          {isLoading ? (
+            <p className="font-display text-lg font-bold text-ink-muted">{t("common.loading")}</p>
+          ) : visible.length === 0 ? (
+            <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-8 text-center shadow-card">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-line bg-surface-subtle text-ink-muted">
+                <PackageSearch size={28} aria-hidden="true" />
+              </div>
+              <p className="mt-4 font-display text-xl font-bold text-ink">{t("market.empty")}</p>
+              <p className="mt-1 text-meta text-ink-muted">{t("market.emptyHint")}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-meta font-semibold text-ink-muted">{t("market.lotCount", { count: visible.length })}</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {visible.map((lot) => (
+                  <BuyerLotCard key={lot.id} lot={lot} photoUrl={photos?.[lot.gradeResultId]} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <button
