@@ -15,10 +15,15 @@ import type { Grade } from "@shared/schemas/grade.ts";
 
 export type MarketLot = {
   id: string;
+  /** "mega" cards route to /buyer/mega-lots/:id and show a "Mega lot (n)" tag instead of a photo. */
+  kind: "lot" | "mega";
   crop: Crop;
   grade: Grade;
   quantityKg: number;
-  gradeResultId: string;
+  /** null for a mega lot - it has no single photo of its own. */
+  gradeResultId: string | null;
+  /** null for a single lot - only a mega lot card shows a farmer count. */
+  farmerCount: number | null;
   location: LatLng | null;
   createdAt: string;
 };
@@ -33,6 +38,8 @@ export type MarketFilters = {
   maxKm: number | null;
   /** null = any quantity. */
   minKg: number | null;
+  /** SPEC.md §4.10's "☑ Mega lots" checkbox - on by default, unticking drops mega cards. */
+  megaLots: boolean;
   sort: MarketSort;
 };
 
@@ -41,6 +48,7 @@ export const DEFAULT_MARKET_FILTERS: MarketFilters = {
   grades: [],
   maxKm: null,
   minKg: null,
+  megaLots: true,
   sort: "newest",
 };
 
@@ -64,6 +72,7 @@ export function filterAndSortLots(
   }));
 
   const filtered = withKm.filter((lot) => {
+    if (!filters.megaLots && lot.kind === "mega") return false;
     if (filters.crop && lot.crop !== filters.crop) return false;
     if (filters.grades.length > 0 && !filters.grades.includes(lot.grade)) return false;
     if (filters.minKg !== null && lot.quantityKg < filters.minKg) return false;

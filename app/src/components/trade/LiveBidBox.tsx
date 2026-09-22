@@ -31,8 +31,8 @@ const RECENT_BIDS_SHOWN = 5;
 
 export default function LiveBidBox({ targetType, targetId, quantityKg, floorPaise, canBid }: Props) {
   const { t, i18n } = useTranslation();
-  const { data: bids } = useLotBids(targetId);
-  useLotBidsRealtime(targetId);
+  const { data: bids } = useLotBids(targetType, targetId);
+  useLotBidsRealtime(targetType, targetId);
   const placeBid = usePlaceBid();
   const [rupees, setRupees] = useState("");
 

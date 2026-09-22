@@ -11,6 +11,7 @@ import { Building2, LogOut, PackageSearch, TriangleAlert } from "lucide-react";
 import { useAuth } from "@/app/authContext";
 import { signOut } from "@/services/auth";
 import { useListedLots, useListedLotPhotos } from "@/services/lots";
+import { useListedMegaLots } from "@/services/megaLots";
 import VerifiedBadge from "@/components/common/VerifiedBadge";
 import DemoDataTag from "@/components/common/DemoDataTag";
 import BuyerLotCard from "@/components/lot/BuyerLotCard";
@@ -25,8 +26,14 @@ export default function BuyerHome() {
   const verified = profile?.kyc_status === "verified";
 
   const [filters, setFilters] = useState(DEFAULT_MARKET_FILTERS);
-  const { data: lots, isLoading } = useListedLots();
-  const gradeResultIds = useMemo(() => (lots ?? []).map((l) => l.gradeResultId), [lots]);
+  const { data: lots, isLoading: lotsLoading } = useListedLots();
+  const { data: megaLots, isLoading: megaLotsLoading } = useListedMegaLots();
+  const isLoading = lotsLoading || megaLotsLoading;
+  const allLots = useMemo(() => [...(lots ?? []), ...(megaLots ?? [])], [lots, megaLots]);
+  const gradeResultIds = useMemo(
+    () => (lots ?? []).map((l) => l.gradeResultId).filter((id): id is string => id !== null),
+    [lots],
+  );
   const { data: photos } = useListedLotPhotos(gradeResultIds);
 
   const lat = profile?.lat;
@@ -37,8 +44,8 @@ export default function BuyerHome() {
   );
 
   const visible = useMemo(
-    () => filterAndSortLots(lots ?? [], filters, buyerLocation),
-    [lots, filters, buyerLocation],
+    () => filterAndSortLots(allLots, filters, buyerLocation),
+    [allLots, filters, buyerLocation],
   );
 
   async function handleSignOut() {
@@ -114,7 +121,11 @@ export default function BuyerHome() {
               <p className="text-meta font-semibold text-ink-muted">{t("market.lotCount", { count: visible.length })}</p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {visible.map((lot) => (
-                  <BuyerLotCard key={lot.id} lot={lot} photoUrl={photos?.[lot.gradeResultId]} />
+                  <BuyerLotCard
+                    key={lot.id}
+                    lot={lot}
+                    photoUrl={lot.gradeResultId ? photos?.[lot.gradeResultId] : undefined}
+                  />
                 ))}
               </div>
             </>

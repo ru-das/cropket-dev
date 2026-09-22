@@ -10,14 +10,27 @@ const LASALGAON = { lat: 20.1462, lng: 74.234 }; // ~13.5 km from Niphad
 function lot(overrides: Partial<MarketLot>): MarketLot {
   return {
     id: "lot-1",
+    kind: "lot",
     crop: "onion",
     grade: "A",
     quantityKg: 500,
     gradeResultId: "gr-1",
+    farmerCount: null,
     location: NIPHAD,
     createdAt: "2026-09-20T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function megaLot(overrides: Partial<MarketLot>): MarketLot {
+  return lot({
+    id: "mega-1",
+    kind: "mega",
+    gradeResultId: null,
+    farmerCount: 4,
+    quantityKg: 600,
+    ...overrides,
+  });
 }
 
 describe("filterAndSortLots", () => {
@@ -95,5 +108,17 @@ describe("filterAndSortLots", () => {
 
   it("returns an empty list for an empty input", () => {
     expect(filterAndSortLots([], DEFAULT_MARKET_FILTERS, NIPHAD)).toEqual([]);
+  });
+
+  it("includes a mega lot by default, passing the same filters as a single lot", () => {
+    const lots = [lot({ id: "small" }), megaLot({ id: "mega", crop: "tomato" })];
+    const result = filterAndSortLots(lots, { ...DEFAULT_MARKET_FILTERS, crop: "tomato" }, null);
+    expect(result.map((l) => l.id)).toEqual(["mega"]);
+  });
+
+  it("drops mega lots when the mega lots filter is off, keeping single lots", () => {
+    const lots = [lot({ id: "small" }), megaLot({ id: "mega" })];
+    const result = filterAndSortLots(lots, { ...DEFAULT_MARKET_FILTERS, megaLots: false }, null);
+    expect(result.map((l) => l.id)).toEqual(["small"]);
   });
 });

@@ -17,6 +17,7 @@ import ComparePage from "@/routes/farmer/ComparePage";
 import PricesPage from "@/routes/farmer/PricesPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import BuyerLotDetailPage from "@/routes/buyer/BuyerLotDetailPage";
+import BuyerMegaLotDetailPage from "@/routes/buyer/BuyerMegaLotDetailPage";
 import KycPage from "@/routes/buyer/KycPage";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
@@ -52,6 +53,7 @@ export default function AppRouter() {
             <Route element={<AppShell />}>
               <Route path="/buyer" element={<BuyerHome />} />
               <Route path="/buyer/lots/:id" element={<BuyerLotDetailPage />} />
+              <Route path="/buyer/mega-lots/:id" element={<BuyerMegaLotDetailPage />} />
               <Route path="/buyer/kyc" element={<KycPage />} />
             </Route>
           </Route>

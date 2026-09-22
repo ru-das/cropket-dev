@@ -275,6 +275,7 @@
     "anyDistance": "कोई भी दूरी",
     "approxDistance": "~{{km}} किमी",
     "filterMinKg": "कम से कम कितना किलो",
+    "filterMegaLots": "मेगा लॉट",
     "sortLabel": "इस हिसाब से क्रम",
     "sortNewest": "नए पहले",
     "sortNearest": "पास वाले पहले",
@@ -292,6 +293,14 @@
     "place": "बोली लगाएँ",
     "recent": "हाल की बोलियाँ",
     "offlineReason": "बोली लगाने के लिए इंटरनेट चाहिए"
+  },
+  "mega": {
+    "tag": "मेगा लॉट ({{count}})",
+    "title": "मेगा लॉट - {{crop}}",
+    "farmers": "{{count}} किसान",
+    "members": "इस लॉट में किसान",
+    "memberLot": "{{kg}} किलो",
+    "notFound": "यह मेगा लॉट उपलब्ध नहीं है।"
   },
   "common": {
     "comingSoon": "यह स्क्रीन जल्द आएगी।",

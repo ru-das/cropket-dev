@@ -113,6 +113,16 @@ export default function LotFilters({
         />
       </label>
 
+      <label className="flex h-11 items-center gap-2.5 rounded-xl border border-line bg-surface px-3 shadow-xs">
+        <input
+          type="checkbox"
+          checked={filters.megaLots}
+          onChange={(e) => onChange({ ...filters, megaLots: e.target.checked })}
+          className="h-5 w-5 shrink-0 accent-leaf"
+        />
+        <span className="font-display text-sm font-bold text-ink">{t("market.filterMegaLots")}</span>
+      </label>
+
       <label className="flex flex-col gap-1.5">
         <span className="font-display text-meta font-bold text-ink">{t("market.sortLabel")}</span>
         <select

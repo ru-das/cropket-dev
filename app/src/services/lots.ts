@@ -270,10 +270,12 @@ async function listMarketLots(): Promise<MarketLot[]> {
     .filter((row) => row.grade !== null && row.grade_result_id !== null)
     .map((row) => ({
       id: row.id,
+      kind: "lot" as const,
       crop: row.crop as Crop,
       grade: row.grade as Grade,
       quantityKg: row.quantity_kg,
       gradeResultId: row.grade_result_id as string,
+      farmerCount: null,
       location: row.lat !== null && row.lng !== null ? { lat: row.lat, lng: row.lng } : null,
       createdAt: row.created_at,
     }));

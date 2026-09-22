@@ -275,6 +275,7 @@
     "anyDistance": "Any distance",
     "approxDistance": "~{{km}} km",
     "filterMinKg": "Minimum quantity (kg)",
+    "filterMegaLots": "Mega lots",
     "sortLabel": "Sort by",
     "sortNewest": "Newest",
     "sortNearest": "Nearest",
@@ -292,6 +293,14 @@
     "place": "Place bid",
     "recent": "Recent bids",
     "offlineReason": "Needs internet to place a bid"
+  },
+  "mega": {
+    "tag": "Mega lot ({{count}})",
+    "title": "Mega lot - {{crop}}",
+    "farmers": "{{count}} farmers",
+    "members": "Farmers in this lot",
+    "memberLot": "{{kg}} kg",
+    "notFound": "This mega lot isn't available."
   },
   "common": {
     "comingSoon": "This screen is coming soon.",
