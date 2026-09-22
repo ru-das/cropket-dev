@@ -38,7 +38,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
 - [x] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
 - [x] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
-- [ ] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
+- [x] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
 - [ ] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
 - [ ] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
 
@@ -2091,4 +2091,83 @@ listed-or-own, `rate_limits` fully locked down). `bash scripts/test-sql.sh` - fu
 - 3.5 (farmer's bids screen) is what finally shows a buyer's business name and trust score next to
   their bid - `LiveBidBox`'s recent-bids list deliberately doesn't.
 - No push notification to the farmer on a new bid (P1, out of prototype scope).
+
+### 3.4 Mega lot grouping — 2026-09-22
+
+**What it does:** a 150 kg lot was too small for a trader who wants a truckload - nobody would bid
+on it. `group_mega_lots()` fires (`after update of status on lots ... when (new.status = 'listed')`)
+every time a lot is listed, and bundles it with nearby small lots of the same crop and grade:
+unsold, smaller than 500 kg, within 10 km (`st_dwithin`), and **not already carrying a bid** - a
+bid in flight is never orphaned by a regroup (decided with the user, along with keeping the §9.1
+demo's 500 kg lot safe from being swallowed mid-demo, since a lot already at the target never
+bundles). Once the group reaches 500 kg, it inserts one `mega_lots` row + one `mega_lot_items` row
+per member and flips every member `listed -> in_mega` - a lot is sellable in exactly one place at a
+time. `place_bid` is reopened (`create or replace`, per 3.3's own header comment) for
+`target_type = 'mega_lot'` alongside `'lot'`; everything after the row lock (rate limit, floor,
+insert, `is_highest`) is unchanged in shape. On the buyer side, a mega lot shows up in the
+marketplace grid as a "Mega lot (n)" pill card (crop emoji tile, no single photo - there isn't
+one) with its own "Mega lots" filter checkbox (on by default), and `/buyer/mega-lots/:id` reuses
+the same `LiveBidBox` bidding on the bundle instead of one lot, with a member-lot list showing kg +
+grade only, never a farmer's name (same call 3.3 made for a rival bidder's identity).
+**Files:** `supabase/migrations/20260922170000_mega_lots.sql` (new - `mega_lots`,
+`mega_lot_items`, `group_mega_lots()` + trigger, widens `lots_select_listed` /
+`grade_results_select_listed` / `crop_photos_select_listed` to include `in_mega` so a lot stays
+visible to buyers once it's bundled, adds the `bids.mega_lot_id` FK 3.3 promised + a
+`bids_select_mega_listed` policy, `create or replace function place_bid`), `supabase/tests/
+{group_mega_lots,rls_mega_lots}.sql` (new), `supabase/tests/place_bid.sql` (mega_lot cases replace
+the old `UNSUPPORTED_TARGET` stub), `_shared/domain/schemas/bid.ts` (`BidTargetType` gains
+`mega_lot`), `app/src/services/megaLots.ts` (new - read-only, grouping only ever happens through
+the trigger), `app/src/services/bids.ts` (generalized lot-only -> `lot | mega_lot`, keyed and
+channelled by target type per SPEC §5.6's `bids:lot:{id}` / `bids:mega:{id}`),
+`app/src/routes/buyer/BuyerMegaLotDetailPage.tsx` (new), `app/src/components/lot/BuyerLotCard.tsx`
+(mega tag + routing), `app/src/components/market/LotFilters.tsx` ("Mega lots" checkbox),
+`app/src/routes/buyer/{BuyerHome,marketplace}.ts`, `app/src/app/router.tsx`
+(`/buyer/mega-lots/:id`), `app/src/locales/{en,hi,mr}.json` (`mega.*` + `market.filterMegaLots`).
+**Mocked:** nothing.
+**Verified live against `cropket-dev`, not just pgTAP** (farmer `9090910001`, verified buyer
+`9090910002`/`910002`): four real 150 kg onion Grade A lots at the same point, listed one at a
+time - no mega lot at 450 kg, one `mega_lots` row (`total_kg=600`, `status='listed'`) the moment
+the fourth lists, all four lots flip to `in_mega`. As the buyer: sees the mega lot and its 4
+members through the widened RLS policies, places a real `place_bid('mega_lot', ...)` bid
+(`is_highest:true, below_floor:false`), reads it back through `bids_select_mega_listed`. Test rows
+deleted afterward via `psql`. **Not verified: the `bids:mega:{id}` Realtime push in a browser** -
+no browser tool was available this session (the same gap 3.3 left for `bids:lot:{id}`).
+**Test by hand:** two browser windows, buyer `9090910002` / OTP `910002` -
+1. Farmer lists four small same-crop, same-grade lots within 10 km of each other → the marketplace
+   shows one "Mega lot (4)" card instead of four small ones.
+2. Untick "Mega lots" in the filter panel → the card disappears; tick it → it comes back. Crop /
+   grade / distance / min-kg filters and sort still apply to it.
+3. Tap it → `/buyer/mega-lots/:id`: member list (kg + grade, no farmer names), photo strip,
+   `LiveBidBox`.
+4. Bid in one window → the highest bid and recent-bids list update in the **other** window with no
+   reload (the `bids:mega:{id}` Realtime proof, not yet checked in a browser).
+5. Unverified buyer: form disabled with the KYC line. 360 px width, all three languages.
+**Tests:** `supabase/tests/group_mega_lots.sql` (12/12 - reaches target and groups, stays below and
+doesn't, a different grade isn't swept, a lot >10 km away isn't swept, a lot with an existing bid
+is excluded so the group never completes, a single already-big lot never bundles, `unique(lot_id)`
+holds), `supabase/tests/rls_mega_lots.sql` (10/10 - no client writes on either table, buyer sees a
+listed mega lot + its members + its bids, a sold mega lot is invisible except to its own member),
+`supabase/tests/place_bid.sql` (13/13, mega_lot cases added). `app/tests/unit/domain/schemas/
+bid.test.ts`, `app/tests/unit/buyer/marketplace.test.ts` (+2 mega-filter cases). `bash
+scripts/test-sql.sh` - full suite green **except `rls_buyer_kyc.sql`, pre-existing and unrelated
+to this change** (a real `buyer_kyc` row for buyer `9090910002` that 3.3's own handoff note
+deliberately left "verified... useful for your own manual testing too" makes that file's admin-row
+count assertion count 3 instead of 2 against live seed data - not touched by this migration).
+`pnpm lint && pnpm typecheck && pnpm test` (277 tests) `&& pnpm build` all pass. `impeccable detect
+app/src` - 0 anti-patterns.
+**Next / known gaps:**
+- **Nobody can accept a mega-lot bid yet.** SPEC §5.3 gives that to the FPO, and there is no FPO in
+  `supabase/seed.sql` and no `/fpo/megalots` screen (P1, SPEC §9.2) - `FpoHome.tsx` is still just a
+  "coming soon" placeholder. 3.5/3.6 have to decide who accepts a mega-lot bid; until then a mega
+  lot collects bids and stops there. This is the one thing 3.4 leaves dangling.
+- `mega_lots.fpo_id` is created and never written.
+- Grouping never un-groups: no path back from `in_mega` to `listed` if a farmer changes their mind.
+- `mega_lot_target_kg` is a `ponytail:`-marked constant (500) in the SQL function, not a row in
+  SPEC §5.6's `app_config` table - that table doesn't exist yet. Move it there when M4's
+  `platform_fee_bps` gives `app_config` a second reason to exist.
+- Grouping only runs on lot-*listed*. A lot listed before its neighbours isn't retroactively
+  swept by itself, but it doesn't need to be - the next neighbour's own listing re-runs the full
+  candidate query and picks up every nearby listed lot, not just newly listed ones.
+- **Next item: 3.5** Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning) - this is
+  also where the mega-lot-accept gap above most naturally gets closed.
 
