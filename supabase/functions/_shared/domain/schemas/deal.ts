@@ -11,5 +11,6 @@ export type AcceptBidInput = z.infer<typeof AcceptBidInput>;
 
 export const AcceptBidResult = z.object({
   dealId: z.uuid(),
+  escrowId: z.uuid(),
 });
 export type AcceptBidResult = z.infer<typeof AcceptBidResult>;

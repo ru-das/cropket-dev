@@ -1,14 +1,17 @@
--- Tests for accept_bid() (20260923160000_deals.sql, SPEC.md §4.13, §5.3,
--- §9.2 Phase 3 "3.6"). Verifies: the happy path creates a deal with the
--- right money math and pickup date, accepts the winning bid, rejects every
--- other active bid on the lot, and sells the lot; another farmer, the
--- bidder themselves, a rejected bid, an in_mega lot and a consent path
--- under the wrong folder are all refused; a repeated call is idempotent
--- (same deal id, no second row). Bids/lots inserted directly as the table
--- owner (bypasses RLS/place_bid) - place_bid.sql and lot_bids.sql already
--- cover insertion and reading. Everything here rolls back.
+-- Tests for accept_bid() (20260923160000_deals.sql, reopened by
+-- 20260923180000_accept_bid_escrow.sql to also create the escrow,
+-- SPEC.md §4.13, §5.3, §9.2 Phase 3 "3.6" / Phase 4 "4.1"). Verifies: the
+-- happy path creates a deal with the right money math and pickup date,
+-- an escrow in CREATED for deal total + fee, and its creation event;
+-- accepts the winning bid, rejects every other active bid on the lot, and
+-- sells the lot; another farmer, the bidder themselves, a rejected bid, an
+-- in_mega lot and a consent path under the wrong folder are all refused; a
+-- repeated call is idempotent (same deal id and escrow id, no second row).
+-- Bids/lots inserted directly as the table owner (bypasses RLS/place_bid)
+-- - place_bid.sql and lot_bids.sql already cover insertion and reading.
+-- Everything here rolls back.
 begin;
-select plan(11);
+select plan(14);
 
 insert into auth.users (id, phone) values
   ('c1000001-0000-0000-0000-000000000001', '0000000041'),
@@ -149,15 +152,44 @@ select is(
   'the lot is marked sold once a bid is accepted'
 );
 
+-- 11. the escrow is created in CREATED, holding deal total + fee (decided
+-- with the user: the escrow holds everything the buyer pays)
+select results_eq(
+  $$ select e.state::text, e.total_paise
+     from escrows e join deals d on d.id = e.deal_id
+     where d.lot_id = 'c2000001-0000-0000-0000-000000000001' $$,
+  $$ values ('CREATED', 959500::bigint) $$,
+  'accept_bid creates an escrow in CREATED for deal total + fee'
+);
+
+-- 12. the escrow's creation event is written (null -> CREATED)
+select is(
+  (select count(*)::int from escrow_events ev
+   join escrows e on e.id = ev.escrow_id
+   join deals d on d.id = e.deal_id
+   where d.lot_id = 'c2000001-0000-0000-0000-000000000001'
+     and ev.from_state is null and ev.to_state = 'CREATED'),
+  1,
+  'accept_bid writes the escrow''s creation event'
+);
+
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"c1000001-0000-0000-0000-000000000001","phone":"0000000041","role":"authenticated"}';
 
--- 11. a repeat call is idempotent: same deal id, no second deal row
+-- 13. a repeat call is idempotent: same deal id, no second deal row
 select is(
   (select a.deal_id from accept_bid('c3000001-0000-0000-0000-000000000001',
      'c1000001-0000-0000-0000-000000000001/again.webm') a),
   (select id from deals where lot_id = 'c2000001-0000-0000-0000-000000000001'),
   'a repeated accept_bid call for the same lot returns the existing deal, not a new one'
+);
+
+-- 14. ...and the same escrow id, not a second escrow row
+select is(
+  (select a.escrow_id from accept_bid('c3000001-0000-0000-0000-000000000001',
+     'c1000001-0000-0000-0000-000000000001/again.webm') a),
+  (select id from escrows where deal_id = (select id from deals where lot_id = 'c2000001-0000-0000-0000-000000000001')),
+  'a repeated accept_bid call returns the existing escrow, not a new one'
 );
 
 select * from finish(true);

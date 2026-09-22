@@ -222,6 +222,107 @@ export type Database = {
           },
         ]
       }
+      escrow_events: {
+        Row: {
+          actor: string | null
+          created_at: string
+          escrow_id: string
+          from_state: Database["public"]["Enums"]["escrow_state"] | null
+          id: string
+          reason: string | null
+          to_state: Database["public"]["Enums"]["escrow_state"]
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          escrow_id: string
+          from_state?: Database["public"]["Enums"]["escrow_state"] | null
+          id?: string
+          reason?: string | null
+          to_state: Database["public"]["Enums"]["escrow_state"]
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          escrow_id?: string
+          from_state?: Database["public"]["Enums"]["escrow_state"] | null
+          id?: string
+          reason?: string | null
+          to_state?: Database["public"]["Enums"]["escrow_state"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escrow_events_actor_fkey"
+            columns: ["actor"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escrow_events_escrow_id_fkey"
+            columns: ["escrow_id"]
+            isOneToOne: false
+            referencedRelation: "escrows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escrow_transitions: {
+        Row: {
+          from_state: Database["public"]["Enums"]["escrow_state"]
+          to_state: Database["public"]["Enums"]["escrow_state"]
+        }
+        Insert: {
+          from_state: Database["public"]["Enums"]["escrow_state"]
+          to_state: Database["public"]["Enums"]["escrow_state"]
+        }
+        Update: {
+          from_state?: Database["public"]["Enums"]["escrow_state"]
+          to_state?: Database["public"]["Enums"]["escrow_state"]
+        }
+        Relationships: []
+      }
+      escrows: {
+        Row: {
+          auto_release_at: string | null
+          created_at: string
+          deal_id: string
+          delivered_at: string | null
+          id: string
+          state: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at: string
+        }
+        Insert: {
+          auto_release_at?: string | null
+          created_at?: string
+          deal_id: string
+          delivered_at?: string | null
+          id?: string
+          state?: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at?: string
+        }
+        Update: {
+          auto_release_at?: string | null
+          created_at?: string
+          deal_id?: string
+          delivered_at?: string | null
+          id?: string
+          state?: Database["public"]["Enums"]["escrow_state"]
+          total_paise?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escrows_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_results: {
         Row: {
           client_created_at: string | null
@@ -278,6 +379,54 @@ export type Database = {
           {
             foreignKeyName: "grade_results_farmer_id_fkey"
             columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      khata_entries: {
+        Row: {
+          amount_paise: number
+          colour: Database["public"]["Enums"]["khata_colour"]
+          created_at: string
+          deal_id: string
+          id: string
+          title_key: string
+          title_values: Json
+          user_id: string
+        }
+        Insert: {
+          amount_paise: number
+          colour: Database["public"]["Enums"]["khata_colour"]
+          created_at?: string
+          deal_id: string
+          id?: string
+          title_key: string
+          title_values?: Json
+          user_id: string
+        }
+        Update: {
+          amount_paise?: number
+          colour?: Database["public"]["Enums"]["khata_colour"]
+          created_at?: string
+          deal_id?: string
+          id?: string
+          title_key?: string
+          title_values?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "khata_entries_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "khata_entries_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -549,6 +698,54 @@ export type Database = {
           },
         ]
       }
+      payouts: {
+        Row: {
+          amount_paise: number
+          created_at: string
+          escrow_id: string
+          id: string
+          provider_ref: string | null
+          status: string
+          to_user: string
+          type: string
+        }
+        Insert: {
+          amount_paise: number
+          created_at?: string
+          escrow_id: string
+          id?: string
+          provider_ref?: string | null
+          status?: string
+          to_user: string
+          type: string
+        }
+        Update: {
+          amount_paise?: number
+          created_at?: string
+          escrow_id?: string
+          id?: string
+          provider_ref?: string | null
+          status?: string
+          to_user?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_escrow_id_fkey"
+            columns: ["escrow_id"]
+            isOneToOne: false
+            referencedRelation: "escrows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payouts_to_user_fkey"
+            columns: ["to_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           banned: boolean
@@ -711,7 +908,32 @@ export type Database = {
         Args: { p_bid_id: string; p_consent_audio_path: string }
         Returns: {
           deal_id: string
+          escrow_id: string
         }[]
+      }
+      escrow_transition: {
+        Args: {
+          p_actor?: string
+          p_escrow: string
+          p_reason: string
+          p_to: Database["public"]["Enums"]["escrow_state"]
+        }
+        Returns: {
+          auto_release_at: string | null
+          created_at: string
+          deal_id: string
+          delivered_at: string | null
+          id: string
+          state: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "escrows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       lot_bids: {
         Args: { p_lot_id: string }
@@ -748,6 +970,18 @@ export type Database = {
       trigger_cron_fetch_prices: { Args: never; Returns: number }
     }
     Enums: {
+      escrow_state:
+        | "CREATED"
+        | "FUNDED"
+        | "CANCELLED"
+        | "REFUNDED"
+        | "DRIVER_ADVANCE_PAID"
+        | "IN_TRANSIT"
+        | "DELIVERED"
+        | "DISPUTED"
+        | "RELEASED"
+        | "PARTIAL_RELEASED"
+      khata_colour: "yellow" | "blue" | "green" | "red"
       lot_status:
         | "draft"
         | "listed"
@@ -888,6 +1122,19 @@ export const Constants = {
   },
   public: {
     Enums: {
+      escrow_state: [
+        "CREATED",
+        "FUNDED",
+        "CANCELLED",
+        "REFUNDED",
+        "DRIVER_ADVANCE_PAID",
+        "IN_TRANSIT",
+        "DELIVERED",
+        "DISPUTED",
+        "RELEASED",
+        "PARTIAL_RELEASED",
+      ],
+      khata_colour: ["yellow", "blue", "green", "red"],
       lot_status: [
         "draft",
         "listed",

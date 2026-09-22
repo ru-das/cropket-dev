@@ -71,7 +71,7 @@ async function acceptBid(input: AcceptBidInput): Promise<AcceptBidResult> {
   if (error) throw rpcError(error);
   const row = data?.[0];
   if (!row) throw rpcError(new Error("accept_bid returned no row"));
-  return AcceptBidResult.parse({ dealId: row.deal_id });
+  return AcceptBidResult.parse({ dealId: row.deal_id, escrowId: row.escrow_id });
 }
 
 /** ConsentPage's "I agree" button - uploads the clip then calls accept_bid,

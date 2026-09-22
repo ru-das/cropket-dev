@@ -43,7 +43,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
 
 ## M4 — Escrow and Digital Khata
-- [ ] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
+- [x] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
 - [ ] 4.2 `split.ts` + tests (100% branches, no paisa lost)
 - [ ] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
 - [ ] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
@@ -2301,4 +2301,69 @@ scripts/test-sql.sh` - full suite green, 15/15 files. `pnpm lint && pnpm typeche
   5.4 - nothing to do now, the folder doesn't exist.
 - **Next item: 4.1** `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` +
   `escrow_transition()` + SQL tests.
+
+### 4.1 Escrow tables + escrow_transition() — 2026-09-23
+
+**What it does:** the money foundation the rest of M4 builds on (SPEC.md §5.3, §5.6, §5.7,
+§9.2 Phase 4). Five new tables - `escrows` (one per deal, unique), `escrow_transitions` (the 13
+allowed moves from SPEC §5.7's table, inserted as config, not demo data), `escrow_events`
+(insert-only - no update/delete grant at all, not even for the service role, so the audit trail
+can't be tampered with by anything), `payouts`, and `khata_entries` (the colour-coded passbook
+table; nothing writes rows into it yet - 4.3/4.6/4.8 do that as FUNDED/IN_TRANSIT/RELEASED happen).
+`escrow_transition()` is SPEC §5.7's function body verbatim: row lock, idempotent same-state
+return, `ILLEGAL_TRANSITION % -> %`, DELIVERED sets `auto_release_at = now() + 24h`, one
+`escrow_events` row per move. `accept_bid` (3.6) is reopened to also create the escrow in the same
+transaction as the deal - SPEC §5.3 always described `accept_bid` as returning `deal_id,
+escrow_id`, and 3.6's own migration header already said this reopen was coming.
+**Decided with the user:** `escrows.total_paise = deals.total_paise + deals.fee_paise` - the
+escrow holds everything the buyer pays (deal total + the 1% platform fee), so a release's payouts
+(farmer shares + one `platform_fee` payout) sum to the escrow total exactly. The farmer's Khata
+will still show the deal total, the smaller number - that's a display choice for 4.3/4.4, not a
+schema one.
+**Files:** `supabase/migrations/20260923170000_escrows.sql` (new - the 5 tables, `escrow_state`/
+`khata_colour` enums, RLS: `escrows` reuses `deals`' own party rule with an `exists` subquery
+instead of copying it, `khata_entries` is select-own, `escrow_transitions`/`escrow_events`/
+`payouts` have no client access at all), `supabase/migrations/20260923180000_accept_bid_escrow.sql`
+(new - drops and recreates `accept_bid` because its OUT columns change, which `create or replace`
+can't do; same body as 3.6's version plus the escrow insert and its creation event), `supabase/tests/escrow_transition.sql` (new, 11 checks - every one of the 13 allowed moves
+succeeds and writes one event, an illegal jump and a move out of an end state both throw, a repeat
+is idempotent with no new event, DELIVERED's 24h timer, an unknown id throws `ESCROW_NOT_FOUND`,
+and `authenticated` genuinely cannot call the function - both the ACL and an actual call are
+checked), `supabase/tests/rls_escrows.sql` (new, 10 checks - both deal parties see the escrow, a
+third party sees neither the escrow nor someone else's khata row, no client can insert/update any
+of the four money tables, and `escrow_events` refuses an update even as the service role),
+`supabase/tests/accept_bid.sql` (extended to 14 checks - the escrow lands in CREATED for deal total
++ fee, its creation event exists, and a repeat returns the same escrow id too, not just the same
+deal id), `supabase/functions/_shared/domain/schemas/deal.ts` (`AcceptBidResult` gains `escrowId`),
+`app/src/services/deals.ts` (maps `row.escrow_id`; no UI reads it yet), `app/src/lib/
+database.types.ts` + `supabase/functions/_shared/database.types.ts` (regenerated).
+**Bug caught by the tests, not by hand:** `accept_bid`'s idempotent-repeat branch had `where
+deal_id = v_existing_deal_id` with no table alias - Postgres treats that as ambiguous once the
+function's OUT parameters are named `deal_id`/`escrow_id`, since OUT parameters are also in scope
+as plpgsql variables inside the function body. `accept_bid.sql`'s repeat-call test hit this
+immediately. Fixed by aliasing the table (`from escrows es where es.deal_id = ...`).
+**Mocked:** nothing - real tables, real RLS, real function, verified against `cropket-dev`.
+**How to test by hand:** as farmer `9090910001`, accept a bid the way 3.6's test already does.
+Supabase table editor: one `escrows` row in `CREATED` with `total_paise` = deal total + fee, and
+one `escrow_events` row (`from_state` null → `CREATED`). Nothing in the UI shows this yet - 4.3
+(mock pay) is the first screen that reads it.
+**Tests:** `supabase/tests/escrow_transition.sql` (11/11), `supabase/tests/rls_escrows.sql`
+(10/10), `supabase/tests/accept_bid.sql` (14/14, extended). `bash scripts/test-sql.sh` - full suite
+green, 17/17 files (including `rls_buyer_kyc.sql` - didn't reproduce its known flakiness this run
+either). `pnpm lint && pnpm typecheck && pnpm test` (282 tests, no new ones - no app-visible
+behaviour changed) `&& pnpm build` all pass. No UI touched, so `impeccable detect` doesn't apply
+this time.
+**Next / known gaps:**
+- No Khata row yet, no way to see the escrow from the app at all - **4.3** (mock Cashfree,
+  `escrow-pay`, "Pay (demo)" button, `cashfree-webhook` → FUNDED) is the first thing that moves the
+  escrow out of CREATED and writes the first 🟡 Khata row.
+- `otp_hash`/`otp_tries` aren't columns yet - left for **4.5** on purpose, which also decides how
+  the buyer is shown a code that's stored only as a hash.
+- `cashfree_order_id` isn't a column yet either - **4.3** adds it when it exists to store.
+- `escrow_transition()` and `accept_bid` both use the `v_fee_bps = 100` / mega-lot-target-kg style
+  `ponytail:` constant instead of a row in SPEC §5.6's `app_config` table - still true, still
+  waiting for a second reason to build that table (unchanged from 3.4/3.6's notes).
+- Mega-lot bids still cannot be accepted by anyone - unchanged gap from 3.4/3.5 (needs a seeded
+  FPO), so mega lots have no escrow either.
+- **Next item: 4.2** `split.ts` + tests (100% branches, no paisa lost).
 
