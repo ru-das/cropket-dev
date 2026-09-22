@@ -20,6 +20,9 @@ const CODE_TO_MESSAGE_KEY = {
   LOT_NOT_LISTED: "errors.lotNotListed",
   LOT_NOT_FOUND: "errors.lotNotFound",
   BID_NOT_ACTIVE: "errors.bidNotActive",
+  CONSENT_REQUIRED: "errors.consentRequired",
+  MIC_DENIED: "errors.micDenied",
+  MIC_UNAVAILABLE: "errors.micUnavailable",
   // Never reachable through the UI (RequireAuth already guards every screen
   // that calls place_bid) - reuses the existing copy rather than a new key
   // for a defensive-only path.

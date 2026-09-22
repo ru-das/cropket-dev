@@ -40,7 +40,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [x] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
 - [x] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
-- [ ] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
+- [x] 3.6 Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid` RPC
 
 ## M4 — Escrow and Digital Khata
 - [ ] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
@@ -2230,4 +2230,75 @@ pass. `impeccable detect app/src` - 0 anti-patterns.
 - No un-reject once a farmer says no.
 - **Next item: 3.6** Deal consent screen (5 points + `VoiceConsent`) + `deals` table + `accept_bid`
   RPC - replaces this item's placeholder consent route with the real screen.
+
+### 3.6 Deal consent screen + deals + accept_bid — 2026-09-23
+
+**What it does:** closes the gap 3.5 left on purpose - BidRow's "Accept" used to just navigate to
+a placeholder. It now lands on the real consent screen: SPEC §4.13's 5-point summary (price,
+quantity, grade, pickup, payment) read from the same `useMyLotBids()` list BidsPage already shows
+(so a bid another tab just changed shows "offer no longer available" instead of a broken screen),
+then `VoiceConsent` (hold-to-record with the browser's own `MediaRecorder`, max 10 s, "record
+again"), then "I agree" - dead until a clip exists and while offline. Tapping it uploads the clip
+to the new `consent-audio` bucket and calls `accept_bid(bid_id, consent_audio_path)`, which in one
+transaction (under the same lot row lock `place_bid` uses) creates the `deals` row, accepts the
+winning bid, rejects every other active bid on the lot, and marks the lot `sold` - then the farmer
+lands back on lot detail, which now shows a "Sold" card (total, pickup date, "waiting for buyer
+payment") from `useDealForLot()`.
+**Decided with the user:** no escrow or OTP here even though SPEC §5.3's one-liner mentions both -
+`escrows` doesn't exist until 4.1, which reopens `accept_bid` with `create or replace` the same way
+3.4 reopened `place_bid`; pickup date is fixed at today + 2 days computed server-side, with a
+`ponytail:` comment marking the upgrade path (`p_pickup_date date default null`, reopened the same
+way, plus a native `<input type="date">` on the consent screen - no schema change, no caller
+breaks) for whenever a real pickup-date decision is needed; after accepting, the farmer goes back
+to lot detail, not a new deal route - 4.3 (buyer pay screen) and 4.4 (Khata) are what eventually
+replace the sold card's tail.
+**Files:** `supabase/migrations/20260923150000_consent_audio_bucket.sql` (new - private bucket,
+policies copied from the crop-photos bucket), `supabase/migrations/20260923160000_deals.sql` (new -
+`deals` table with a unique index on `lot_id` making the idempotent-repeat check structural, RLS
+select for either party, and `accept_bid()` security definer: `NOT_SIGNED_IN` /
+`CONSENT_REQUIRED` (path must sit under the caller's own storage folder) / `LOT_NOT_FOUND` (one
+error for "no such bid", "not yours" and mega-lot bids, same reasoning `lot_bids()` gives) /
+idempotent repeat / `BID_NOT_ACTIVE` / `LOT_NOT_LISTED`, then the money math mirroring
+`grossPaise()` and the fee/pickup-date constants), `supabase/tests/accept_bid.sql` (new, 11
+checks), `supabase/tests/rls_deals.sql` (new, 6 checks), `supabase/functions/_shared/domain/schemas/deal.ts`
+(new, `AcceptBidInput`/`AcceptBidResult`), `app/src/lib/native.ts` (`getMicStream()`),
+`app/src/lib/errors.ts` (`CONSENT_REQUIRED`, `MIC_DENIED`, `MIC_UNAVAILABLE`),
+`app/src/components/voice/VoiceConsent.tsx` (new), `app/src/services/deals.ts` (new -
+`consentAudioPath`, `uploadConsentAudio`, `useAcceptBid`, `useDealForLot`),
+`app/src/routes/farmer/ConsentPage.tsx` (new, replaces the placeholder at
+`/farmer/lots/:id/bids/:bidId/consent`), `app/src/routes/farmer/LotDetailPage.tsx` (the "Sold"
+card), `app/src/routes/PlaceholderPage.tsx` (`bids.consentTitle` dropped from the `titleKey`
+union - nothing points at the placeholder for it any more), `app/src/app/router.tsx` (swapped the
+placeholder route for `ConsentPage`), `app/src/locales/{en,hi,mr}.json` (`consent.*`,
+`lots.deal.*`, 3 new error keys), `app/src/lib/database.types.ts` +
+`supabase/functions/_shared/database.types.ts` (regenerated after the migrations).
+**Mocked:** nothing - real table, real RLS, real RPC verified against `cropket-dev`, real
+`MediaRecorder` recording (no package - browser API only).
+**How to test by hand:** two browser windows, farmer `9090910001`, verified buyer `9090910002` /
+OTP `910002` - list a lot as the farmer, bid on it twice as the buyer; on the farmer's offers
+screen tap "Accept" on the higher bid - the consent screen shows the real price/quantity/grade/
+pickup date; "I agree" stays disabled until you hold the mic button and record (allow microphone
+permission); after releasing, "record again" replaces the button and "I agree" enables; tapping it
+returns to lot detail showing "Sold" with the deal total and pickup date; the buyer's `LiveBidBox`
+no longer shows either bid and the lot disappears from the marketplace; browser back + tapping
+"I agree" again must not create a second deal (same total shown, no error). Airplane mode disables
+"I agree" with a calm reason. Check 360 px in English, Hindi and Marathi.
+**Tests:** `supabase/tests/accept_bid.sql` (11/11 - money math, pickup date, winning bid accepted,
+losing bid rejected, lot sold, idempotent repeat, another farmer/the bidder/a rejected bid/an
+in_mega lot/a wrong-folder consent path all refused). `supabase/tests/rls_deals.sql` (6/6 - both
+parties see the deal, a third party sees nothing, no client insert/update/delete). `bash
+scripts/test-sql.sh` - full suite green, 15/15 files. `pnpm lint && pnpm typecheck && pnpm test`
+(282 tests, 5 new) `&& pnpm build` all pass. `impeccable detect app/src` - 0 anti-patterns.
+**Next / known gaps:**
+- No escrow, no OTP, no Khata row yet - **4.1** reopens `accept_bid` for all three (its own
+  migration header should say so).
+- Mega-lot bids still cannot be accepted by anyone - still 3.4's dangling gap (needs a seeded FPO).
+- The buyer isn't told they won yet; push is out of prototype scope. 4.3 gives them a pay screen.
+- No buyer name on the farmer's "Sold" card - `business_name` sits behind `buyer_kyc`'s
+  select-own RLS; 4.3/4.4 can add a `lot_deal()` security definer function the way 3.5 added
+  `lot_bids()` once they need the buyer's identity anyway.
+- The APK will need `RECORD_AUDIO` in `AndroidManifest.xml` once Capacitor generates `android/` at
+  5.4 - nothing to do now, the folder doesn't exist.
+- **Next item: 4.1** `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` +
+  `escrow_transition()` + SQL tests.
 

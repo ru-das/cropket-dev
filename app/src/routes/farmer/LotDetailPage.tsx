@@ -15,11 +15,21 @@ import VoiceButton from "@/components/voice/VoiceButton";
 import { useLot, useLotPhoto, useListLot } from "@/services/lots";
 import { useLotBids, useLotBidsRealtime, useMyLotBids, highestBid } from "@/services/bids";
 import { useMegaLotForLot } from "@/services/megaLots";
+import { useDealForLot } from "@/services/deals";
 import { useOnline } from "@/offline/network";
 import { toAppError, type AppError } from "@/lib/errors";
 
+function pickupDateLabel(iso: string, lang: string): string {
+  return new Intl.DateTimeFormat(lang, {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${iso}T00:00:00`));
+}
+
 export default function LotDetailPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { data: lot, isLoading } = useLot(id);
   const { data: photoUrl } = useLotPhoto(lot?.gradeResultId);
@@ -37,6 +47,7 @@ export default function LotDetailPage() {
   const megaTopBid = highestBid(megaBids ?? []);
   const { data: myBids } = useMyLotBids(lot?.status === "listed" ? lot.id : undefined);
   useLotBidsRealtime("lot", lot?.status === "listed" ? lot.id : undefined);
+  const { data: deal } = useDealForLot(lot?.status === "sold" ? lot.id : undefined);
 
   async function handleSell() {
     if (!id) return;
@@ -184,6 +195,26 @@ export default function LotDetailPage() {
               <p className="mt-1 font-display text-lg font-black text-ink tabular-nums">
                 {megaTopBid ? t("bids.bestOffer", { price: formatRupees(megaTopBid.pricePerQuintalPaise) }) : t("bid.none")}
               </p>
+            </div>
+          )}
+
+          {/* Sold (3.6): no buyer name yet - see services/deals.ts DealView
+              comment. 4.3 (Cashfree pay screen) replaces "waiting for buyer
+              payment" once escrow exists. */}
+          {lot.status === "sold" && deal && (
+            <div className="rounded-2xl border-2 border-pass/40 bg-pass-light/40 p-4 text-center">
+              <p className="font-display text-meta font-bold text-pass-text">{t("lots.deal.soldTitle")}</p>
+              <p className="mt-1 font-display text-2xl font-black text-ink tabular-nums">
+                {formatRupees(deal.totalPaise)}
+              </p>
+              <p className="mt-1 font-body text-sm font-semibold text-ink-muted">
+                {t("lots.deal.pickupDate", { date: pickupDateLabel(deal.pickupDate, i18n.language) })}
+              </p>
+              <p className="mt-2 font-body text-sm text-ink-muted">{t("lots.deal.waitingPayment")}</p>
+              <VoiceButton
+                textKey="lots.deal.waitingPayment"
+                className="mx-auto mt-2 h-9 w-9 shadow-xs"
+              />
             </div>
           )}
 

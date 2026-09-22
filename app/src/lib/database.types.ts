@@ -162,6 +162,66 @@ export type Database = {
         }
         Relationships: []
       }
+      deals: {
+        Row: {
+          buyer_id: string
+          consent_audio_path: string
+          created_at: string
+          fee_paise: number
+          id: string
+          lot_id: string | null
+          mega_lot_id: string | null
+          pickup_date: string
+          price_per_quintal_paise: number
+          quantity_kg: number
+          status: string
+          total_paise: number
+        }
+        Insert: {
+          buyer_id: string
+          consent_audio_path: string
+          created_at?: string
+          fee_paise: number
+          id?: string
+          lot_id?: string | null
+          mega_lot_id?: string | null
+          pickup_date: string
+          price_per_quintal_paise: number
+          quantity_kg: number
+          status?: string
+          total_paise: number
+        }
+        Update: {
+          buyer_id?: string
+          consent_audio_path?: string
+          created_at?: string
+          fee_paise?: number
+          id?: string
+          lot_id?: string | null
+          mega_lot_id?: string | null
+          pickup_date?: string
+          price_per_quintal_paise?: number
+          quantity_kg?: number
+          status?: string
+          total_paise?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grade_results: {
         Row: {
           client_created_at: string | null
@@ -647,6 +707,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_bid: {
+        Args: { p_bid_id: string; p_consent_audio_path: string }
+        Returns: {
+          deal_id: string
+        }[]
+      }
       lot_bids: {
         Args: { p_lot_id: string }
         Returns: {

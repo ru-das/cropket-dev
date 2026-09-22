@@ -57,6 +57,20 @@ export async function getCameraStream(): Promise<MediaStream> {
   }
 }
 
+// VoiceConsent (SPEC.md §4.13, §5.1, §9.2 Phase 3 "3.6"). Same shape as
+// getCameraStream() - audio only, no video track.
+export async function getMicStream(): Promise<MediaStream> {
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+    throw new AppError("MIC_UNAVAILABLE");
+  }
+  try {
+    return await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (err) {
+    const denied = err instanceof Error && err.name === "NotAllowedError";
+    throw new AppError(denied ? "MIC_DENIED" : "MIC_UNAVAILABLE");
+  }
+}
+
 // Toggles the flash/torch on the given camera track. Returns whether it
 // actually turned on - some phones (and most laptops) have no torch, and
 // SmartFrameCamera hides the ⚡ Flash button when this is false.

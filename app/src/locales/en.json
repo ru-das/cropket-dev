@@ -148,6 +148,11 @@
     "sell": "Sell on Cropket",
     "sellNeedsGrade": "Scan the crop first",
     "sellNeedsInternet": "Needs internet to list",
+    "deal": {
+      "soldTitle": "Sold",
+      "waitingPayment": "Waiting for buyer payment",
+      "pickupDate": "Pickup {{date}}"
+    },
     "status": {
       "draft": "Draft",
       "listed": "For sale",
@@ -305,6 +310,20 @@
     "bestOffer": "Best offer {{price}}",
     "consentTitle": "Please check before you agree"
   },
+  "consent": {
+    "price": "Price",
+    "quantity": "Quantity",
+    "grade": "Grade",
+    "pickup": "Pickup",
+    "payment": "Payment",
+    "paymentValue": "Within 24 hours after delivery",
+    "phrase": "Yes, I agree",
+    "holdPrompt": "Hold and say:",
+    "recorded": "Recording saved",
+    "recordAgain": "Record again",
+    "agree": "I agree",
+    "offerGone": "This offer is no longer available."
+  },
   "mega": {
     "tag": "Mega lot ({{count}})",
     "title": "Mega lot - {{crop}}",
@@ -340,6 +359,9 @@
     "lotNotListed": "This lot is no longer taking bids.",
     "lotNotFound": "We could not find this lot.",
     "bidNotActive": "This offer has already changed. Refresh and try again.",
+    "consentRequired": "Please record your voice consent first.",
+    "micDenied": "Microphone permission was not given. You can go back and try again.",
+    "micUnavailable": "Could not use the microphone. Check your phone and try again.",
     "unknown": "Something went wrong. Try again."
   }
 }

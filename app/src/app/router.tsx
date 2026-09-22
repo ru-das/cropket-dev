@@ -14,6 +14,7 @@ import LotsPage from "@/routes/farmer/LotsPage";
 import NewLotPage from "@/routes/farmer/NewLotPage";
 import LotDetailPage from "@/routes/farmer/LotDetailPage";
 import BidsPage from "@/routes/farmer/BidsPage";
+import ConsentPage from "@/routes/farmer/ConsentPage";
 import ComparePage from "@/routes/farmer/ComparePage";
 import PricesPage from "@/routes/farmer/PricesPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
@@ -42,12 +43,7 @@ export default function AppRouter() {
               <Route path="/farmer/lots/new" element={<NewLotPage />} />
               <Route path="/farmer/lots/:id" element={<LotDetailPage />} />
               <Route path="/farmer/lots/:id/bids" element={<BidsPage />} />
-              {/* Consent + accept_bid is 3.6's screen - this placeholder just
-                  gives BidRow's "Accept" link somewhere real to land for now. */}
-              <Route
-                path="/farmer/lots/:id/bids/:bidId/consent"
-                element={<PlaceholderPage titleKey="bids.consentTitle" />}
-              />
+              <Route path="/farmer/lots/:id/bids/:bidId/consent" element={<ConsentPage />} />
               <Route path="/farmer/lots/:id/compare" element={<ComparePage />} />
               <Route path="/farmer/scan" element={<ScanPage />} />
               <Route path="/farmer/scan/result/:id" element={<ScanResultPage />} />
