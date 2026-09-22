@@ -1,9 +1,15 @@
--- RLS for `lots` (SPEC.md §5.6, §9.2 Phase 1 "1.6"). Same pattern as
--- rls_grade_results.sql: a farmer's own rows only, insert-your-own, and no
--- update/delete at all yet (no column grant - see the migration's comment).
+-- RLS for `lots` (SPEC.md §5.6, §9.2 Phase 1 "1.6", Phase 3 "3.2"). Same
+-- select/insert pattern as rls_grade_results.sql, plus 3.2's listing update:
+-- a farmer can move their own graded draft to listed, and nothing else.
+-- Two different failure shapes here, both worth knowing: a USING mismatch
+-- (wrong farmer, or the row isn't in 'draft') makes the row invisible to the
+-- UPDATE, so it silently touches 0 rows - those checks assert the row is
+-- unchanged, the same subtlety rls_buyer_kyc.sql documents. A WITH CHECK
+-- mismatch on a row that *did* match USING (an ungraded draft) instead
+-- raises an error, same as the missing quantity_kg column grant.
 -- Everything here rolls back.
 begin;
-select plan(6);
+select plan(12);
 
 insert into auth.users (id, phone) values
   ('11111111-1111-1111-1111-111111111111', '0000000001'),
@@ -47,10 +53,67 @@ select is(
   'a farmer selects only their own lots, not the other farmer''s'
 );
 
+-- 'aaaaaaaa...' has no grade (inserted above with no grade column). Its
+-- status is 'draft', so the USING clause matches (the row is visible for
+-- update) - but the resulting row fails `grade is not null` in WITH CHECK,
+-- and unlike a USING mismatch, a WITH CHECK failure on a matched row raises
+-- an error rather than silently touching 0 rows.
+select throws_ok(
+  $$ update lots set status = 'listed' where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
+  null, null,
+  'an ungraded draft cannot be listed'
+);
+
+select lives_ok(
+  $$ insert into lots (id, farmer_id, crop, quantity_kg, qr_code, grade)
+     values ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', '11111111-1111-1111-1111-111111111111',
+             'onion', 500, 'L-222222', 'A') $$,
+  'a farmer can insert their own graded lot'
+);
+
+select lives_ok(
+  $$ update lots set status = 'listed' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee' $$,
+  'a farmer can list their own graded draft'
+);
+
+select is(
+  (select status from lots where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  'listed',
+  'the listed lot really is listed'
+);
+
+-- already listed, not draft - USING no longer matches, so this is 0 rows,
+-- not an error (there is no "un-list" or "mark sold" grant in 3.2).
+update lots set status = 'sold' where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+
+select is(
+  (select status from lots where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  'listed',
+  'a farmer cannot move their own lot past listed - only draft -> listed is granted'
+);
+
+-- 'cccccccc...' belongs to the other farmer - RLS filters it out of the
+-- update entirely (it isn't even visible to select), so 0 rows either way.
+update lots set status = 'listed' where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+
+-- reset role to check the real state - farmer 1's own select policy can't
+-- see the other farmer's row at all, so checking under their session would
+-- just read back null, not prove anything.
+reset role;
+
+select is(
+  (select status from lots where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'),
+  'draft',
+  'a farmer cannot list another farmer''s lot'
+);
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","phone":"0000000001","role":"authenticated"}';
+
 select throws_ok(
   $$ update lots set quantity_kg = 600 where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa' $$,
   null, null,
-  'a farmer cannot update their own lot - no column grant yet'
+  'a farmer cannot update quantity_kg - only status has a column grant'
 );
 
 select throws_ok(

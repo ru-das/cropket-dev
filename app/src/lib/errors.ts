@@ -15,6 +15,7 @@ const CODE_TO_MESSAGE_KEY = {
   AI_UNAVAILABLE: "errors.aiUnavailable",
   KYC_ALREADY_VERIFIED: "errors.kycAlreadyVerified",
   KYC_UNAVAILABLE: "errors.kycUnavailable",
+  LOT_NOT_LISTABLE: "errors.lotNotListable",
 } as const;
 
 // A literal union matching real locale keys, not `string` - so every call

@@ -145,6 +145,9 @@
     "notSaved": "Not saved",
     "detailTitle": "Lot {{code}}",
     "notFound": "This lot was not found.",
+    "sell": "Sell on Cropket",
+    "sellNeedsGrade": "Scan the crop first",
+    "sellNeedsInternet": "Needs internet to list",
     "status": {
       "draft": "Draft",
       "listed": "For sale",
@@ -283,6 +286,7 @@
     "aiUnavailable": "The grade check did not work. It will try again automatically.",
     "kycAlreadyVerified": "You are already verified.",
     "kycUnavailable": "The KYC check did not work. Try again.",
+    "lotNotListable": "This lot cannot be listed right now.",
     "unknown": "Something went wrong. Try again."
   }
 }

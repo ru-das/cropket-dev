@@ -8,7 +8,7 @@
 // deletes it once insertLot() below succeeds, so nothing extra needs
 // cleaning up). insertLot() is that job's handler, registered in
 // offline/sync.ts, run by the outbox runner - never called directly by a page.
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toAppError, AppError } from "@/lib/errors";
 import { db } from "@/offline/db";
@@ -198,6 +198,33 @@ export async function insertLot(payload: unknown): Promise<void> {
   // nobody would otherwise notice the sync happened.
   await queryClient.invalidateQueries({ queryKey: lotKeys.mine() });
   await queryClient.invalidateQueries({ queryKey: lotKeys.byId(input.id) });
+}
+
+/**
+ * Flips a farmer's own graded draft to `listed` (SPEC.md §4.7 "Sell on
+ * Cropket", §9.2 Phase 3 "3.2"). A single-row update, not an outbox job or
+ * an RPC - listing isn't an all-or-nothing multi-table change, and CLAUDE.md
+ * §3 keeps trading actions online-only, out of the outbox. RLS
+ * (lots_update_own_list) is the real gate: own row, must be `draft`, must
+ * already have a grade. 0 rows back means one of those didn't hold.
+ */
+export async function listLot(id: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("lots")
+    .update({ status: "listed" })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) throw toAppError(error);
+  if (!data) throw new AppError("LOT_NOT_LISTABLE");
+
+  await queryClient.invalidateQueries({ queryKey: lotKeys.mine() });
+  await queryClient.invalidateQueries({ queryKey: lotKeys.byId(id) });
+}
+
+/** Mutation wrapper for `listLot()` - LotDetailPage's "Sell on Cropket" button. */
+export function useListLot() {
+  return useMutation({ mutationFn: listLot });
 }
 
 async function lotPhotoUrl(gradeResultId: string): Promise<string | null> {

@@ -1,23 +1,38 @@
 // Lot detail (SPEC.md §4.7 right panel): photo, grade, weight, status and
 // the QR code, whether the lot is already on the server or still sitting in
 // the outbox (useLot() gives one LotView shape either way - services/lots.ts).
-// "Where do you keep the most?" (2.5) links to the Net-₹ comparator. No
-// "Sell on Cropket" button yet - that needs M3's marketplace, so it's left
-// out rather than shown as a dead button (same call 1.5 made for "no Create
-// lot button yet").
+// "Where do you keep the most?" (2.5) links to the Net-₹ comparator. M3's
+// "Sell on Cropket" button (services/lots.ts listLot()) lives here now -
+// online-only, same disabled-with-a-reason pattern as KycPage's submit.
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, ArrowRight, AlertCircle, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShoppingCart } from "lucide-react";
 import GradeBadge from "@/components/lot/GradeBadge";
 import QRLabel from "@/components/lot/QRLabel";
 import VoiceButton from "@/components/voice/VoiceButton";
-import { useLot, useLotPhoto } from "@/services/lots";
+import { useLot, useLotPhoto, useListLot } from "@/services/lots";
+import { useOnline } from "@/offline/network";
+import { toAppError, type AppError } from "@/lib/errors";
 
 export default function LotDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { data: lot, isLoading } = useLot(id);
   const { data: photoUrl } = useLotPhoto(lot?.gradeResultId);
+  const online = useOnline();
+  const listLot = useListLot();
+  const [sellError, setSellError] = useState<AppError | null>(null);
+
+  async function handleSell() {
+    if (!id) return;
+    setSellError(null);
+    try {
+      await listLot.mutateAsync(id);
+    } catch (err) {
+      setSellError(toAppError(err));
+    }
+  }
 
   if (isLoading) {
     return (
@@ -113,6 +128,32 @@ export default function LotDetailPage() {
 
         {/* Right: actions */}
         <div className="flex flex-col gap-3 lg:min-w-[280px]">
+          {lot.status === "draft" && !lot.pending && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!lot.grade || !online || listLot.isPending}
+                  onClick={() => void handleSell()}
+                  className="flex h-16 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-leaf font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98] disabled:bg-line disabled:text-ink-muted disabled:shadow-none"
+                >
+                  <ShoppingCart aria-hidden="true" size={22} />
+                  <span>{t("lots.sell")}</span>
+                </button>
+                <VoiceButton textKey="lots.sell" className="h-11 w-11 shrink-0 shadow-xs" />
+              </div>
+              {!lot.grade ? (
+                <p className="text-center text-meta text-ink-muted">{t("lots.sellNeedsGrade")}</p>
+              ) : !online ? (
+                <p className="text-center text-meta text-ink-muted">{t("lots.sellNeedsInternet")}</p>
+              ) : (
+                sellError && (
+                  <p className="text-center text-meta font-semibold text-mirchi-text">{t(sellError.messageKey)}</p>
+                )
+              )}
+            </div>
+          )}
+
           <Link
             to={`/farmer/lots/${lot.id}/compare`}
             className="flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-leaf font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98]"

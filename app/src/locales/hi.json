@@ -145,6 +145,9 @@
     "notSaved": "सेव नहीं हुआ",
     "detailTitle": "लॉट {{code}}",
     "notFound": "यह लॉट नहीं मिला।",
+    "sell": "Cropket पर बेचें",
+    "sellNeedsGrade": "पहले फसल स्कैन करें",
+    "sellNeedsInternet": "लिस्ट करने के लिए इंटरनेट चाहिए",
     "status": {
       "draft": "मसौदा",
       "listed": "बिक्री के लिए",
@@ -283,6 +286,7 @@
     "aiUnavailable": "ग्रेड जांच नहीं हो पाई। यह अपने आप फिर कोशिश करेगा।",
     "kycAlreadyVerified": "आप पहले से ही सत्यापित हैं।",
     "kycUnavailable": "KYC जांच नहीं हो पाई। फिर कोशिश करें।",
+    "lotNotListable": "यह लॉट अभी लिस्ट नहीं किया जा सकता।",
     "unknown": "कुछ गड़बड़ हो गई। फिर से कोशिश करें।"
   }
 }

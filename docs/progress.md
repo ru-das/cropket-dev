@@ -36,7 +36,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M3 — Buyer marketplace
 - [x] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
-- [ ] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
+- [~] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
 - [ ] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [ ] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
 - [ ] 3.5 Farmer / FPO bids screen (`BidRow`, accept / reject, floor warning)
@@ -1888,4 +1888,53 @@ passes `KycResult`, matching PAN verifies, mismatched stays pending, always `sou
 - The `nbfc`-can-reach-`/admin/kyc`-but-sees-nothing gap noted above.
 - `TrustStars`/`trust_score` (`SPEC.md` §5.1 pairs them with `VerifiedBadge`) is a P1 ratings
   feature, out of prototype scope - not built here.
+
+### 3.2a List a lot — 2026-09-22
+
+**What it does:** the farmer half of 3.2 (SPEC.md §4.7 "Sell on Cropket", §9.2 Phase 3). `lots` had
+no update grant at all until now - the original 1.6 migration said "nothing changes a lot's status
+until 3.2". A farmer can now flip their own graded `draft` lot to `listed` from the lot detail
+screen. This is a single-row update, not an RPC or an outbox job - listing isn't an all-or-nothing
+multi-table change (`accept_bid`/escrow are; this isn't), and trading actions stay online-only
+(`AGENTS.md` §3), so the button is disabled with a reason when offline, same pattern `KycPage`'s
+submit already uses.
+**How it's enforced:** one RLS policy does the whole state rule, in the database, not just the UI -
+`using (farmer_id = auth.uid() and status = 'draft') with check (farmer_id = auth.uid() and status =
+'listed' and grade is not null)` - own row, `draft → listed` only, must already have a grade (decided
+with the user: an ungraded lot in the marketplace would make 3.2b's grade filter meaningless). No
+un-listing grant - nothing in M3 needs it yet.
+**A subtlety worth knowing (found while writing the pgTAP test, not guessed):** a USING mismatch
+(wrong farmer, or the row isn't `draft`) makes the row invisible to the UPDATE, so it silently
+touches 0 rows. A WITH CHECK mismatch on a row that *did* match USING (an ungraded draft trying to
+become `listed`) instead raises a real Postgres error. Both shapes are tested; `rls_buyer_kyc.sql`
+had already documented the first one, this one is new.
+**Files:** `supabase/migrations/20260922140000_lot_listing.sql` (new), `app/src/services/lots.ts`
+(`listLot()`, `useListLot()`), `app/src/routes/farmer/LotDetailPage.tsx` (the button - `ShoppingCart`
+icon + word + `VoiceButton`, disabled offline / when ungraded, error line on failure),
+`app/src/lib/errors.ts` (`LOT_NOT_LISTABLE`), `app/src/locales/{en,hi,mr}.json` (`lots.sell*`,
+`errors.lotNotListable`), `supabase/tests/rls_lots.sql` (rewritten, not just appended - the old
+file asserted update was impossible; `plan(6)` → `plan(12)`).
+**Mocked:** nothing.
+**Test by hand:** farmer `9090910001` / OTP `910001` -
+1. Scan a crop, save the lot → lot detail shows "🛒 Sell on Cropket", enabled. Tap it → status pill
+   flips from "Draft" to "For sale", button disappears.
+2. A lot with no grade yet (still `pending` on the phone, or grading failed) → button disabled,
+   "Scan the crop first" underneath.
+3. DevTools → Offline on a graded draft's lot detail → button disabled, "Needs internet to list";
+   back online re-enables it.
+4. `psql` check: `select status from lots where id = '<id>';` reads `listed` after step 1.
+**Tests:** `supabase/tests/rls_lots.sql` (12/12 - own-row insert, blocked cross-farmer insert, select
+isolation, ungraded-draft listing throws, graded-draft listing succeeds and sticks, `listed → sold`
+is blocked (0 rows), listing another farmer's lot is blocked (0 rows), `quantity_kg`/delete still
+have no grant, the `quantity_kg > 0` check). `bash scripts/test-sql.sh lots` - 12/12 on `cropket-dev`.
+`pnpm lint && pnpm typecheck && pnpm test` (254 tests, all green - no new unit test file, `listLot()`
+is a thin Supabase call with no branching logic of its own; the real logic lives in the RLS policy,
+which the SQL test covers) and `pnpm build` all pass. `impeccable detect --json app/src` → `[]`.
+**Next / known gaps:**
+- **Next: 3.2b**, the buyer marketplace itself (`/buyer` grid + filters) - this half only gives
+  farmers something to list *into*.
+- No second "Sell on Cropket" button on `ComparePage`, which SPEC §4.9 also draws it on - one
+  insertion point is enough for the flow; revisit if the demo script wants both.
+- No un-list (`listed → draft`) - not needed until a farmer needs to pull a lot back, out of scope
+  for now.
 
