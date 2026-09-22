@@ -36,7 +36,11 @@ describe("BidInput", () => {
     );
   });
 
-  it("rejects mega_lot until 3.4 adds it", () => {
-    expect(BidInput.safeParse({ ...base, targetType: "mega_lot" }).success).toBe(false);
+  it("accepts mega_lot alongside lot", () => {
+    expect(BidInput.safeParse({ ...base, targetType: "mega_lot" }).success).toBe(true);
+  });
+
+  it("rejects a junk target type", () => {
+    expect(BidInput.safeParse({ ...base, targetType: "flash_sale" }).success).toBe(false);
   });
 });

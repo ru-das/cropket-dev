@@ -1,11 +1,13 @@
--- Tests for place_bid() (SPEC.md §5.3, §9.2 Phase 3 "3.3").
--- Verifies: a verified, non-banned buyer can bid on a listed lot; is_highest
--- tracks the current top bid; a below-floor bid still succeeds (advisory
--- only); unverified/banned buyers and non-listed/unknown lots are refused;
--- target_type is 'lot'-only until 3.4; the 10-per-minute rate limit trips.
--- Everything here rolls back.
+-- Tests for place_bid() (SPEC.md §5.3, §9.2 Phase 3 "3.3", mega_lot branch
+-- added in "3.4").
+-- Verifies: a verified, non-banned buyer can bid on a listed lot or a listed
+-- mega lot; is_highest tracks the current top bid; a below-floor bid still
+-- succeeds (advisory only); unverified/banned buyers and non-listed/unknown
+-- targets are refused; an unsupported target_type is refused; the
+-- 10-per-minute rate limit trips (shared across lot and mega_lot bids - one
+-- buyer, one key). Everything here rolls back.
 begin;
-select plan(11);
+select plan(13);
 
 insert into auth.users (id, phone) values
   ('a0000001-0000-0000-0000-000000000001', '0000000011'),
@@ -24,6 +26,9 @@ insert into lots (id, farmer_id, crop, quantity_kg, grade, qr_code, status) valu
    'onion', 500, 'B', 'L-TESTBID1', 'listed'),
   ('b0000002-0000-0000-0000-000000000002', 'a0000001-0000-0000-0000-000000000001',
    'onion', 300, 'B', 'L-TESTBID2', 'draft');
+
+insert into mega_lots (id, crop, grade, total_kg, location, status) values
+  ('b1000001-0000-0000-0000-000000000001', 'onion', 'B', 600, 'SRID=4326;POINT(73.79 20.0)', 'listed');
 
 -- Isolate the floor calculation from whatever onion history the live
 -- cropket-dev seed already has - this whole transaction rolls back, so
@@ -128,21 +133,44 @@ select throws_ok(
   'an unknown lot id cannot be bid on'
 );
 
--- 10. mega_lot isn't wired up until 3.4
-select throws_ok(
-  $$ select * from place_bid('mega_lot', 'b0000001-0000-0000-0000-000000000001', 150000::bigint) $$,
-  null, 'UNSUPPORTED_TARGET',
-  'mega_lot bidding is not supported yet'
+-- 10. a verified buyer can also bid on a listed mega lot - same function,
+-- same rules, just a different target table
+select results_eq(
+  $$ select (bid_id is not null), is_highest, below_floor
+     from place_bid('mega_lot', 'b1000001-0000-0000-0000-000000000001', 175000::bigint) $$,
+  $$ values (true, true, false) $$,
+  'a verified buyer can bid on a listed mega lot'
 );
 
--- 11. rate limit: 4 bids already placed above by this buyer this minute
--- (asserts 2-5; asserts 6-10 all fail before the rate-limit step, so they
--- don't count). 6 more (quietly, no assertion) brings the count to 10, and
--- the 11th trips the limit. The raise below rolls its own count bump back,
--- so a retry after the window rolls over is never permanently stuck.
+reset role;
+update mega_lots set status = 'sold' where id = 'b1000001-0000-0000-0000-000000000001';
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"a0000002-0000-0000-0000-000000000002","phone":"0000000012","role":"authenticated"}';
+
+-- 11. a mega lot that is no longer listed cannot be bid on - same error a
+-- non-listed lot gives, not a new code
+select throws_ok(
+  $$ select * from place_bid('mega_lot', 'b1000001-0000-0000-0000-000000000001', 175000::bigint) $$,
+  null, 'LOT_NOT_LISTED',
+  'a sold mega lot cannot be bid on'
+);
+
+-- 12. anything outside lot/mega_lot is still refused
+select throws_ok(
+  $$ select * from place_bid('flash_sale', 'b0000001-0000-0000-0000-000000000001', 150000::bigint) $$,
+  null, 'UNSUPPORTED_TARGET',
+  'an unknown target_type is refused'
+);
+
+-- 13. rate limit: 5 bids already placed above by this buyer this minute
+-- (asserts 2-5 and the mega-lot bid in 10; asserts 6-9, 11, 12 all fail
+-- before the rate-limit step, so they don't count). 5 more (quietly, no
+-- assertion) brings the count to 10, and the 11th trips the limit. The
+-- raise below rolls its own count bump back, so a retry after the window
+-- rolls over is never permanently stuck.
 do $$
 begin
-  for i in 1..6 loop
+  for i in 1..5 loop
     perform place_bid('lot', 'b0000001-0000-0000-0000-000000000001', 150000::bigint);
   end loop;
 end;

@@ -82,6 +82,13 @@ export type Database = {
             referencedRelation: "lots"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bids_mega_lot_id_fkey"
+            columns: ["mega_lot_id"]
+            isOneToOne: false
+            referencedRelation: "mega_lots"
+            referencedColumns: ["id"]
+          },
         ]
       }
       buyer_kyc: {
@@ -388,6 +395,99 @@ export type Database = {
           state?: string
         }
         Relationships: []
+      }
+      mega_lot_items: {
+        Row: {
+          farmer_id: string
+          id: string
+          lot_id: string
+          mega_lot_id: string
+          quantity_kg: number
+        }
+        Insert: {
+          farmer_id: string
+          id?: string
+          lot_id: string
+          mega_lot_id: string
+          quantity_kg: number
+        }
+        Update: {
+          farmer_id?: string
+          id?: string
+          lot_id?: string
+          mega_lot_id?: string
+          quantity_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mega_lot_items_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mega_lot_items_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: true
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mega_lot_items_mega_lot_id_fkey"
+            columns: ["mega_lot_id"]
+            isOneToOne: false
+            referencedRelation: "mega_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mega_lots: {
+        Row: {
+          created_at: string
+          crop: string
+          fpo_id: string | null
+          grade: string
+          id: string
+          lat: number | null
+          lng: number | null
+          location: unknown
+          status: Database["public"]["Enums"]["lot_status"]
+          total_kg: number
+        }
+        Insert: {
+          created_at?: string
+          crop: string
+          fpo_id?: string | null
+          grade: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location: unknown
+          status?: Database["public"]["Enums"]["lot_status"]
+          total_kg: number
+        }
+        Update: {
+          created_at?: string
+          crop?: string
+          fpo_id?: string | null
+          grade?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location?: unknown
+          status?: Database["public"]["Enums"]["lot_status"]
+          total_kg?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mega_lots_fpo_id_fkey"
+            columns: ["fpo_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

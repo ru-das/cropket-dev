@@ -2,9 +2,9 @@
 // Pure TypeScript + zod only (CLAUDE.md §4 "shared domain code").
 import { z } from "zod";
 
-// Only 'lot' until 3.4 adds mega_lots and 'mega_lot' alongside it - the SQL
-// function (20260922160000_bids.sql) rejects anything else the same way.
-export const BidTargetType = z.enum(["lot"]);
+// place_bid (20260922170000_mega_lots.sql) accepts exactly these two and
+// rejects anything else with UNSUPPORTED_TARGET.
+export const BidTargetType = z.enum(["lot", "mega_lot"]);
 export type BidTargetType = z.infer<typeof BidTargetType>;
 
 // Same cap as the `bids.price_per_quintal_paise` check constraint - a
