@@ -35,7 +35,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 2.5 `route-distance` (ORS if key, else straight line × 1.3 (mock)) + Net-₹ comparator screen
 
 ## M3 — Buyer marketplace
-- [ ] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
+- [x] 3.1 `buyer_kyc` + `kyc-verify` (mock) + KYC screen + admin approve + `VerifiedBadge`
 - [ ] 3.2 List a lot + buyer marketplace with filters (crop, grade, distance, quantity)
 - [ ] 3.3 `bids` + `place_bid` RPC + RLS (only verified, not banned) + `LiveBidBox` with Realtime
 - [ ] 3.4 Mega lot grouping (`mega_lots`, `mega_lot_items`, `group_mega_lots` trigger)
@@ -1573,9 +1573,15 @@ the changed files: no findings.
   `bash scripts/set-key.sh AI_SERVICE_URL` (the value saved on this laptop from 1.3 is stale).
   Once that's done, remove `ai` from `INTEGRATIONS_MOCK` (or clear it) so grading uses the real
   `/grade` route built in 1.4 instead of the mock.
-- `ALLOWED_ORIGINS` — not set yet, so every origin can call the functions from a browser. Fine for
-  now (see the auth/CORS fix above); set it to the real web URL(s) at the M5 web deploy with
-  `bash scripts/set-key.sh ALLOWED_ORIGINS`
+- `ALLOWED_ORIGINS` is now set (`https://cropket-dev.vercel.app,http://localhost:5173` - found
+  while verifying 3.1's `kyc-verify` deploy, this note was stale). One side effect:
+  `scripts/check-functions.sh`'s live OPTIONS check sends no `Origin` header, so every function
+  now fails it with "OPTIONS answered 204 but sent no access-control-allow-origin header" - this
+  is correct CORS behaviour (`corsHeaders()` in `_shared/http.ts` only echoes an origin that's on
+  the allow-list), not a function bug. Confirmed by hand with
+  `curl -X OPTIONS .../kyc-verify -H "Origin: http://localhost:5173"` -> the header comes back
+  fine. `check-functions.sh` itself needs a `-H "Origin: <one of ALLOWED_ORIGINS>"` on its probe to
+  stay useful now that this is set; not fixed here (script change, out of this item's scope).
 
 ### Adapt — Responsive layout for laptops, bigger phones, big screens — 2026-09-19
 
@@ -1780,4 +1786,106 @@ the changed files: no findings.
 **Fix applied after commit (lint):** The `no-hard-coded-text` ESLint rule flagged `alt="CropKet"` in `AppLogo.tsx` and `WelcomePage.tsx`. Fixed by replacing with `alt={t("app.name")}` in both; `AppLogo` also needed `useTranslation` added. Committed separately as `fix(lint): use t("app.name") for wordmark alt text`.
 
 **Next:** M3 buyer marketplace.
+
+### 3.1 Buyer KYC (mock) + admin approve + `VerifiedBadge` — 2026-09-22
+
+**What it does:** the first M3 item and the reason M3 can be demoed at all - 3.3's `place_bid` RLS
+will read `profiles.kyc_status = 'verified'`, so a buyer needs a way to reach that state on demand.
+A buyer fills in business name, GSTIN and PAN at `/buyer/kyc`; the mock verify rule (decided with
+the user) checks whether the PAN matches the PAN embedded in the GSTIN (a real GSTIN's characters
+3-12 *are* the holder's PAN) - a match verifies instantly, a mismatch goes to an admin queue at
+`/admin/kyc` where an admin approves or rejects. Either way a `buyer_kyc_sync` trigger mirrors the
+result into `profiles.kyc_status` in the same transaction, so nothing can leave the two tables out
+of sync. `VerifiedBadge` shows next to a verified buyer's name; `BuyerHome` shows a yellow "Finish
+KYC to place bids" banner until then, per `SPEC.md` §4.10's wireframe.
+**How it fits together:**
+- `buyer_kyc` (migration) - `select-your-own` for a buyer, `select`+`update(status)` for an admin
+  only (RLS subquery on the caller's own `profiles` row, same trust boundary `profiles_select_own`
+  already grants - no helper function, no widened `profiles` RLS). No insert grant at all: only the
+  service role, inside `kyc-verify`, ever creates a row - same shape as `grade_results`.
+- `buyer_kyc_sync()` trigger (`before insert or update`, `security definer`) - sets `verified_at`
+  and writes `profiles.kyc_status` whichever caller wrote the row (the function's service-role
+  insert, or an admin's column-grant update), so the sync lives in one place instead of two.
+- `_shared/domain/schemas/kyc.ts` - `KycRequest`/`KycResult`, `GSTIN_RE`/`PAN_RE`, and
+  `panFromGstin()` (chars 3-12), shared by the schema, the mock adapter and its test.
+- `_shared/integrations/digilocker/` - `mock.ts`/`real.ts`/`index.ts`, the same three-file adapter
+  shape as `ors`/`ai`/`agmarknet`. `real.ts` is a stub that `requireEnv("DIGILOCKER_API_KEY")`s
+  then throws `KYC_UNAVAILABLE` - never built for the prototype (`SPEC.md` §9.5), and `real.ts`
+  failing loud rather than quietly acting like the mock is the same honesty rule `ors`/`ai` follow.
+- `kyc-verify/index.ts` - thin, same shape as `route-distance`: `requireRole(buyer)` → parse →
+  block a resubmit once already `verified` (`409 KYC_ALREADY_VERIFIED`) → call the adapter →
+  upsert `buyer_kyc`. The trigger, not this file, writes `profiles.kyc_status`.
+- `services/kyc.ts` - `useMyKyc()`/`submitKyc()` for the buyer, `usePendingKyc()`/`setKycStatus()`
+  for the admin queue. Online-only by design (`SPEC.md` §10.3 lists KYC alongside money and
+  bidding) - `submitKyc()` is a direct `callFunction()` call, never queued to the outbox
+  (`OUTBOX_KINDS` already excludes it). `KycStatus` is a hand-written literal union because
+  `buyer_kyc.status` is `text` + `check`, not a Postgres enum (same reason `lots.ts` needs
+  `LotStatus` from a real enum but `grading.ts` doesn't bother - here the union is needed purely so
+  the admin screen's `t(\`kyc.status.${status}\`)` template key type-checks, GradeBadge's `Grade`
+  pattern).
+- `KycPage.tsx` (`/buyer/kyc`) - three states (no record/rejected → form, pending → status card,
+  verified → badge + masked PAN), submit disabled offline with a reason (same pattern
+  OnboardingPage's last step uses).
+- `AdminKycPage.tsx` (`/admin/kyc`) - queue sorted pending-first, Approve/Reject on each pending
+  row, `<DemoDataTag>` when `source === 'mock'`. Linked from `AdminHome`'s "coming soon" card,
+  which the link replaced. `BuyerHome` gets the KYC banner + badge.
+- `VerifiedBadge` (`components/common/`, not a new `trade/` folder - `DemoDataTag.tsx`'s own
+  comment already named it as a future occupant of `common/`).
+**A route-guard note, not a bug:** `/admin/kyc` sits inside the existing `RequireRole
+roles={["admin","nbfc"]}` block (`SPEC.md` §3.1 groups the admin routes that way), but
+`buyer_kyc`'s RLS only admits `role = 'admin'` - an `nbfc` user would see an empty queue with no
+error. No `nbfc` account exists in the prototype, so this is unverified in practice; worth a real
+look whenever an `nbfc` user shows up (loans, later).
+**Mocked:** the KYC verdict (`INTEGRATIONS_MOCK` needs no entry - `DIGILOCKER_API_KEY` was never
+set, so `isMock()` is true from the missing-key path alone, same as `ors`/`ai` on this laptop).
+**A SPEC.md fix in the same commit** (`AGENTS.md` §0 rule 3): added `DIGILOCKER_API_KEY` to §7.2's
+secrets table (was missing even though `kyc-verify`'s row already named "DigiLocker / GST adapter
+(mock)").
+**Tested by hand against `cropket-dev`** (curl + `psql`, buyer test number `9090910002`/`910002`,
+admin `9090910003`/`910003` - both existed already from an earlier session at `role='farmer'`,
+switched to `buyer`/`admin` for this; farmer `9090910001`/`910001` for the wrong-role check):
+1. No `Authorization` → `401 UNAUTHENTICATED`. Farmer JWT → `403 FORBIDDEN`. Malformed GSTIN as
+   buyer → `400 VALIDATION_FAILED`.
+2. Matching PAN (`27ABCDE1234F1Z5` + `ABCDE1234F`) → `200 {status:"verified",source:"mock"}`;
+   confirmed in `psql`: `profiles.kyc_status` flipped to `verified` and `buyer_kyc.verified_at` was
+   set by the trigger.
+3. Resubmit after verified → `409 KYC_ALREADY_VERIFIED`.
+4. `bash scripts/test-sql.sh buyer_kyc` - all 7 pgTAP checks green (own-row isolation, no insert,
+   no self-verify even via the column grant - silently 0 rows updated by RLS, not an exception, so
+   the test checks the row is unchanged rather than using `throws_ok`; admin sees every row; admin
+   approve → trigger sync). `bash scripts/test-sql.sh` (full suite) - all green, nothing else broke.
+5. `bash scripts/check-functions.sh` - config block ✅; the live CORS check fails for `kyc-verify`
+   the same way it now fails for every other function (see the 🔑 Keys note above) - confirmed with
+   an explicit `Origin` header that CORS itself is fine.
+6. Test rows deleted / reset afterward (`buyer_kyc` row removed, `profiles.kyc_status` set back to
+   `pending`) so `cropket-dev` stays clean for 3.1b's manual pass - the buyer/admin **profiles**
+   (role only) were kept, since M3 will keep needing a buyer and an admin test account.
+**Manual browser/offline/360px pass:** not done this session (no browser tool available, same gap
+earlier M2/M3 handoffs already flagged) - only typechecked, linted, unit-tested, built, and the
+impeccable detector run (0 anti-patterns) on every file touched. Please do the pass in
+`SPEC.md`'s Verification list (submit, pending, admin approve/reject, verified badge, offline
+disabled-button) by hand before the demo.
+**Files:** `supabase/migrations/20260922120000_buyer_kyc.sql` (new),
+`supabase/functions/_shared/domain/schemas/kyc.ts` (new),
+`supabase/functions/_shared/integrations/digilocker/{index,mock,real,types}.ts` (new),
+`supabase/functions/kyc-verify/index.ts` (new), `supabase/config.toml` (`[functions.kyc-verify]`),
+`supabase/functions/.env.example` (+`DIGILOCKER_API_KEY`), `supabase/tests/rls_buyer_kyc.sql`
+(new), `app/src/services/kyc.ts` (new), `app/src/lib/errors.ts` (+2 codes),
+`app/src/lib/database.types.ts`, `supabase/functions/_shared/database.types.ts` (regenerated),
+`app/src/components/common/VerifiedBadge.tsx` (new),
+`app/src/routes/buyer/{KycPage.tsx (new),BuyerHome.tsx}`,
+`app/src/routes/admin/{AdminKycPage.tsx (new),AdminHome.tsx}`, `app/src/app/router.tsx`,
+`app/src/locales/{en,hi,mr}.json` (+`kyc.*`, +2 error keys), `SPEC.md` §7.2.
+**Tests:** `app/tests/unit/domain/schemas/kyc.test.ts` (new - valid/invalid GSTIN+PAN, trim+
+uppercase, `panFromGstin`), `app/tests/unit/integrations/digilocker.test.ts` (new - mock output
+passes `KycResult`, matching PAN verifies, mismatched stays pending, always `source: "mock"`),
+`supabase/tests/rls_buyer_kyc.sql` (new, 7 checks). `pnpm lint && pnpm typecheck && pnpm test`
+(254 tests, all green, 13 new) and `pnpm build` all pass.
+**Next / known gaps:**
+- **Next item: 3.2** List a lot + buyer marketplace with filters (crop, grade, distance,
+  quantity) - the first screen a verified buyer actually uses.
+- No manual UI/offline/360px pass this session (see above) - worth doing before the demo.
+- The `nbfc`-can-reach-`/admin/kyc`-but-sees-nothing gap noted above.
+- `TrustStars`/`trust_score` (`SPEC.md` §5.1 pairs them with `VerifiedBadge`) is a P1 ratings
+  feature, out of prototype scope - not built here.
 

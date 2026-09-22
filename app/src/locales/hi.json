@@ -226,6 +226,41 @@
   "dataAge": {
     "from": "{{ago}}"
   },
+  "kyc": {
+    "title": "खरीदार सत्यापन",
+    "subtitle": "बोली लगाने के लिए अपना व्यवसाय सत्यापित करें",
+    "businessNameLabel": "व्यवसाय का नाम",
+    "businessNamePlaceholder": "उदा. शर्मा ट्रेडर्स",
+    "gstLabel": "GSTIN",
+    "gstPlaceholder": "22AAAAA0000A1Z5",
+    "panLabel": "PAN",
+    "panPlaceholder": "AAAAA0000A",
+    "submit": "सत्यापन के लिए भेजें",
+    "resubmit": "फिर से भेजें",
+    "needsInternet": "भेजने के लिए इंटरनेट चाहिए",
+    "pendingTitle": "हम आपकी जानकारी जांच रहे हैं",
+    "pendingBody": "एडमिन जल्दी ही इसकी समीक्षा करेगा।",
+    "rejectedTitle": "सत्यापन अस्वीकार हुआ",
+    "rejectedBody": "जानकारी जांचकर फिर से भेजें।",
+    "verifiedTitle": "आप एक सत्यापित खरीदार हैं",
+    "verifiedSince": "{{date}} को सत्यापित",
+    "panMasked": "PAN अंत {{last4}}",
+    "verifiedBadge": "सत्यापित",
+    "notVerifiedBadge": "सत्यापित नहीं",
+    "buyerHomeBanner": "बोली लगाने के लिए KYC पूरा करें।",
+    "buyerHomeBannerCta": "KYC पूरा करें",
+    "status": {
+      "pending": "प्रतीक्षारत",
+      "verified": "सत्यापित",
+      "rejected": "अस्वीकृत"
+    },
+    "adminTitle": "खरीदार KYC",
+    "adminSubtitle": "खरीदार सत्यापन अनुरोध देखें",
+    "adminEmpty": "अभी कोई KYC अनुरोध नहीं है।",
+    "approve": "स्वीकृत करें",
+    "reject": "अस्वीकार करें",
+    "submittedOn": "{{date}} को भेजा गया"
+  },
   "common": {
     "comingSoon": "यह स्क्रीन जल्द आएगी।",
     "loading": "लोड हो रहा है…",
@@ -246,6 +281,8 @@
     "cameraUnavailable": "कैमरा नहीं खुल सका। अपने फोन का कैमरा जांचें और फिर कोशिश करें।",
     "uploadFailed": "फोटो अपलोड नहीं हुआ। यह अपने आप फिर कोशिश करेगा।",
     "aiUnavailable": "ग्रेड जांच नहीं हो पाई। यह अपने आप फिर कोशिश करेगा।",
+    "kycAlreadyVerified": "आप पहले से ही सत्यापित हैं।",
+    "kycUnavailable": "KYC जांच नहीं हो पाई। फिर कोशिश करें।",
     "unknown": "कुछ गड़बड़ हो गई। फिर से कोशिश करें।"
   }
 }

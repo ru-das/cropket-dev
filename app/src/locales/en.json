@@ -226,6 +226,41 @@
   "dataAge": {
     "from": "{{ago}}"
   },
+  "kyc": {
+    "title": "Buyer verification",
+    "subtitle": "Verify your business to place bids",
+    "businessNameLabel": "Business name",
+    "businessNamePlaceholder": "e.g. Sharma Traders",
+    "gstLabel": "GSTIN",
+    "gstPlaceholder": "22AAAAA0000A1Z5",
+    "panLabel": "PAN",
+    "panPlaceholder": "AAAAA0000A",
+    "submit": "Submit for verification",
+    "resubmit": "Submit again",
+    "needsInternet": "Needs internet to submit",
+    "pendingTitle": "We are checking your details",
+    "pendingBody": "An admin will review this shortly.",
+    "rejectedTitle": "Verification was rejected",
+    "rejectedBody": "Check your details and submit again.",
+    "verifiedTitle": "You are a verified buyer",
+    "verifiedSince": "Verified on {{date}}",
+    "panMasked": "PAN ending {{last4}}",
+    "verifiedBadge": "Verified",
+    "notVerifiedBadge": "Not verified",
+    "buyerHomeBanner": "Finish KYC to place bids.",
+    "buyerHomeBannerCta": "Finish KYC",
+    "status": {
+      "pending": "Pending",
+      "verified": "Verified",
+      "rejected": "Rejected"
+    },
+    "adminTitle": "Buyer KYC",
+    "adminSubtitle": "Review buyer verification requests",
+    "adminEmpty": "No KYC requests yet.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "submittedOn": "Submitted {{date}}"
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…",
@@ -246,6 +281,8 @@
     "cameraUnavailable": "Could not open the camera. Check your phone's camera and try again.",
     "uploadFailed": "The photo did not upload. It will try again automatically.",
     "aiUnavailable": "The grade check did not work. It will try again automatically.",
+    "kycAlreadyVerified": "You are already verified.",
+    "kycUnavailable": "The KYC check did not work. Try again.",
     "unknown": "Something went wrong. Try again."
   }
 }

@@ -226,6 +226,41 @@
   "dataAge": {
     "from": "{{ago}}"
   },
+  "kyc": {
+    "title": "खरेदीदार पडताळणी",
+    "subtitle": "बोली लावण्यासाठी तुमचा व्यवसाय पडताळा",
+    "businessNameLabel": "व्यवसायाचे नाव",
+    "businessNamePlaceholder": "उदा. शर्मा ट्रेडर्स",
+    "gstLabel": "GSTIN",
+    "gstPlaceholder": "22AAAAA0000A1Z5",
+    "panLabel": "PAN",
+    "panPlaceholder": "AAAAA0000A",
+    "submit": "पडताळणीसाठी पाठवा",
+    "resubmit": "पुन्हा पाठवा",
+    "needsInternet": "पाठवण्यासाठी इंटरनेट हवे",
+    "pendingTitle": "आम्ही तुमची माहिती तपासत आहोत",
+    "pendingBody": "अ‍ॅडमिन लवकरच याचे पुनरावलोकन करेल.",
+    "rejectedTitle": "पडताळणी नाकारली",
+    "rejectedBody": "माहिती तपासून पुन्हा पाठवा.",
+    "verifiedTitle": "तुम्ही पडताळणी झालेले खरेदीदार आहात",
+    "verifiedSince": "{{date}} रोजी पडताळणी झाली",
+    "panMasked": "PAN शेवट {{last4}}",
+    "verifiedBadge": "पडताळणी झाली",
+    "notVerifiedBadge": "पडताळणी झाली नाही",
+    "buyerHomeBanner": "बोली लावण्यासाठी KYC पूर्ण करा.",
+    "buyerHomeBannerCta": "KYC पूर्ण करा",
+    "status": {
+      "pending": "प्रलंबित",
+      "verified": "पडताळणी झाली",
+      "rejected": "नाकारले"
+    },
+    "adminTitle": "खरेदीदार KYC",
+    "adminSubtitle": "खरेदीदार पडताळणी विनंत्या पहा",
+    "adminEmpty": "अजून कोणतीही KYC विनंती नाही.",
+    "approve": "मंजूर करा",
+    "reject": "नाकारा",
+    "submittedOn": "{{date}} रोजी पाठवले"
+  },
   "common": {
     "comingSoon": "ही स्क्रीन लवकरच येईल.",
     "loading": "लोड होत आहे…",
@@ -246,6 +281,8 @@
     "cameraUnavailable": "कॅमेरा उघडता आला नाही. तुमच्या फोनचा कॅमेरा तपासा आणि पुन्हा प्रयत्न करा.",
     "uploadFailed": "फोटो अपलोड झाला नाही. तो आपोआप पुन्हा प्रयत्न करेल.",
     "aiUnavailable": "ग्रेड तपासणी झाली नाही. ती आपोआप पुन्हा प्रयत्न करेल.",
+    "kycAlreadyVerified": "तुमची आधीच पडताळणी झाली आहे.",
+    "kycUnavailable": "KYC तपासणी झाली नाही. पुन्हा प्रयत्न करा.",
     "unknown": "काहीतरी चुकले. पुन्हा प्रयत्न करा."
   }
 }

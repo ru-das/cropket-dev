@@ -16,8 +16,10 @@ import LotDetailPage from "@/routes/farmer/LotDetailPage";
 import ComparePage from "@/routes/farmer/ComparePage";
 import PricesPage from "@/routes/farmer/PricesPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
+import KycPage from "@/routes/buyer/KycPage";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
+import AdminKycPage from "@/routes/admin/AdminKycPage";
 import PlaceholderPage from "@/routes/PlaceholderPage";
 
 export default function AppRouter() {
@@ -48,6 +50,7 @@ export default function AppRouter() {
           <Route element={<RequireRole roles={["buyer"]} />}>
             <Route element={<AppShell />}>
               <Route path="/buyer" element={<BuyerHome />} />
+              <Route path="/buyer/kyc" element={<KycPage />} />
             </Route>
           </Route>
 
@@ -60,6 +63,7 @@ export default function AppRouter() {
           <Route element={<RequireRole roles={["admin", "nbfc"]} />}>
             <Route element={<AppShell />}>
               <Route path="/admin" element={<AdminHome />} />
+              <Route path="/admin/kyc" element={<AdminKycPage />} />
             </Route>
           </Route>
         </Route>
