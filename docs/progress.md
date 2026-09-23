@@ -47,7 +47,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.2 `split.ts` + tests (100% branches, no paisa lost)
 - [x] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
 - [x] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
-- [ ] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
+- [x] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
 - [ ] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
 - [ ] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
 - [ ] 4.8 `escrow-release` (split, payouts, Khata 🟢)
@@ -2551,4 +2551,63 @@ apply.
   farmer-facing deal detail page to link to yet (buyers have `BuyerDealPage`; farmers don't need
   one until a screen has more to show than the Khata row itself already does).
 - **Next item: 4.5** Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`.
+
+### 4.5 Delivery OTP (5-try lock) + buyer sees `OtpDigits` — 2026-09-23
+
+**What it does:** the buyer's deal page (SPEC.md §4.14, §5.3, §5.4, §5.6, §9.2 Phase 4 "4.5") now
+shows a 4-digit delivery code once the escrow is `FUNDED` or later. **Decided with the user (plan
+step):** SPEC's own "store only a hash" line can't actually show the buyer their code back (a hash
+can't be reversed), so the code is **derived instead of stored**: `deliveryOtp(OTP_PEPPER,
+escrowId)` takes 4 digits from `HMAC-SHA256(OTP_PEPPER, escrowId)` (pure Web Crypto, same shape
+`cashfreeSignature()` already used). `escrows` carries no code and no hash at all - only
+`otp_tries`. The buyer's `delivery-code` function and 4.7's `trip` function (checking the driver's
+entry) both hold `OTP_PEPPER` server-side and recompute the same code independently - no lookup,
+and a database leak reveals nothing. `record_otp_attempt(escrow_id, correct)` (new SQL function,
+service-role only, same shape `fund_escrow`/`escrow_transition` use) is the 5-try lock: it requires
+`DELIVERED`, throws `OTP_LOCKED` at 5 wrong tries, and increments-and-returns in one statement (a
+`raise` would roll back the increment). It has no caller yet - 4.7's `trip` (`POST /otp`) is what
+will call it once a driver can enter a code at all, same as `split.ts` (4.2) had no caller until
+4.8.
+**Files:** `supabase/migrations/20260923200000_delivery_otp.sql` (new - `otp_tries` column,
+`record_otp_attempt()`), `supabase/tests/delivery_otp.sql` (new, 12 checks),
+`supabase/functions/_shared/domain/deliveryOtp.ts` (new, pure), `supabase/functions/_shared/domain/
+schemas/escrow.ts` (`DeliveryCodeInput`/`DeliveryCodeResult`), `supabase/functions/delivery-code/
+index.ts` (new - buyer, checks deal ownership + escrow state, returns the derived code),
+`supabase/config.toml` (`delivery-code` block), `app/tests/unit/domain/deliveryOtp.test.ts` (new,
+5/5), `app/src/services/escrow.ts` (`useDeliveryCode()`), `app/src/components/money/OtpDigits.tsx`
+(new - 4-box display), `app/src/routes/buyer/BuyerDealPage.tsx` (delivery-code card, shown for
+`FUNDED`/`DRIVER_ADVANCE_PAID`/`IN_TRANSIT`/`DELIVERED`), `app/src/lib/errors.ts`
+(`ESCROW_WRONG_STATE`), `app/src/locales/{en,hi,mr}.json` (`deal.deliveryCode*`, 1 error key),
+`app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts` (regenerated),
+`SPEC.md` §5.3/§5.4/§5.6/§7.2 (drops `otp_hash`, documents the derived code and the new
+`record_otp_attempt`/`delivery-code` rows), `AGENTS.md` §5 (OTP rule updated to match).
+**Mocked:** nothing - real column, real function, real Edge Function, verified against
+`cropket-dev`; `OTP_PEPPER` was already set.
+**How to test by hand:** as buyer `9090910002`, open a `FUNDED` deal's pay page (from 4.3's flow) -
+a "Delivery code" card shows 4 boxed digits with 🔊, and the hint "Give this code to the driver
+only after you check the goods." Reload: same code (it's derived from the escrow id, so it's
+always the same). DevTools → Offline → reload: the code still shows (cached like any other read).
+A `CREATED` deal (not yet paid) shows no code card. Checked at 360 px in English, Hindi and
+Marathi.
+**Tests:** `supabase/tests/delivery_otp.sql` (12/12 - correct guess on a fresh escrow reports 5 left
+and changes nothing, a wrong guess counts down and persists, the 5th wrong guess locks it, a 6th
+attempt (even correct) throws `OTP_LOCKED`, a non-`DELIVERED` escrow and an unknown id are both
+refused, only the service role may call it, no attempt writes an `escrow_events` row).
+`bash scripts/test-sql.sh` - full suite green, 19/19 files. `app/tests/unit/domain/
+deliveryOtp.test.ts` (5/5 - known-answer vector verified independently with `openssl`, always 4
+digits including a zero-padded case, deterministic, changes with a different pepper or escrow id).
+`pnpm lint && pnpm typecheck && pnpm test` (315 tests, 5 new) `&& pnpm build` all pass. `impeccable
+detect app/src` - 0 anti-patterns. Deployed `delivery-code` to `cropket-dev`;
+`bash scripts/check-functions.sh` passes it. Verified by hand with `curl` using real buyer/farmer
+JWTs (via the test-OTP auth endpoint): bad input → `400 VALIDATION_FAILED`, unknown escrow →
+`404 ESCROW_NOT_FOUND`, farmer JWT → `403 FORBIDDEN`.
+**Next / known gaps:**
+- No driver entry point yet - **4.7** (`trip`'s `POST /otp`) is what will call
+  `record_otp_attempt()` and, on a correct guess, `escrow-release`.
+- "Admin alerted" at 5 wrong tries (SPEC §5.2) is just `otp_tries = 5` being queryable - no
+  push/email exists (`ponytail:` comment in the migration). Upgrade path: 4.7's `trip` logs
+  `OTP_LOCKED` when `record_otp_attempt` throws it; wire a real alert there if it's ever needed.
+- `mark_dispatched`/`FUNDED → IN_TRANSIT` (needed to actually reach `IN_TRANSIT`/`DELIVERED` by
+  hand today) isn't built yet - **4.6** builds it, so today's manual test only reaches `FUNDED`.
+- **Next item: 4.6** "Mark dispatched" → IN_TRANSIT + Khata 🔵.
 

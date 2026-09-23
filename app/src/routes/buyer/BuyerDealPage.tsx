@@ -12,8 +12,20 @@ import { formatRupees } from "@shared/money.ts";
 import VoiceButton from "@/components/voice/VoiceButton";
 import DemoDataTag from "@/components/common/DemoDataTag";
 import RequireOnline from "@/components/common/RequireOnline";
+import OtpDigits from "@/components/money/OtpDigits";
 import { useBuyerDeals } from "@/services/deals";
-import { usePayEscrow } from "@/services/escrow";
+import { usePayEscrow, useDeliveryCode } from "@/services/escrow";
+import type { Database } from "@/lib/database.types";
+
+// Same gate as delivery-code's own CODE_VISIBLE_STATES (server side) -
+// mirrored here so the app doesn't even call the function for a state that
+// has no code to show (RELEASED, DISPUTED, ...).
+const CODE_VISIBLE_STATES: ReadonlySet<Database["public"]["Enums"]["escrow_state"]> = new Set([
+  "FUNDED",
+  "DRIVER_ADVANCE_PAID",
+  "IN_TRANSIT",
+  "DELIVERED",
+]);
 
 export default function BuyerDealPage() {
   const { t } = useTranslation();
@@ -22,6 +34,8 @@ export default function BuyerDealPage() {
   const payEscrow = usePayEscrow();
 
   const deal = deals?.find((d) => d.dealId === id);
+  const showCode = deal !== undefined && CODE_VISIBLE_STATES.has(deal.escrowState);
+  const deliveryCode = useDeliveryCode(showCode ? deal.escrowId : undefined);
 
   if (isLoading) {
     return (
@@ -92,7 +106,39 @@ export default function BuyerDealPage() {
             className="mt-1 h-9 w-9 shadow-xs"
           />
         </div>
-      ) : (
+      ) : null}
+
+      {showCode && deliveryCode.data && (
+        <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-line bg-surface p-5 text-center shadow-card">
+          <div className="flex items-center gap-2.5">
+            <p className="font-display text-subhead font-bold text-ink">{t("deal.deliveryCodeTitle")}</p>
+            <VoiceButton
+              textKey="deal.deliveryCodeSpoken"
+              values={{ digits: deliveryCode.data.code.split("").join(" ") }}
+              className="h-9 w-9 shadow-xs"
+            />
+          </div>
+          <OtpDigits digits={deliveryCode.data.code} />
+          <p className="text-meta text-ink-muted">{t("deal.deliveryCodeHint")}</p>
+        </div>
+      )}
+      {/* Same "read that failed" shape KhataPage/PricesPage use (AGENTS.md
+       * §5 "Reads that fail") - this isn't a money action, so a retry
+       * button is enough, no AppError code needed. */}
+      {showCode && deliveryCode.isError && (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-mirchi/40 bg-mirchi-light p-4 text-center shadow-card">
+          <p className="text-meta font-semibold text-mirchi-text">{t("common.loadFailed")}</p>
+          <button
+            type="button"
+            onClick={() => void deliveryCode.refetch()}
+            className="h-10 rounded-xl border border-mirchi-text px-4 text-meta font-bold text-mirchi-text transition-transform active:scale-97"
+          >
+            {t("common.tryAgain")}
+          </button>
+        </div>
+      )}
+
+      {!locked && (
         <div className="space-y-3">
           {payEscrow.isError && (
             <p className="rounded-2xl border-2 border-mirchi/40 bg-mirchi-light p-4 text-center font-display text-meta font-bold text-mirchi-text">

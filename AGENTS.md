@@ -537,7 +537,7 @@ Every Edge Function returns:
 - If anything is unclear in a money flow, **stop and do nothing**. Never "catch and continue".
 - Webhooks: verify the Cashfree signature **first** (bad → `401`). Idempotent on payment id. Return `200` only after the event is safely stored.
 - Two parallel releases must give exactly one release (row lock + state check).
-- OTP: store only a hash (with `OTP_PEPPER`). Lock after 5 wrong tries and alert admin.
+- OTP: never stored — the delivery code is derived (`HMAC(OTP_PEPPER, escrow_id)`, `_shared/domain/deliveryOtp.ts`), so a database leak reveals nothing. Lock after 5 wrong tries (`record_otp_attempt`) and alert admin.
 
 ### AI service
 - Bad input → `HTTPException` with `{"code": "...", "detail": "..."}`.

@@ -918,7 +918,7 @@ Draft item:  dashed border + tag               "On phone only"
 | Function | Caller | Input | Returns | Rules |
 |---|---|---|---|---|
 | `place_bid` | verified buyer | `target_type, target_id, price_per_quintal` | `bid_id, is_highest, below_floor` | Buyer must be `kyc_status='verified'` and not banned. Target must be listed. |
-| `accept_bid` | farmer (lot) / FPO (mega lot) | `bid_id, consent_audio_path` | `deal_id, escrow_id` | One transaction: creates deal, rejects other bids, creates escrow in `CREATED`, marks lot `sold`, sets the delivery OTP hash. |
+| `accept_bid` | farmer (lot) / FPO (mega lot) | `bid_id, consent_audio_path` | `deal_id, escrow_id` | One transaction: creates deal, rejects other bids, creates escrow in `CREATED`, marks lot `sold`. The delivery code needs no setup here — it's derived from the escrow id, not stored (§5.6). |
 | `buy_flash_sale` | verified buyer | `flash_sale_id, price` | `deal_id` | Row lock. First valid buyer wins. `price ≥ floor`. |
 | `mark_dispatched` | seller | `escrow_id` | `state` | Only when `ALLOW_SIMPLE_DISPATCH` is on. |
 | `revoke_consent` | farmer | `consent_id` | `revoked_at` | Also writes to `data_access_logs`. |
@@ -926,6 +926,7 @@ Draft item:  dashed border + tag               "On phone only"
 | `escrow_transition` | service role only | see 5.7 | `escrows` row | The only way escrow state changes. |
 | `fund_escrow` | service role only | `cashfree_order_id, payment_ref, amount_paise` | `escrows` row | CREATED → FUNDED via `escrow_transition`; writes the farmer's first Khata 🟡 row in the same transaction. Idempotent on order id; fails closed on an amount mismatch. |
 | `buyer_deals` | verified/unverified buyer (own) | — | rows: deal + escrow state + lot summary | `security definer` + `auth.uid()`, not a `lots`/`deals` RLS policy — a `lots` policy reading `deals` back would recurse into `deals_select_party`. |
+| `record_otp_attempt` | service role only | `escrow_id, correct` | tries left (int) | Escrow must be `DELIVERED`. 5 wrong tries locks it (`OTP_LOCKED`). Called by `trip`'s `POST /otp` (§5.4), which then calls `escrow-release` on a correct guess. |
 | `nearest_cold_storages` | service role | `lat, lng, limit` | rows with `distance_km` | PostGIS ordered by distance. |
 | `buyers_within` | service role | `lat, lng, km` | buyer ids | Used for flash-sale alerts. |
 
@@ -943,6 +944,7 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `tts` | any user | `text, lang` | `{url}` | Bhashini adapter, cached in `tts_cache`. |
 | `escrow-pay` | buyer | `escrow_id` | `{state, source, paymentSessionId}` | Creates the Cashfree order for deal total + 1% platform fee. In mock mode, funds the escrow itself right after (`fund_escrow`) — `source: "mock"`, `paymentSessionId: null`, `state: "FUNDED"`; in real mode returns `source: "cashfree"` and a `paymentSessionId` to open. |
 | `cashfree-webhook` | Cashfree | raw body | `200` | Verifies signature → `fund_escrow` → `FUNDED` → Khata 🟡 row. Idempotent on order id. In mock mode (no `CASHFREE_SECRET_KEY`) refuses every request with `401` — there is no real Cashfree to sign one, so `escrow-pay` is the only path that funds an escrow while the prototype has no sandbox key. Push to the farmer isn't built (prototype skips push everywhere). |
+| `delivery-code` | buyer | `escrow_id` | `{code}` | Recomputes the 4-digit delivery code (§5.6) with `OTP_PEPPER` — nothing is looked up. Refuses (`409`) unless the escrow is `FUNDED` or later. |
 | `escrow-release` | internal (other functions) | `escrow_id, reason` | `{state, payouts[]}` | Runs `split.ts`, sends split instructions, writes `payouts`, Khata 🟢 rows, push. |
 | `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{autoReleaseAt}` | Sets the timer to now. |
 | `shipments-create` | seller | `deal_id, transporter_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl}` | Makes a random 32-byte token, stores only its hash, expiry 72 h, sends SMS (mock). |
@@ -1005,7 +1007,7 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 | `buyer_kyc` | buyer_id, business_name, gst_number, pan_last4, status, verified_at, source |
 | `bids` | id, lot_id / mega_lot_id, buyer_id, price_per_quintal, status, created_at |
 | `deals` | id, lot_id / mega_lot_id, buyer_id, price_per_quintal, quantity_kg, total_paise, fee_paise, pickup_date, consent_audio_path, status |
-| `escrows` | id, deal_id, total_paise, state, otp_hash, otp_tries, delivered_at, auto_release_at, cashfree_order_id |
+| `escrows` | id, deal_id, total_paise, state, otp_tries, delivered_at, auto_release_at, cashfree_order_id — no delivery-code column: the code is derived (`HMAC(OTP_PEPPER, escrow_id)`, §5.3 `record_otp_attempt`), never stored, hashed or otherwise |
 | `escrow_transitions` | from_state, to_state (the allowed list) |
 | `escrow_events` | id, escrow_id, from_state, to_state, reason, actor, created_at · **insert-only** |
 | `payouts` | id, escrow_id, to_user, amount_paise, type (farmer_share, driver_advance, driver_freight, emi, platform_fee, refund), status, provider_ref |
@@ -1336,7 +1338,7 @@ Rules:
 | `FIREBASE_SERVICE_ACCOUNT_JSON` (base64) | `push-send` |
 | `SMS_PROVIDER` (`mock`), `SMS_API_KEY` | `shipments-create` |
 | `CRON_SECRET` | all `cron-*` functions |
-| `OTP_PEPPER` | delivery OTP hashing |
+| `OTP_PEPPER` | derives the delivery code (`delivery-code`, `trip`) — never stored |
 | `INTEGRATIONS_MOCK` | e.g. `agristack,digilocker,uli,cersai,enwr,transport,sms,whatsapp,krishi_dss` (add `cashfree` if sandbox split is not enabled) |
 | `ALLOWED_ORIGINS` | Comma-separated web origins allowed to call functions from a browser (§5.2). Unset = every origin allowed; set it to the Vercel URL + dev/APK origins at the web deploy (§8, M5) |
 | `ALLOW_SIMPLE_DISPATCH` | `true` until full logistics is built |
