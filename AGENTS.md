@@ -271,12 +271,13 @@ Hosting: the user pushes `ai-service/` to a Hugging Face Space (Docker type). Hu
 ### Scripts (run from the project root)
 ```bash
 pnpm --dir app exec tsx --env-file=../scripts/.env ../scripts/import-agmarknet-csv.ts <file.csv>
-pnpm --dir app exec tsx --env-file=../scripts/.env ../scripts/demo-reset.ts   # resets demo data in cropket-dev — only when asked
+node --env-file=scripts/.env scripts/demo-reset.ts   # resets demo data in cropket-dev — only when asked
 bash scripts/set-key.sh --status
 bash scripts/check-tools.sh
 bash scripts/test-sql.sh
 ```
-(`tsx` is a dev dependency of `app/`.)
+(`tsx` is a dev dependency of `app/`, needed by `import-agmarknet-csv.ts`. `demo-reset.ts` needs no
+package - Node 22 runs `.ts` files natively, and it only calls `fetch` and `psql`.)
 
 ### Web deploy (only when asked)
 ```bash

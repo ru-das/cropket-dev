@@ -54,7 +54,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
 
 ## M5 — Demo ready
-- [ ] 5.1 Full seed (`SPEC.md` §8.6 numbers, only the M0–M4 parts) + `demo-reset.ts`
+- [x] 5.1 Full seed (`SPEC.md` §8.6 numbers, only the M0–M4 parts) + `demo-reset.ts`
 - [ ] 5.2 One Playwright happy path (`app/tests/e2e/core-flow.spec.ts`)
 - [ ] 5.3 Deploy: functions + secrets, AI service to Hugging Face Spaces, web to Vercel
 - [ ] 5.4 Capacitor debug APK; opens in airplane mode
@@ -1588,6 +1588,10 @@ the changed files: no findings.
   terminal: `bash scripts/set-key.sh APP_URL` (the web app's own URL, e.g.
   `https://cropket-dev.vercel.app` or `http://localhost:5173` for local testing), then
   `supabase secrets set --env-file supabase/functions/.env`.
+- `DEMO_MODE` — still missing (checked with `bash scripts/set-key.sh --status` during 5.1).
+  Without it, `escrow-skip-timer` (4.9) refuses every call with `DEMO_ONLY`, so the demo can't skip
+  the 24h auto-release wait. Run in your terminal: `bash scripts/set-key.sh DEMO_MODE` (type
+  `true`), then `supabase secrets set --env-file supabase/functions/.env`.
 
 ### Adapt — Responsive layout for laptops, bigger phones, big screens — 2026-09-19
 
@@ -3043,3 +3047,72 @@ screen check (English, Hindi, Marathi, 360 px) before the next demo.**
 - This is the **last P0 escrow/Khata item** - Phase 4 is done. **Next item: 5.1** full seed
   (`SPEC.md` §8.6 numbers) + `demo-reset.ts`.
 
+
+### 5.1 Full seed (`supabase/demo-data.sql`) + `scripts/demo-reset.ts` — 2026-09-23
+
+**What it does:** Gives the demo a known, resettable starting point. `supabase/seed.sql` (2.1)
+already had the market reference data (mandis, crop rules, transporters, 60 days of prices).
+This adds the SPEC §8.6 people on top: **18 demo accounts** on phones `9090950001`-`9090950018`
+(their own range, never overlapping the team's dev-login numbers `9090910001`…) — 12 farmers,
+3 verified buyers + 1 unverified (a real `buyer_kyc` row with `status='pending'`, so the admin
+approve screen has something to click), 1 FPO, 1 admin. Four of them log in during the demo:
+farmer `9090950001`/`950001` (starts with **zero lots** — scanning happens live), buyer
+`9090950013`/`950013` (verified, starts with no bids), FPO `9090950017`/`950017`, admin
+`9090950018`/`950018`. The other 14 are background names only, matching SPEC's headcounts.
+The marketplace isn't empty either: 4 small onion Grade B lots (140+130+120+110 kg, all near
+Niphad) get inserted as `draft` then flipped to `listed` in one statement — the real
+`group_mega_lots` trigger (3.4) bundles them into one 500 kg mega lot itself, not a hand-inserted
+row. 4 more single lots (800 kg onion A, 1,200 kg onion B, 600 kg potato B, 450 kg tomato A) sit
+across the other 4 mandis; the 1,200 kg lot carries 2 seeded bids from the non-demo-login buyers,
+so `LiveBidBox` has live competition to show. Every lot's `grade_results` row is `source='mock'`
+(no sample photos exist yet in `ai-service/samples/onion/`), so the Demo data tag shows.
+**Not seeded (out of "only the M0-M4 parts"):** 12 cold storages (Phase 5, no table yet) and the
+"lien found" farmer (Phase 7 credit, no table yet) — add both when those phases build their tables.
+**Idempotent by wipe-then-insert:** `demo-data.sql` deletes everything a demo person currently
+owns (pods → shipments → khata_entries → payouts → escrow_events → escrows → deals → bids → mega
+lots → lots → grade_results, in FK order — most of these FKs are `on delete no action`, confirmed
+against cropket-dev) before inserting the fresh state, so running it again after a live practice
+run (deal made, escrow funded, lot scanned) returns to exactly the same starting point. `profiles`
+and `buyer_kyc` are `on conflict do update`, never deleted — `auth.users` rows (and any real
+session on a demo phone) must survive a reset. One real edge case handled: if a **dev account's**
+own lot ever got swept into a demo mega lot (same crop/grade, within 10 km), the wipe sets it back
+to `listed` before deleting the mega lot — a dev farmer's lot is never left stuck `in_mega`.
+**A real bug, caught by the SQL test, not guessed:** the first draft wrapped `demo-data.sql` in its
+own `begin;`/`commit;`. `COMMIT` doesn't nest in Postgres — it just ends whatever transaction is
+already open — so `\ir`-including the file from inside a pgTAP test (which opens its own `begin`
+first) silently committed 18 demo people straight into cropket-dev instead of the test rolling
+back. Confirmed by querying the live DB after the test run and finding the rows really there;
+cleaned up by hand, then fixed by dropping `begin`/`commit` from the file entirely — it now assumes
+it's always run inside one already-open transaction, either `scripts/demo-reset.ts`'s `psql -1`
+(single-transaction mode) for a real run, or the test's own transaction. It also now `drop table if
+exists`s its 3 temp tables first (not just `on commit drop`), so it can run twice back to back
+inside one still-open transaction — which the SQL test does on purpose, to prove a second reset
+correctly wipes a leftover practice-run lot and releases a swept-in dev lot.
+**Files:** `supabase/demo-data.sql` (new — the wipe + insert, `\ir`-included by the test),
+`supabase/tests/demo_data.sql` (new — 14 pgTAP checks, two runs in one transaction: first proves
+the counts/mega-lot/bids come out right and a dev farmer's own lot is untouched; then fabricates a
+"dev lot swept into the demo mega lot during a practice run" and a demo farmer's leftover lot, runs
+the file again, and proves both are handled correctly), `scripts/demo-reset.ts` (new — creates the
+18 `auth.users` rows via the Admin API if they don't already exist under a *different* id on that
+phone, then runs `seed.sql` then `demo-data.sql` with `psql -1`), `supabase/seed.sql` (comment only
+— points at `demo-data.sql` for the demo people instead of promising them for later),
+`AGENTS.md` (§2 Scripts — `demo-reset.ts` runs with plain `node --env-file=scripts/.env
+scripts/demo-reset.ts`, not `tsx`; `tsx` isn't installed and isn't needed — Node 22 runs `.ts`
+files natively via type stripping, confirmed by hand, and the script only calls `fetch` + `psql`).
+**Mocked:** nothing new — every grade_result here is `source='mock'` like any ungraded-by-AI seed
+row, same as 2.1's prices carry `source='seed'`.
+**Test by hand:** add the 4 test numbers in the Supabase dashboard (Auth → Phone → test OTPs) —
+`9090950001=950001`, `9090950013=950013`, `9090950017=950017`, `9090950018=950018` — then
+`node --env-file=scripts/.env scripts/demo-reset.ts`. Sign in as the demo buyer → marketplace
+shows 4 lots + the 500 kg mega lot, all with Demo data tags. Sign in as the demo farmer → My Lots
+and Khata are both empty. Run the reset again — same result, and any lot/deal made in between is
+gone. `DEMO_MODE` is still missing (added to the 🔑 list above) — without it the admin skip-timer
+button will refuse with `DEMO_ONLY` during practice.
+**Tests:** `bash scripts/test-sql.sh demo_data` (14/14), `bash scripts/test-sql.sh` (full suite,
+still green). `cd app && pnpm lint && pnpm typecheck && pnpm test` all pass (344 tests, app itself
+untouched by this item).
+**Next / known gaps:**
+- The live `node --env-file=scripts/.env scripts/demo-reset.ts` run against cropket-dev is still
+  outstanding — running it needed a permission this session's auto mode wouldn't grant for a
+  shared-resource write. Ask to run it (or run it yourself), then add the 4 test numbers above.
+- Next item: 5.2 One Playwright happy path (`app/tests/e2e/core-flow.spec.ts`).

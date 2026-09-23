@@ -3,10 +3,12 @@
 -- supabase/seed.sql` - as the table owner, so it bypasses RLS. Every insert
 -- ends `on conflict ... do nothing`, so running this file twice is safe and
 -- changes nothing the second time (CLAUDE.md §2 "seed data must be safe to
--- run twice"). `demo-reset.ts` (5.1) will call this file, then add the demo
--- users/buyers/deals on top - this file is only the market reference data
--- from 2.1: mandis, crop rules, transporters, and 60 days of mandi prices +
--- today's heat colours + weather (past 60 days + next 3 days forecast).
+-- run twice"). `scripts/demo-reset.ts` (5.1) calls this file, then
+-- `supabase/demo-data.sql` on top of it - this file is only the market
+-- reference data from 2.1: mandis, crop rules, transporters, and 60 days of
+-- mandi prices + today's heat colours + weather (past 60 days + next 3 days
+-- forecast). The demo people, lots, bids and mega lot live in
+-- `supabase/demo-data.sql`, not here.
 --
 -- Prices and arrivals are generated, not typed in by hand, from small fixed
 -- "today" values (`hashtext(...)` gives a deterministic pseudo-random wiggle
