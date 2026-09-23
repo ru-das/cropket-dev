@@ -85,5 +85,21 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+    coverage: {
+      provider: "v8",
+      // split.ts lives outside app/ (in _shared/domain, imported via the
+      // @shared alias) - v8's default coverage scan only looks inside the
+      // project root, so it needs allowExternal + an explicit include to
+      // be measured at all.
+      allowExternal: true,
+      include: [`${sharedDomainDir}/split.ts`],
+      // Only split.ts has a coverage floor today (CLAUDE.md §6 "100%
+      // branch coverage" - a money-splitting formula, not the whole repo).
+      // Add another file's path here if a future test plan asks for the
+      // same guarantee.
+      thresholds: {
+        "../supabase/functions/_shared/domain/split.ts": { branches: 100 },
+      },
+    },
   },
 });

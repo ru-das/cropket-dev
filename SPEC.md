@@ -1119,11 +1119,13 @@ revoke all on function escrow_transition(uuid, escrow_state, text, uuid)
 Users never call `escrow_transition()` directly. Small wrapper functions (e.g. `mark_dispatched(escrow_id)`) check who is calling, then call it. Edge Functions call it with the service role.
 
 **Release split order** (`_shared/domain/split.ts`, pure function, fully unit-tested):
-1. Hold the value of rejected crates (if any).
-2. Driver freight (minus advance already paid).
-3. EMI due for each farmer (P2) → to lender.
+1. Hold the value of rejected crates (if any) — **P1**, built with disputes (Phase 5); `split.ts` doesn't take this input yet.
+2. Driver freight (minus advance already paid) — **P2**; `split.ts` doesn't take this input yet.
+3. EMI due for each farmer (P2) → to lender — same, not in `split.ts` yet.
 4. Each farmer's share = remaining × (their kg ÷ total kg). Rounding leftovers (a few paise) go to the farmer with the largest share, so the sum always matches exactly.
 5. Platform fee was paid on top by the buyer, so it never reduces the farmer's money.
+
+Prototype scope (4.2): `splitRelease()` only implements steps 4–5, since nothing in the prototype produces a crate-hold, freight or EMI amount yet. It takes `{ escrowTotalPaise, feePaise, farmers: { farmerId, quantityKg }[] }` and returns `farmer_share` / `platform_fee` lines; steps 1–3 slot in as extra deductions from the pool before the farmer-share loop when Phase 5 or a P2 item needs them.
 
 **Test must prove:** sum of payouts = escrow total (to the paisa); illegal jumps throw; two parallel releases give one release; timer does not release when a dispute is open; OTP locks after 5 tries.
 

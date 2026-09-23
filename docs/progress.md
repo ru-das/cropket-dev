@@ -44,7 +44,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M4 — Escrow and Digital Khata
 - [x] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
-- [ ] 4.2 `split.ts` + tests (100% branches, no paisa lost)
+- [x] 4.2 `split.ts` + tests (100% branches, no paisa lost)
 - [ ] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
 - [ ] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
 - [ ] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
@@ -2366,4 +2366,51 @@ this time.
 - Mega-lot bids still cannot be accepted by anyone - unchanged gap from 3.4/3.5 (needs a seeded
   FPO), so mega lots have no escrow either.
 - **Next item: 4.2** `split.ts` + tests (100% branches, no paisa lost).
+
+### 4.2 split.ts + tests — 2026-09-23
+
+**What it does:** the pure function `escrow-release` (4.8) will call to turn a released escrow
+into payout lines (SPEC.md §5.7, CLAUDE.md §6). `splitRelease({ escrowTotalPaise, feePaise,
+farmers: { farmerId, quantityKg }[] })` returns `farmer_share` / `platform_fee` lines: each
+farmer's share is proportional to their kg, any rounding leftover (a few paise) goes to the
+farmer with the largest kg (ties keep input order, so a retry is deterministic), and the
+platform fee is paid on top by the buyer so it never comes out of the farmer pool. A share that
+floors to zero is dropped (matches the `payouts.amount_paise > 0` check constraint), and a fee of
+zero produces no `platform_fee` line. Fails closed (throws `SPLIT_INVALID_INPUT ...`) on anything
+that doesn't add up: non-integer/non-positive total, fee ≥ total, no farmers, or any farmer with a
+zero/negative/fractional kg — a money formula never silently clamps or drops a paisa.
+**Decided with the user:** SPEC §5.7 lists 5 steps (crate hold, driver freight, EMI, farmer
+shares, platform fee); the prototype has no crate-hold/freight/EMI amount anywhere yet, so
+`split.ts` only builds steps 4–5. Steps 1–3 get a `ponytail:` comment in the file and a line in
+SPEC §5.7 saying where they slot in (extra deductions from the pool before the farmer-share loop)
+for Phase 5 / P2. Also added `@vitest/coverage-v8@5.0.1` as a dev dependency (approved) so
+`pnpm exec vitest run --coverage` can actually prove the 100%-branches requirement instead of
+just asserting it in prose.
+**Files:** `supabase/functions/_shared/domain/split.ts` (new), `app/tests/unit/domain/
+split.test.ts` (new, 17 tests incl. a 50-case deterministic pseudo-random sweep asserting the sum
+always equals the escrow total), `app/vite.config.ts` (`test.coverage`: v8 provider,
+`allowExternal: true` + an explicit `include` for split.ts since it lives outside `app/`, and a
+100%-branches threshold scoped to just that file), `app/package.json` + lockfile
+(`+@vitest/coverage-v8@5.0.1`), `SPEC.md` §5.7 (marks steps 1–3 as not-yet-built).
+**Mocked:** nothing — pure math, no DB/network/UI involved.
+**How to test by hand:** there's nothing to click — it's a pure function with no caller yet.
+`cd app && pnpm exec vitest run --coverage` shows `split.ts` at 100% statements/branches/
+functions/lines; the coverage threshold makes `--coverage` fail the whole run if a future edit
+drops a branch below 100%.
+**Tests:** `app/tests/unit/domain/split.test.ts` (17/17 — single lot, mega lot with uneven kg,
+tie-breaking, zero fee, "fee never reduces farmers" property, a dropped zero-share line, 8
+fail-closed throw cases, and the 50-case sweep). `pnpm lint && pnpm typecheck && pnpm test`
+(299 tests total, 17 new) `&& pnpm exec vitest run --coverage` (split.ts 100% branches) all
+pass. No SQL/migration/Edge Function/UI touched this item, so `test-sql.sh`/pytest/`impeccable
+detect` don't apply.
+**Next / known gaps:**
+- `splitRelease()` has no caller yet — **4.3** (mock Cashfree pay + webhook → FUNDED) is next in
+  the milestone order, but it's **4.8** (`escrow-release`) that will actually call `split.ts`,
+  map its lines to `payouts` rows, and decide whose `profiles.id` the `platform_fee` line's
+  `to_user` is (the line itself carries no user id on purpose — that's a routing decision, not a
+  math one).
+- Crate-hold, driver-freight and EMI deductions (SPEC §5.7 steps 1–3) aren't implemented —
+  unchanged gap, tracked in SPEC §5.7 now instead of only in this file.
+- **Next item: 4.3** `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button +
+  `cashfree-webhook` → FUNDED + Khata 🟡.
 
