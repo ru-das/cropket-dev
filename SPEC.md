@@ -948,7 +948,7 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `cashfree-webhook` | Cashfree | raw body | `200` | Verifies signature → `fund_escrow` → `FUNDED` → Khata 🟡 row. Idempotent on order id. In mock mode (no `CASHFREE_SECRET_KEY`) refuses every request with `401` — there is no real Cashfree to sign one, so `escrow-pay` is the only path that funds an escrow while the prototype has no sandbox key. Push to the farmer isn't built (prototype skips push everywhere). |
 | `delivery-code` | buyer | `escrow_id` | `{code}` | Recomputes the 4-digit delivery code (§5.6) with `OTP_PEPPER` — nothing is looked up. Refuses (`409`) unless the escrow is `FUNDED` or later. |
 | `escrow-release` | shared module, not deployed | `escrowId, reason` | `escrows` row | `_shared/release.ts`'s `releaseEscrow()` (4.8) - no HTTP caller of its own, so it isn't a separate Edge Function: `trip`'s `POST /otp` calls it directly on a correct guess, and 4.9's `cron-auto-settle` will too. Runs `split.ts`, calls the Cashfree adapter's `releaseSplit` (mock: an instant provider ref; real: not built, 502s), then `release_escrow()` (§5.3). Idempotent - an already-RELEASED escrow returns unchanged without a second Cashfree call. |
-| `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{autoReleaseAt}` | Sets the timer to now. |
+| `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{state, autoReleaseAt}` | Sets the timer to `now` **and releases the escrow in the same request** (`releaseEscrow(escrowId, "timer_skipped")`), so a demo doesn't wait for the next cron run. `403 DEMO_ONLY` when `DEMO_MODE` isn't `true`. |
 | `shipments-create` | seller | `deal_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl, source: "mock"}` | Makes a random 32-byte token, stores only its hash (`shipments.trip_token_hash`), expiry 72 h. No `transporter_id` in the prototype (no transporter picker, P1) and no SMS is sent - the link is returned once, in this response, shown on the seller's own screen (§9.5). A repeat call for the same deal rotates the token (new hash, old link stops working) - the seller's own "Make a new link" (4.7). |
 | `trip` | driver (token in path) | sub-routes below | — | One function with a small router. Token check on every call (hash the path token, look up `shipments`, `token_expires_at > now()` - same error, `TRIP_NOT_FOUND`, for unknown and expired). Returns no prices or phone numbers. Built in the prototype: `GET`, `pod`, `otp` below - `weigh`/`start`/`locations` are Phase 5's full driver checklist (P1, §9.2), not built. |
 | ↳ `GET /trip/:token` | | — | `{vehicleNumber, crop, quantityKg, state}` | The driver page derives which step is active from `state` directly, instead of a separate `steps[]`/`lang` (the page uses `LanguageSwitch` like every other screen). |
@@ -962,7 +962,7 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `dispute-resolve` | admin | `dispute_id, outcome, amounts?, strike_user_id?` | `{state}` | `release` / `refund` / `partial` + liability rules + strikes. |
 | `loans-lead` | farmer | `type (kcc/nbfc), amount, consent_id` | `{lead_id, status}` | ULI mock → CERSAI mock → lead, or `LIEN_FOUND`. |
 | `push-send` | internal | `user_ids[], titleKey, values, link` | — | FCM. |
-| `cron-auto-settle` | pg_cron every 15 min | `Authorization: Bearer CRON_SECRET` | `{released}` | Releases `DELIVERED` escrows past `auto_release_at` with no open dispute. |
+| `cron-auto-settle` | pg_cron every 15 min | `Authorization: Bearer CRON_SECRET` | `{released, failed}` | Releases `DELIVERED` escrows past `auto_release_at` with no open dispute - the prototype has no `disputes` table yet (Phase 5), so this is the same as "still `DELIVERED`": a `DISPUTED` escrow never matches the query, and `release_escrow()` refuses anything that isn't `DELIVERED` anyway. Calls `_shared/release.ts`'s `releaseEscrow()` (4.8) once per due escrow, each its own all-or-nothing release; one escrow failing (logged, left `DELIVERED`, retried next run) doesn't block the rest of the batch. |
 | `cron-fetch-prices` | pg_cron daily | same | `{rows}` | data.gov.in → `mandi_prices`, then recomputes `mandi_heat`. |
 | `cron-fetch-weather` | pg_cron daily | same | `{districts}` | Open-Meteo → `weather_daily`. |
 | `whatsapp-webhook` | Meta | — | `200` | Bot and WhatsApp Flows. |
@@ -1381,18 +1381,10 @@ Rules:
 | Code | GitHub | `main` is always demo-ready. One feature per PR. |
 
 ### 8.2 Scheduled jobs (pg_cron → Edge Functions)
+Each job calls a small `trigger_cron_<name>()` helper (`security definer`, reads `functions_url`/`cron_secret` from Vault, calls `net.http_post`, warns and skips if either secret is missing) instead of inlining the `net.http_post` call in `cron.schedule()` itself - one helper per job, same shape for all of them (`trigger_cron_fetch_prices()`, `20260919161110_cron_fetch_prices.sql`; `trigger_cron_auto_settle()`, `20260923231500_auto_settle.sql`, 4.9):
 ```sql
 -- every 15 minutes
-select cron.schedule('auto-settle', '*/15 * * * *', $$
-  select net.http_post(
-    url     := (select decrypted_secret from vault.decrypted_secrets where name = 'functions_url')
-               || '/cron-auto-settle',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' ||
-        (select decrypted_secret from vault.decrypted_secrets where name = 'cron_secret')),
-    body    := '{}'::jsonb);
-$$);
+select cron.schedule('auto-settle', '*/15 * * * *', $$select public.trigger_cron_auto_settle();$$);
 -- daily at 12:30 UTC (18:00 IST): cron-fetch-prices
 -- daily at 00:30 UTC (06:00 IST): cron-fetch-weather
 -- every 5 minutes: close expired flash sales, cancel unpaid escrows older than 2 h (pure SQL)

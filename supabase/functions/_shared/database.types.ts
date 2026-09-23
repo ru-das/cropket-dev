@@ -1152,6 +1152,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      trigger_cron_auto_settle: { Args: never; Returns: number }
       trigger_cron_fetch_prices: { Args: never; Returns: number }
     }
     Enums: {

@@ -455,3 +455,7 @@ import_map = "./functions/deno.json"
 [functions.trip]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.cron-auto-settle]
+verify_jwt = false
+import_map = "./functions/deno.json"

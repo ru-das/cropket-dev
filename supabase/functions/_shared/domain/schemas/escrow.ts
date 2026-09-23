@@ -50,6 +50,28 @@ export const CashfreeSplit = z.object({
 });
 export type CashfreeSplit = z.infer<typeof CashfreeSplit>;
 
+// cron-auto-settle's own result (SPEC §5.2, §9.2 Phase 4 "4.9") - how many
+// DELIVERED-past-timer escrows it released this run, and how many it tried
+// and skipped (still DELIVERED, retried next run - see _shared/release.ts's
+// per-escrow isolation).
+export const AutoSettleResult = z.object({
+  released: z.int().nonnegative(),
+  failed: z.int().nonnegative(),
+});
+export type AutoSettleResult = z.infer<typeof AutoSettleResult>;
+
+// escrow-skip-timer (admin, DEMO_MODE only - SPEC §5.2, §8.6, §9.2 Phase 4
+// "4.9"): sets a DELIVERED escrow's timer to now and releases it in the
+// same request.
+export const SkipTimerInput = z.object({ escrowId: z.uuid() });
+export type SkipTimerInput = z.infer<typeof SkipTimerInput>;
+
+export const SkipTimerResult = z.object({
+  state: z.string(),
+  autoReleaseAt: z.iso.datetime({ offset: true }),
+});
+export type SkipTimerResult = z.infer<typeof SkipTimerResult>;
+
 export const CashfreeWebhookEvent = z.object({
   type: z.string(),
   data: z.object({
