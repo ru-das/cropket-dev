@@ -51,7 +51,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
 - [x] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
 - [x] 4.8 `escrow-release` (split, payouts, Khata 🟢)
-- [ ] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
+- [x] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
 
 ## M5 — Demo ready
 - [ ] 5.1 Full seed (`SPEC.md` §8.6 numbers, only the M0–M4 parts) + `demo-reset.ts`
@@ -2937,4 +2937,109 @@ weaken a test without asking"):**
   link" note.
 - **Next item: 4.9** `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`)
   + `Countdown` - the 24h timer path to the same `releaseEscrow()` this item built.
+
+### 4.9 cron-auto-settle + pg_cron schedule + admin skip-timer + Countdown — 2026-09-23
+
+**What it does:** the other P0 path to money (SPEC.md §5.2, §5.7, §8.2, §8.6, §9.2 Phase 4 "4.9",
+"Done when": *"the timer releases money when no OTP is entered"*). `escrow_transition()` (4.1)
+already sets `auto_release_at = now() + 24h` when an escrow reaches `DELIVERED`; nothing read that
+column until now. Three pieces, three commits:
+1. **`cron-auto-settle`** (new Edge Function, `pg_cron` every 15 min via `trigger_cron_auto_settle()`
+   - same helper-function shape `trigger_cron_fetch_prices()` already set, `20260919161110_cron_fetch_prices.sql`). Picks up every `DELIVERED` escrow past its timer (up to 50 a run) and calls
+   4.8's `_shared/release.ts` `releaseEscrow()` on each, one at a time - a single failing escrow
+   (the still-open mega-lot gap) is logged and left `DELIVERED` for the next run instead of blocking
+   the batch. "No open dispute" (SPEC §5.7) is the same as "still `DELIVERED`" until Phase 5's
+   `disputes` table exists - a `DISPUTED` escrow can never match the query, and `release_escrow()`
+   (4.8) refuses anything that isn't `DELIVERED` anyway, so the timer genuinely cannot release a
+   disputed order even once disputes exist.
+2. **`Countdown`** (`components/money/`) - "Auto-release in HH:MM:SS", ticking (pure
+   `formatCountdown()` in `lib/countdown.ts`), shown on the farmer's Sold card
+   (`LotDetailPage`) and the buyer's locked card (`BuyerDealPage`) once `escrowState === "DELIVERED"`.
+   `buyer_deals()` and the farmer's own escrow read both now return `auto_release_at`. The deadline
+   always comes from the server (CLAUDE.md §4 "timers use server time, never phone time") - the
+   ticking clock is local display only. At zero it shows "Releasing the money now" instead of a
+   negative or frozen clock, since the cron can take up to 15 more minutes.
+3. **Admin skip-timer** - new `admin_delivered_escrows()` (security definer, `auth.uid()`-checked
+   like `buyer_deals()`) feeds `/admin/escrows` (`AdminEscrowsPage`, linked from `AdminHome`): every
+   `DELIVERED` escrow, its own Countdown, and a "Skip timer" button. The button calls the new
+   `escrow-skip-timer` Edge Function, which **only works when `DEMO_MODE=true`** (fails closed
+   otherwise, `403 DEMO_ONLY`) and, on success, moves the timer to now **and releases the escrow in
+   the same request** (`releaseEscrow(escrowId, "timer_skipped")`) - not just moving the timer and
+   waiting for the next cron tick, so a demo doesn't have to wait up to 15 more minutes to show the
+   money arriving. Decided with the user at the planning step (see the plan's "Skip timer" question)
+   after they asked for both behaviours split by mode: skip-and-release for `DEMO_MODE`, plain
+   spec-as-written timer-move for anything else - since there's no "anything else" path in this
+   function (it's demo-only full stop), that resolved to always skip-and-release, gated by
+   `DEMO_MODE`.
+
+**Files:** `supabase/migrations/20260923231500_auto_settle.sql` (new - `trigger_cron_auto_settle()`
++ the `auto-settle` cron schedule), `20260923232000_deal_auto_release.sql` (new - drops/recreates
+`buyer_deals()` to add `auto_release_at`, a changed return type can't use `create or replace`),
+`20260923232500_admin_delivered_escrows.sql` (new - `admin_delivered_escrows()`), `supabase/
+functions/cron-auto-settle/index.ts` (new), `supabase/functions/escrow-skip-timer/index.ts` (new),
+`supabase/functions/_shared/domain/schemas/escrow.ts` (`AutoSettleResult`, `SkipTimerInput`,
+`SkipTimerResult`), `supabase/config.toml` (both functions' blocks), `supabase/tests/
+auto_settle.sql` (new, 6 checks - the schedule + `admin_delivered_escrows()`), `app/src/lib/
+countdown.ts` (new, pure `formatCountdown()`), `app/src/components/money/Countdown.tsx` (new),
+`app/src/services/deals.ts` (`autoReleaseAt` on both `DealView` and `BuyerDealView`), `app/src/
+services/escrow.ts` (`useDeliveredEscrows`, `useSkipTimer`), `app/src/routes/admin/
+AdminEscrowsPage.tsx` (new), `app/src/routes/admin/AdminHome.tsx` (link card), `app/src/routes/
+farmer/LotDetailPage.tsx` (`DELIVERED` branch on the Sold card + Countdown), `app/src/routes/buyer/
+BuyerDealPage.tsx` (Countdown on the locked card), `app/src/app/router.tsx` (`/admin/escrows`),
+`app/src/lib/errors.ts` (`DEMO_ONLY` → `errors.demoOnly`), `scripts/set-key.sh` (`DEMO_MODE` added
+to `KEYS` - it was already in `supabase/functions/.env.example` but never wired up), `app/src/
+locales/{en,hi,mr}.json` (`countdown.*`, `lots.deal.delivered`, `escrowAdmin.*`, `errors.demoOnly`),
+`app/tests/unit/countdown.test.ts`, `app/tests/unit/domain/schemas/escrow.test.ts` (new),
+`app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts` (regenerated),
+`SPEC.md` §5.2/§8.2 (the `escrow-skip-timer`/`cron-auto-settle` rows, the `trigger_cron_*()` helper
+shape, a stale "4.9's cron-auto-settle too once built" note fixed to say it's built).
+
+**Mocked:** nothing new - every release still goes through 4.8's Cashfree mock `releaseSplit()`.
+`DEMO_MODE` itself isn't set on `cropket-dev` yet, so `escrow-skip-timer` returns `DEMO_ONLY` for
+every call today - see the 🔑 Keys block below.
+
+**How to test by hand:** drive a deal to `DELIVERED` (4.7/4.8's own steps). The farmer's lot page and
+the buyer's deal page both show a ticking "Auto-release in HH:MM:SS" card. Once `DEMO_MODE=true` is
+set, an admin opens `/admin/escrows`, sees the same order with its own countdown, and taps "Skip
+timer" - both other screens flip to the green "Money received" / "Paid to the farmer" cards on their
+next refetch, same as a correct OTP would show. Without `DEMO_MODE`, the same button shows "This only
+works in demo mode." and changes nothing.
+
+**Verified live against `cropket-dev`, not just SQL/unit tests:**
+- `cron-auto-settle`: no-auth and wrong-secret both `401`. Forced one leftover `DELIVERED` test
+  escrow's `auto_release_at` into the past (direct SQL, not through the app - this escrow was
+  already leftover test data from 4.8's own hand-testing) and called the real deployed function -
+  `{"released":1,"failed":0}`, and `escrow_events` confirmed `DELIVERED → RELEASED` reason `"timer"`
+  with a correct `payouts` split and a green Khata row, not just a `200`.
+- `escrow-skip-timer`: real admin (`9090910003`/`910003`) and real farmer (`9090910001`/`910001`)
+  sessions via phone OTP (not service-role calls) - admin with `DEMO_MODE` unset → `403 DEMO_ONLY`;
+  farmer → `403 FORBIDDEN` (the role check runs before the `DEMO_MODE` check, so a non-admin can't
+  even discover whether demo mode is on).
+- `admin_delivered_escrows()`: called as the real admin session over PostgREST (the same path the
+  app's own `supabase.rpc()` uses) - correctly returned the one real remaining `DELIVERED` escrow in
+  `cropket-dev` (`L-TESTMAN2`) with its `auto_release_at`.
+- All test rows and forced-timestamp changes left in a real, correct final state (not cleaned up
+  back to their prior state) - the forced escrow is now genuinely `RELEASED`, which is what its
+  timer would have done on its own by 2026-09-24 02:15 UTC anyway.
+
+**Not verified - no browser tool available this session:** the actual rendered Countdown (ticking
+clock, haldi styling, 360 px layout) and the `/admin/escrows` list/button were not opened in a
+browser. Playwright isn't installed yet (that's 5.2, out of scope here) and no `claude-in-chrome` /
+built-in-browser tool was available in this session to check with, so I did not add a screenshot-
+based check rather than skip it silently. Everything reachable without a browser was checked:
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass (344 tests, 12 new), the full SQL
+suite is green (23 files, 1 new), and the render logic (which branch shows which text, the `autoReleaseAt`
+null-guard before `Countdown` renders) was read carefully rather than just written. **Worth an actual
+screen check (English, Hindi, Marathi, 360 px) before the next demo.**
+
+**Next / known gaps:**
+- 🔑 **`DEMO_MODE` needs to be set** before Skip timer works: `bash scripts/set-key.sh DEMO_MODE`
+  (type `true`), then push secrets. Until then `escrow-skip-timer` always returns `DEMO_ONLY` - the
+  cron-based 24h release still works either way.
+- No actual browser check yet - see above.
+- Mega-lot release still isn't built (unchanged gap from 4.8) - `cron-auto-settle` would log
+  `NOT_IMPLEMENTED mega_lot_deal` every 15 minutes for a mega-lot deal that somehow reached
+  `DELIVERED`, same as the OTP path already does; none has yet.
+- This is the **last P0 escrow/Khata item** - Phase 4 is done. **Next item: 5.1** full seed
+  (`SPEC.md` §8.6 numbers) + `demo-reset.ts`.
 

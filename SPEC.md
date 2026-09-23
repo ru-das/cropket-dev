@@ -1332,7 +1332,7 @@ Rules:
 | `DEMO_MODE` | `escrow-skip-timer`, demo reset |
 | `AI_SERVICE_URL`, `AI_SERVICE_KEY` | `grade`, `trip` |
 | `DATA_GOV_API_KEY`, `AGMARKNET_RESOURCE_ID` | `cron-fetch-prices` |
-| `CASHFREE_ENV` (`sandbox`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION` | `escrow-pay`, `cashfree-webhook`, `trip` (via `_shared/release.ts`, 4.9's `cron-auto-settle` too once built) |
+| `CASHFREE_ENV` (`sandbox`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION` | `escrow-pay`, `cashfree-webhook`, `trip`, `cron-auto-settle`, `escrow-skip-timer` (all via `_shared/release.ts`) |
 | `ORS_API_KEY` | `route-distance` |
 | `DIGILOCKER_API_KEY` | `kyc-verify` |
 | `MAPPLS_CLIENT_ID`, `MAPPLS_CLIENT_SECRET` | optional maps adapter |
