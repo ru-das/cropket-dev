@@ -435,3 +435,11 @@ import_map = "./functions/deno.json"
 [functions.kyc-verify]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.escrow-pay]
+verify_jwt = false
+import_map = "./functions/deno.json"
+
+[functions.cashfree-webhook]
+verify_jwt = false
+import_map = "./functions/deno.json"

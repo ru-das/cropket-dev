@@ -100,11 +100,14 @@ for dir in "$FUNCTIONS_DIR"/*/; do
     fi
   fi
 
-  # POST with no Authorization: must be rejected by the FUNCTION's own auth
-  # (UNAUTHENTICATED), not waved through by a gateway that still trusts a
-  # missing/placeholder JWT.
+  # POST with no Authorization: must be rejected by the FUNCTION's own auth,
+  # not waved through by a gateway that still trusts a missing/placeholder
+  # JWT. requireRole()/requireCronSecret() both return UNAUTHENTICATED;
+  # cashfree-webhook has no JWT or cron secret at all, only a signature
+  # (verifyWebhook), so its own-auth code is WEBHOOK_SIGNATURE_INVALID -
+  # still proof its own check ran, just a more specific one.
   body="$(curl -s -X POST "$url" -H 'content-type: application/json' -d '{}' 2>/dev/null || true)"
-  if printf '%s' "$body" | grep -q '"code":"UNAUTHENTICATED"'; then
+  if printf '%s' "$body" | grep -qE '"code":"(UNAUTHENTICATED|WEBHOOK_SIGNATURE_INVALID)"'; then
     echo "✅ $name — rejects a call with no Authorization (own auth ran)"
   else
     echo "❌ $name — a call with no Authorization did not come back UNAUTHENTICATED: $body"
