@@ -1006,6 +1006,10 @@ export type Database = {
           nearby_lot_tonnes: number
         }[]
       }
+      mark_dispatched: {
+        Args: { p_escrow_id: string }
+        Returns: Database["public"]["Enums"]["escrow_state"]
+      }
       place_bid: {
         Args: {
           p_price_per_quintal_paise: number
