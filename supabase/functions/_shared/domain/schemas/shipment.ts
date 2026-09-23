@@ -2,6 +2,7 @@
 // §5.4, §5.6, §9.2 Phase 4 "4.7"). Pure TypeScript + zod only (CLAUDE.md
 // §4 "shared domain code"), same shape as escrow.ts.
 import { z } from "zod";
+import { Crop } from "../crops.ts";
 
 // Same 10-digit Indian mobile shape the `shipments.driver_phone` check
 // constraint already enforces (20260923220000_shipments.sql) - checked
@@ -37,7 +38,7 @@ export type ShipmentCreateResult = z.infer<typeof ShipmentCreateResult>;
 // buyer_deals() withholds the farmer's phone).
 export const TripStateResult = z.object({
   vehicleNumber: z.string(),
-  crop: z.string(),
+  crop: Crop,
   quantityKg: z.number().int().positive(),
   state: z.string(),
 });

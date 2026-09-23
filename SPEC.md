@@ -344,7 +344,7 @@ cropket/
 | `/salvage` | buyer | online |
 | `/admin`, `/admin/disputes`, `/admin/users`, `/admin/kyc`, `/admin/loan-leads` | admin, nbfc | online |
 | `/kiosk` | kiosk operator | online |
-| `/t/:token` | driver (no login) | photos and GPS queue offline; OTP needs internet |
+| `/t/:token` | driver (no login) | needs internet for both steps in the prototype (4.7) - no offline `tripQueue` yet, so the delivery photo and the code both need a connection; §5.8's offline-photo/GPS-queue design is still the target once Phase 5 builds it |
 
 ### 3.2 Where logic lives (rules)
 1. **Pure calculations** (money, splits, Net-₹, advice, heat colour, floor) → `_shared/domain/`, imported by both the app and the functions.
@@ -926,7 +926,7 @@ Draft item:  dashed border + tag               "On phone only"
 | `escrow_transition` | service role only | see 5.7 | `escrows` row | The only way escrow state changes. |
 | `fund_escrow` | service role only | `cashfree_order_id, payment_ref, amount_paise` | `escrows` row | CREATED → FUNDED via `escrow_transition`; writes the farmer's first Khata 🟡 row in the same transaction. Idempotent on order id; fails closed on an amount mismatch. |
 | `buyer_deals` | verified/unverified buyer (own) | — | rows: deal + escrow state + lot summary | `security definer` + `auth.uid()`, not a `lots`/`deals` RLS policy — a `lots` policy reading `deals` back would recurse into `deals_select_party`. |
-| `record_otp_attempt` | service role only | `escrow_id, correct` | tries left (int) | Escrow must be `DELIVERED`. 5 wrong tries locks it (`OTP_LOCKED`). Called by `trip`'s `POST /otp` (§5.4), which then calls `escrow-release` on a correct guess. |
+| `record_otp_attempt` | service role only | `escrow_id, correct` | tries left (int) | Escrow must be `DELIVERED`. 5 wrong tries locks it (`OTP_LOCKED`). Called by `trip`'s `POST /otp` (§5.4, 4.7) - `escrow-release` on a correct guess is 4.8, not built yet. |
 | `nearest_cold_storages` | service role | `lat, lng, limit` | rows with `distance_km` | PostGIS ordered by distance. |
 | `buyers_within` | service role | `lat, lng, km` | buyer ids | Used for flash-sale alerts. |
 
@@ -947,14 +947,14 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `delivery-code` | buyer | `escrow_id` | `{code}` | Recomputes the 4-digit delivery code (§5.6) with `OTP_PEPPER` — nothing is looked up. Refuses (`409`) unless the escrow is `FUNDED` or later. |
 | `escrow-release` | internal (other functions) | `escrow_id, reason` | `{state, payouts[]}` | Runs `split.ts`, sends split instructions, writes `payouts`, Khata 🟢 rows, push. |
 | `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{autoReleaseAt}` | Sets the timer to now. |
-| `shipments-create` | seller | `deal_id, transporter_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl}` | Makes a random 32-byte token, stores only its hash, expiry 72 h, sends SMS (mock). |
-| `trip` | driver (token in path) | sub-routes below | — | One function with a small router. Token check on every call. Returns no prices or phone numbers. |
-| ↳ `GET /trip/:token` | | — | `{trip, steps, lang}` | |
-| ↳ `POST /trip/:token/weigh` | | `type (origin/destination), photo_path` or `manual_kg` | `{plate, weightKg, confidence, plateMatches}` | Calls AI OCR. Wrong plate → error `PLATE_MISMATCH`. |
-| ↳ `POST /trip/:token/start` | | — | `{state}` | Needs an origin slip. → `IN_TRANSIT`. |
-| ↳ `POST /trip/:token/locations` | | `points[] {id, lat, lng, accuracy, at}` | `204` | Batch upload (works with the offline queue). Geofence check. |
-| ↳ `POST /trip/:token/pod` | | `photo_path, lat, lng, taken_at` | `{state, autoReleaseAt}` | → `DELIVERED`; timer = server time + 24 h. |
-| ↳ `POST /trip/:token/otp` | | `otp` | `{state}` or `{code, triesLeft}` | Correct → `escrow-release`. 5 wrong → locked, admin alerted. |
+| `shipments-create` | seller | `deal_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl, source: "mock"}` | Makes a random 32-byte token, stores only its hash (`shipments.trip_token_hash`), expiry 72 h. No `transporter_id` in the prototype (no transporter picker, P1) and no SMS is sent - the link is returned once, in this response, shown on the seller's own screen (§9.5). A repeat call for the same deal rotates the token (new hash, old link stops working) - the seller's own "Make a new link" (4.7). |
+| `trip` | driver (token in path) | sub-routes below | — | One function with a small router. Token check on every call (hash the path token, look up `shipments`, `token_expires_at > now()` - same error, `TRIP_NOT_FOUND`, for unknown and expired). Returns no prices or phone numbers. Built in the prototype: `GET`, `pod`, `otp` below - `weigh`/`start`/`locations` are Phase 5's full driver checklist (P1, §9.2), not built. |
+| ↳ `GET /trip/:token` | | — | `{vehicleNumber, crop, quantityKg, state}` | The driver page derives which step is active from `state` directly, instead of a separate `steps[]`/`lang` (the page uses `LanguageSwitch` like every other screen). |
+| ↳ `POST /trip/:token/weigh` (P1, Phase 5) | | `type (origin/destination), photo_path` or `manual_kg` | `{plate, weightKg, confidence, plateMatches}` | Calls AI OCR. Wrong plate → error `PLATE_MISMATCH`. Not built in the prototype. |
+| ↳ `POST /trip/:token/start` (P1, Phase 5) | | — | `{state}` | Needs an origin slip. → `IN_TRANSIT`. Not built in the prototype - `mark_dispatched()` (4.6) is what reaches `IN_TRANSIT` instead. |
+| ↳ `POST /trip/:token/locations` (P1, Phase 5) | | `points[] {id, lat, lng, accuracy, at}` | `204` | Batch upload (works with the offline queue). Geofence check. Not built in the prototype. |
+| ↳ `POST /trip/:token/pod` | | multipart: `photo` (jpeg, ≤ 1 MB), `lat?`, `lng?`, `takenAt` | `{state, autoReleaseAt}` | Uploads to the private `pod` bucket, then `record_pod()` (§5.3) → `DELIVERED`; timer = server time + 24 h. `lat`/`lng` are optional - a driver who denies GPS still delivers. No offline queue in the prototype (`ponytail:` comment in the function) - the photo needs internet, same as the code below. |
+| ↳ `POST /trip/:token/otp` | | `otp` | `{correct, triesLeft}` | Calls `record_otp_attempt()` (§5.3) with the derived code (§5.6) compared server-side. 5 wrong → `OTP_LOCKED` (409), which is also the "admin alerted" event. A correct guess only reports `correct: true` in the prototype - it does not yet call `escrow-release` (that wiring is 4.8). |
 | `disputes-create` | buyer / farmer | `deal_id, reason, crate_qrs[], photo_paths[]` | `{dispute_id, heldAmount}` | → `DISPUTED`, holds only the rejected crates' value, runs auto-checks (weight buffer, video frames, delivery photo), starts rescue. |
 | `storage-booking` | internal | `shipment_id` | `{booking}` | Nearest cold storage; pays from FPO wallet, then overdraft (mock). |
 | `dispute-resolve` | admin | `dispute_id, outcome, amounts?, strike_user_id?` | `{state}` | `release` / `refund` / `partial` + liability rules + strikes. |
@@ -1013,7 +1013,7 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 | `payouts` | id, escrow_id, to_user, amount_paise, type (farmer_share, driver_advance, driver_freight, emi, platform_fee, refund), status, provider_ref |
 | `khata_entries` | id, user_id, deal_id, amount_paise, colour, title_key, title_values (jsonb), created_at |
 | `transporters` | id, name, phone, rate_per_km_paise (seeded mock 3PL) |
-| `shipments` | id, deal_id, transporter_id, driver_phone, vehicle_number, trip_token_hash, token_expires_at, language, status, route_risk_score |
+| `shipments` | id, deal_id (unique), driver_phone, vehicle_number, trip_token_hash, token_expires_at, created_at, updated_at — no `transporter_id`/`status`/`route_risk_score`/`language` in the prototype (4.7): no transporter picker yet, the escrow's own state is the single source of truth for status, and the driver page uses `LanguageSwitch` instead of a stored language |
 | `tracking_points` | shipment_id, `location`, accuracy, recorded_at |
 | `weigh_slips` | shipment_id, type, photo_path, plate_read, weight_kg, confidence, manual |
 | `pods` | shipment_id, photo_path, `location`, taken_at |
@@ -1144,7 +1144,7 @@ Prototype scope (4.2): `splitRelease()` only implements steps 4–5, since nothi
 | Create lot drafts, print QR codes | Listing a lot for buyers |
 | Last saved prices, heat colours (as a list), advice, Net-₹ | Map tiles, fresh prices |
 | Last saved Khata, deals, lots | Live bids, accept bid, voice consent upload |
-| Driver: weighbridge photos, delivery photo, GPS points | Driver: OTP entry, trip start confirmation |
+| Driver: weighbridge photos, delivery photo, GPS points (target design; the prototype's `tripQueue` isn't built yet - 4.7's driver page needs internet for the delivery photo too, see §3.1) | Driver: OTP entry, trip start confirmation |
 | — | Payment, KYC, disputes, loans, consent changes |
 
 **Reads**
@@ -1648,7 +1648,7 @@ If time runs short, cut from the bottom of this list. Never cut P0.
 | Map | MapTiler if key is set, else `MandiList` | |
 | Buyer KYC | Mock (+ admin approve button) | |
 | Payments | **Mock Cashfree** | A "Pay (demo)" button simulates the paid webhook |
-| Driver link SMS | Mock | The link is shown on the seller's deal page and in admin |
+| Driver link SMS | Mock | No SMS is sent. The link is shown once, on the seller's own deal page, right after it's made (4.7) - not in admin |
 | Voice | Browser voice + a few hand-made clips (grades, sell/hold, Khata states) in `hi` and `mr` | `tts` function and `make-voice-clips.ts` later |
 | Push notifications | Skip | Screens update with Realtime |
 | Auto-release | `cron-auto-settle` + admin skip-timer | |

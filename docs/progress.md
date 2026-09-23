@@ -49,7 +49,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
 - [x] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
 - [x] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
-- [ ] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
+- [x] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
 - [ ] 4.8 `escrow-release` (split, payouts, Khata 🟢)
 - [ ] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
 
@@ -2671,4 +2671,134 @@ pnpm build` all pass. `impeccable detect app/src` - 0 anti-patterns.
   farmer's Khata/lot-detail both update on refetch/refocus, not live.
 - **Next item: 4.7** `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip`
   function + driver page `/t/:token` (delivery photo + OTP).
+
+### 4.7 `shipments` + `shipments-create` + `trip` + driver page `/t/:token` — 2026-09-23
+
+**What it does:** the P0 "simple driver page" (SPEC.md §4.16, §5.3, §5.4, §5.6, §5.7, §9.2 Phase 4
+"4.7") - the farmer's own way to get an `IN_TRANSIT` escrow moving, until Phase 5's full logistics
+exists. **Two steps, decided with the user (plan step):** 4.6's "Mark dispatched" button is
+unchanged; the blue "On the way" card on `LotDetailPage` now also shows `DriverLinkCard` - a small
+form (vehicle number + driver phone) → "Send link to driver". `shipments-create` (new Edge
+Function) makes a random 32-byte token, stores only its SHA-256 hash (`shipments.trip_token_hash`,
+`_shared/domain/tripToken.ts` - same "never store the secret itself" shape `deliveryOtp.ts` set for
+the delivery code), and returns the link. **Decided with the user: "show once + new link."** The
+link is shown exactly once, right in that response - `DriverLinkCard` never reads it back from
+anywhere, because there's nothing to read (only the hash exists). A reload shows "Driver link made
+for MH15AB1234" instead; "Make a new link" calls `shipments-create` again, which rotates the same
+row's token (old link stops working) via `upsert` on `deal_id`.
+
+The link opens `/t/:token` - `TripPage`, outside `RequireAuth`/`AppShell` (no login, no bottom
+nav), the driver's whole page. It calls only the new `trip` Edge Function, a small router keyed on
+the path after the function name (`trip/<token>` / `trip/<token>/pod` / `trip/<token>/otp`) -
+`supabase-js`'s `functions.invoke()` builds the URL as `${functionsUrl}/${name}` with no extra
+parsing, so `callFunction()` (`lib/callFunction.ts`) just needed an optional `method` added (for
+`trip`'s `GET`) and already passed a `FormData` body through untouched. Two steps in the prototype
+(SPEC §5.4 lists five - weigh/start/locations are Phase 5's full driver checklist, **P1**, out of
+scope, AGENTS.md "prototype scope"):
+1. `IN_TRANSIT` → reuses `SmartFrameCamera` (`shots={1}`) for a delivery photo. `trip`'s `POST
+   /pod` uploads it to the new private `pod` bucket, then calls `record_pod()` (new SQL function,
+   same "one function, one transaction" shape `fund_escrow()`/`mark_dispatched()` use):
+   `IN_TRANSIT → DELIVERED`, sets `auto_release_at` (via `escrow_transition()`), writes one `pods`
+   row and one 🟡 `khata.deliveredLocked` Khata row (still yellow - the money is still locked,
+   just waiting on the code/timer instead of the truck. `khata_colour` has no fourth shade for
+   "delivered", so yellow is reused on purpose, not a new enum value for one row shape).
+2. `DELIVERED` → a 4-digit code entry. `trip`'s `POST /otp` recomputes `deliveryOtp(OTP_PEPPER,
+   escrowId)` (4.5) and compares it server-side, then calls `record_otp_attempt()` (4.5, had no
+   caller until now) for the 5-try lock. A locked escrow (`OTP_LOCKED`) is 4.5's own deferred
+   "admin alerted" event, now real: `handle()`'s own log line fires it, no extra code needed.
+   **A correct guess only reports `{correct: true}` in the prototype - it does not call
+   `escrow-release` yet** (`ponytail:` comment in `trip/index.ts`'s own `handleOtp` - that wiring
+   is **4.8**, same as 4.9's 24 h timer will also reach `RELEASED` independently).
+
+**Also fixed (cross-cutting, found while building `trip`):** `_shared/http.ts`'s error-log line
+picked the function name from the URL's last path segment - fine for every function so far, but
+`trip` has extra path segments after its own name, and the last one is either the token itself (a
+`GET`) or `pod`/`otp` (any other call). Logging the token would have broken CLAUDE.md §5 "never
+log trip tokens". Fixed by anchoring on the `v1` segment instead (`fnNameFromUrl()`) - the real
+function name regardless of what follows it. Redeployed every function so the fix is live
+everywhere, not just `trip`.
+
+**Decided with the user (plan step): no `ALLOW_SIMPLE_DISPATCH`-style flag, no offline queue.**
+Both driver actions need internet in the prototype - there's no `tripQueue` (SPEC §5.8) yet, so a
+driver without signal sees a calm "needs internet" screen instead of a queued upload that would
+never send. `ponytail:` comments in `trip/index.ts` and the migration name the upgrade path
+(Dexie's `tripQueue` + a background sync runner, same shape `offline/outbox.ts` already has).
+
+**Files:** `supabase/migrations/20260923220000_shipments.sql` (new - `shipments`, `pods`, `pod`
+bucket, `record_pod()`), `supabase/tests/shipments.sql` (new, 18 checks), `supabase/functions/
+_shared/domain/tripToken.ts` (new, pure), `supabase/functions/_shared/domain/schemas/shipment.ts`
+(new - `ShipmentCreateInput/Result`, `TripStateResult`, `PodInput/Result`,
+`OtpSubmitInput/Result`), `supabase/functions/shipments-create/index.ts` (new),
+`supabase/functions/trip/index.ts` (new - the router, `record_pod`/`record_otp_attempt` callers),
+`supabase/functions/_shared/http.ts` (`fnNameFromUrl()` fix), `supabase/config.toml`
+(`shipments-create`/`trip` blocks), `scripts/check-functions.sh` (`TRIP_NOT_FOUND` accepted as
+`trip`'s own-auth-ran code), `scripts/set-key.sh` (`APP_URL` added to `KEYS`), `app/src/lib/
+callFunction.ts` (optional `method`, `FormData` body type), `app/src/lib/errors.ts`
+(`DEAL_NOT_FOUND`/`TRIP_NOT_FOUND`/`OTP_LOCKED`), `app/src/services/shipments.ts` (new -
+`useShipmentForDeal()`, `useCreateShipment()`), `app/src/services/trip.ts` (new - `useTrip()`,
+`useUploadPod()`, `useSubmitOtp()`), `app/src/components/logistics/DriverLinkCard.tsx` (new),
+`app/src/routes/trip/TripPage.tsx` (new), `app/src/routes/farmer/LotDetailPage.tsx`
+(`DriverLinkCard` under the blue card), `app/src/services/khata.ts` (`khata.deliveredLocked` added
+to `KHATA_TITLE_KEYS`), `app/src/app/router.tsx` (`/t/:token`, outside `RequireAuth`),
+`app/src/locales/{en,hi,mr}.json` (`lots.deal.driverLink*`, `khata.deliveredLocked`, `trip.*`, 3
+error keys), `app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts`
+(regenerated), `SPEC.md` §3.1/§5.4/§5.6/§5.8/§9.5 (document what's actually built vs. Phase 5's
+full checklist, the derived-not-stored token, "show once + rotate", no offline queue yet).
+**Mocked:** SMS - never sent; the link is shown once, on the farmer's own screen, with a
+`DemoDataTag` and a line saying to share it themselves (call/WhatsApp/read it out).
+**Real:** everything else - the token, its hash, the delivery photo upload, the OTP check against
+the real derived code, the 5-try lock, verified against `cropket-dev` end-to-end by hand with
+`curl` (see below) since the driver page has no login to script through with a test-OTP JWT.
+**How to test by hand:** as farmer `9090910001` with an `IN_TRANSIT` deal (dispatch one with 4.6's
+button first), open the lot - a neel "Send a link to the driver" card shows under the blue "On the
+way" card; enter a vehicle number and phone, tap "Send link to driver" - the real link shows once
+with Copy/Share and a "Demo data" tag. Open that link in a private window (no login) - a full-
+screen camera (like Scan crop) with the vehicle number and crop/kg in the header; take a photo -
+the page moves to "Enter the buyer's code". As buyer `9090910002`, read the code from the deal
+page's `OtpDigits` card; type a wrong code on the driver page - "Wrong code, 4 tries left"; the
+right code - "Code correct ✅". Back on the farmer's Khata, the deal's row now reads "Delivered,
+money still locked" (still 🟡). "Make a new link" on the farmer's card replaces the link; the old
+one now shows "This link has expired or is not valid." Checked at 360 px in English, Hindi and
+Marathi (the driver page has its own `LanguageSwitch`, no login needed to change it).
+**Tests:** `supabase/tests/shipments.sql` (18/18 - seller-only read, `trip_token_hash` not
+selectable even to the seller, no client insert, `record_pod` moves `IN_TRANSIT → DELIVERED`, sets
+`auto_release_at` to ~24 h out, one `pods` row, one event, one yellow Khata row, idempotent repeat,
+a `FUNDED` escrow refused, an unknown shipment id refused, only `service_role` may call it). `bash
+scripts/test-sql.sh` - full suite green, 21/21 files. `app/tests/unit/domain/tripToken.test.ts`
+(5/5 - 43-char base64url shape, never repeats, a known sha256 vector, always 64 hex chars,
+deterministic). `app/tests/unit/domain/schemas/shipment.test.ts` (10/10 - vehicle number
+normalises spaced/hyphenated input and rejects a bad shape, phone rejects a bad first digit and
+wrong length, OTP input accepts only 4 digits). `pnpm lint && pnpm typecheck && pnpm test` (330
+tests, 15 new) `&& pnpm build` all pass. `impeccable detect app/src` - 0 anti-patterns. Deployed
+`shipments-create` and `trip` to `cropket-dev` (redeployed every function for the `http.ts` log
+fix); `bash scripts/check-functions.sh` passes both, live. Verified by hand with `curl` end-to-end
+through the real flow (`place_bid` → `accept_bid` → `escrow-pay` → `mark_dispatched` →
+`shipments-create` → `trip` GET/pod/otp, using real farmer/buyer JWTs from the test-OTP endpoints):
+`shipments-create` bad input → 400, buyer JWT → 403, unknown deal → `DEAL_NOT_FOUND`, a `FUNDED`
+(not yet dispatched) escrow → `ESCROW_WRONG_STATE`, a repeat call rotates the token; `trip`'s GET
+reflects the true escrow state, `POST /pod` with a real JPEG moves it to `DELIVERED`, `POST /otp`
+counts down `triesLeft` on 5 wrong tries then returns `OTP_LOCKED` and stays locked, an unknown
+token → `TRIP_NOT_FOUND`.
+**Next / known gaps:**
+- **A correct code doesn't release money yet** - `trip`'s `POST /otp` only reports `correct: true`
+  today. **4.8** (`escrow-release`) is what a correct guess (and 4.9's 24 h timer) will actually
+  call next.
+- No transporter picker (`transporters` table, seeded in 2.1, still unused) - the farmer types the
+  driver's phone and vehicle number by hand. Phase 5 (P1) adds truck booking from it.
+- No admin view of the driver link - decided with the user (plan step); SPEC §9.5 updated to match.
+  If it's ever needed, `shipments`' own `shipments_select_seller` RLS policy would need an admin
+  policy alongside it, same shape `buyer_kyc`'s admin approve flow already has.
+- No offline `tripQueue` - both driver actions need internet in the prototype (see "Decided with
+  the user" above). A driver with no signal sees a calm message, not a queued upload.
+- `SmartFrameCamera` is reused as-is for the delivery photo - its own copy ("Scan onion", the ₹10
+  coin hint) is farmer-scan wording that doesn't quite fit a delivery photo. A driver-specific
+  camera variant is a nice-to-have, not P0 - the dark-photo guard and ≤ 300 KB compression it gives
+  for free were worth the mismatched copy for a prototype.
+- No Realtime on the trip/escrow state - unchanged gap from 4.3-4.6; the driver page refetches
+  after each upload rather than updating live, and the farmer's own screens still need a manual
+  refresh to see "Delivered" appear.
+- Vehicle number validation is a generic Indian-plate shape (2 letters + 1-2 digits + 1-3 letters +
+  4 digits), not a real RTO registry check - it only needs to catch a typo before the link goes to
+  a stranger's phone.
+- **Next item: 4.8** `escrow-release` (split, payouts, Khata 🟢).
 

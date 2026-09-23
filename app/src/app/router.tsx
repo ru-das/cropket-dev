@@ -26,6 +26,7 @@ import KycPage from "@/routes/buyer/KycPage";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
 import AdminKycPage from "@/routes/admin/AdminKycPage";
+import TripPage from "@/routes/trip/TripPage";
 
 export default function AppRouter() {
   return (
@@ -33,6 +34,10 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/login" element={<LoginPage />} />
+        {/* The driver's page (SPEC.md §3.1, §4.16) - no login, no AppShell
+            (no bottom nav, no header - the token in the URL is the only
+            credential, CLAUDE.md §3). */}
+        <Route path="/t/:token" element={<TripPage />} />
 
         <Route element={<RequireAuth />}>
           <Route path="/onboarding" element={<OnboardingPage />} />

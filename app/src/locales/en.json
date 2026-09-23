@@ -388,6 +388,19 @@
     "empty": "No money entries yet. Sell a lot to see it here.",
     "emptyAction": "Go to my lots"
   },
+  "trip": {
+    "expired": "This link has expired or is not valid. Ask the farmer for a new one.",
+    "needsInternetLoad": "No internet. This page needs internet to open.",
+    "needsInternetPhoto": "No internet. You need internet to send the delivery photo.",
+    "needsInternet": "Needs internet",
+    "podStep": "{{kg}} kg {{crop}} - take a photo of the unloaded goods",
+    "otpStep": "{{kg}} kg {{crop}} - ask the buyer for their code",
+    "enterCode": "Enter the buyer's code",
+    "submitCode": "Submit code",
+    "codeCorrect": "Code correct",
+    "codeWrong": "Wrong code. {{n}} tries left.",
+    "done": "Delivery done. Thank you!"
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…",

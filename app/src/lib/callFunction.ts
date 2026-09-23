@@ -8,14 +8,23 @@ import { AppError } from "@/lib/errors";
 
 type FunctionReply<T> = { ok: true; data: T } | { ok: false; error: { code: string } };
 
-/** Calls an Edge Function by name and returns its `data`, or throws an AppError. */
-export async function callFunction<T>(name: string, body: unknown): Promise<T> {
+/**
+ * Calls an Edge Function by name and returns its `data`, or throws an
+ * AppError. `name` can carry extra path segments (`trip/${token}/pod`,
+ * 4.7) - supabase-js's invoke() builds the URL as `${functionsUrl}/${name}`
+ * with no extra parsing, so this needs no change to support that.
+ * `method` defaults to POST; `trip`'s GET /trip/:token (4.7) is the first
+ * caller that needs GET.
+ */
+export async function callFunction<T>(name: string, body?: unknown, method?: "GET" | "POST"): Promise<T> {
   // The caller already validated `body` with a zod schema (CLAUDE.md §5.2
   // "Every input is validated with zod") - it's always a plain JSON object
-  // by the time it gets here, just not typed as one, since callFunction
-  // itself has no schema to check it against.
+  // (or FormData, for `trip`'s photo upload) by the time it gets here, just
+  // not typed as one, since callFunction itself has no schema to check it
+  // against.
   const { data, error, response } = await supabase.functions.invoke<FunctionReply<T>>(name, {
-    body: body as Record<string, unknown>,
+    body: body as Record<string, unknown> | FormData | undefined,
+    method,
   });
 
   if (error) {
