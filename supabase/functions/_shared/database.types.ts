@@ -290,6 +290,7 @@ export type Database = {
           deal_id: string
           delivered_at: string | null
           id: string
+          otp_tries: number
           state: Database["public"]["Enums"]["escrow_state"]
           total_paise: number
           updated_at: string
@@ -301,6 +302,7 @@ export type Database = {
           deal_id: string
           delivered_at?: string | null
           id?: string
+          otp_tries?: number
           state?: Database["public"]["Enums"]["escrow_state"]
           total_paise: number
           updated_at?: string
@@ -312,6 +314,7 @@ export type Database = {
           deal_id?: string
           delivered_at?: string | null
           id?: string
+          otp_tries?: number
           state?: Database["public"]["Enums"]["escrow_state"]
           total_paise?: number
           updated_at?: string
@@ -946,6 +949,7 @@ export type Database = {
           deal_id: string
           delivered_at: string | null
           id: string
+          otp_tries: number
           state: Database["public"]["Enums"]["escrow_state"]
           total_paise: number
           updated_at: string
@@ -970,6 +974,7 @@ export type Database = {
           deal_id: string
           delivered_at: string | null
           id: string
+          otp_tries: number
           state: Database["public"]["Enums"]["escrow_state"]
           total_paise: number
           updated_at: string
@@ -1012,6 +1017,10 @@ export type Database = {
           bid_id: string
           is_highest: boolean
         }[]
+      }
+      record_otp_attempt: {
+        Args: { p_correct: boolean; p_escrow: string }
+        Returns: number
       }
       trigger_cron_fetch_prices: { Args: never; Returns: number }
     }
