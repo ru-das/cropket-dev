@@ -55,7 +55,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 
 ## M5 — Demo ready
 - [x] 5.1 Full seed (`SPEC.md` §8.6 numbers, only the M0–M4 parts) + `demo-reset.ts`
-- [ ] 5.2 One Playwright happy path (`app/tests/e2e/core-flow.spec.ts`)
+- [x] 5.2 One Playwright happy path (`app/tests/e2e/core-flow.spec.ts`)
 - [ ] 5.3 Deploy: functions + secrets, AI service to Hugging Face Spaces, web to Vercel
 - [ ] 5.4 Capacitor debug APK; opens in airplane mode
 - [ ] 5.5 Real phone test (360 px, Hindi + Marathi, Slow 3G, airplane-mode scan then sync)
@@ -3116,3 +3116,91 @@ untouched by this item).
   outstanding — running it needed a permission this session's auto mode wouldn't grant for a
   shared-resource write. Ask to run it (or run it yourself), then add the 4 test numbers above.
 - Next item: 5.2 One Playwright happy path (`app/tests/e2e/core-flow.spec.ts`).
+
+### 5.2 One Playwright happy path — 2026-09-23
+
+**What it does:** the P0 "Done when" check (SPEC.md §9.2 Phase 9, §9.5, AGENTS.md §6) - one
+Playwright test that drives the real app (`pnpm dev`) against real `cropket-dev` end to end: scan
+crop → grade → create lot → list → buyer bids → farmer accepts with voice consent → buyer pays
+(mock Cashfree) → farmer marks dispatched → driver link → driver delivery photo + buyer's code →
+Khata turns green → lot shows "Money received". Three browser contexts stand in for the three
+screens (farmer 360px, buyer desktop, driver 360px no-login). Decided with the user (plan step):
+farmer **9090910010**/910010, buyer **9090920001**/920001 (not the M5 demo accounts, so nothing
+about this test touches `demo-reset`'s own data), everything online (5.5 covers the offline scan on
+a real phone). `tests/e2e/global-setup.ts` + `accounts.sql` make both accounts ready before every
+run (idempotent - creates the farmer's `auth.users` row via the Admin API if missing, upserts both
+profiles + the buyer's `buyer_kyc` as verified).
+
+**Two real bugs found and fixed while building this test, not guessed - both explain why the app
+can show yesterday's state after a reload, not just an e2e quirk:**
+
+1. **`insertLot()` (`services/lots.ts`) raced its own outbox row's deletion.** It called
+   `queryClient.invalidateQueries()` *before* `offline/sync.ts`'s `sendOne()` deleted the now-sent
+   `create_lot` outbox row - so the refetch that invalidate triggers could still see that row and
+   re-cache the "pending" view, even though the lot had already synced. Confirmed live (not
+   guessed): the server row existed while the UI still said "On phone only" with no "Sell on
+   Cropket" button, unchanged even after a reload, because that wrong result gets *persisted* to
+   IndexedDB (`offline/persist.ts`) and treated as fresh for `staleTime` (5 min). **Fixed** with a
+   new `dequeue(id)` in `offline/outbox.ts` (`offline/sync.ts`'s own `sendOne()` still deletes the
+   row too, harmlessly - Dexie's delete on a missing key is a no-op) that `insertLot()` calls
+   *before* invalidating. No test was added for this specific ordering - like every other
+   `services/*.ts` function in this codebase, it's exercised by hand-testing and this e2e test, not
+   a unit test (the project's own testing scope keeps `services/*` off the required-unit-test list;
+   `fake-indexeddb` was deliberately left out before, per 1.6's handoff note, for the same reason).
+2. **A reload/goto after another browser context changes server state can show the *old* cached
+   result, not a fresh one**, because the persisted query cache survives the reload and `staleTime`
+   (5 min) + `refetchOnWindowFocus: false` mean nothing re-fetches on its own. This isn't new - it's
+   the same gap several earlier milestones already flagged by name ("No Realtime on
+   `escrow:{dealId}`", 4.3 onward) - this test is just the first thing that actually reloads a page
+   after changing state on a *different* browser/tab and therefore the first thing to hit it.
+   **Not fixed in app code** (it would mean adding Realtime to several screens - a real feature,
+   out of this item's scope, flagged below). **Worked around in the test only**: a new
+   `clearPersistedCache()` helper empties Dexie's `cache` table (not `localStorage`, so the login
+   session survives) before the three reload/goto calls that need to see a change made by a
+   different actor (buyer's `/buyer` revisit, farmer's reload before "Mark dispatched", farmer's
+   final lot revisit). Also swapped one `farmer.goto()` for clicking the real "Offers (N)" link -
+   the farmer's own tab had been sitting on the lot page the whole time the buyer bid, so its
+   `useLotBidsRealtime` subscription already had the fresh count in memory; a `goto()` there would
+   have thrown that away for no reason.
+
+**Files:** `app/playwright.config.ts` (new - chromium only, fake camera/mic flags, Niphad
+geolocation, `webServer: pnpm dev`), `app/tests/e2e/global-setup.ts` + `accounts.sql` (new),
+`app/tests/e2e/core-flow.spec.ts` (new), `app/tsconfig.app.json` (excludes `tests/e2e` - it's a
+Node/Playwright project, not the Vite app), `app/tsconfig.node.json` (now also covers
+`playwright.config.ts` + `tests/e2e`, needs `resolveJsonModule` for `en.json` and `DOM` in `lib` for
+`page.evaluate()`'s browser-side callbacks), `app/src/offline/outbox.ts` (`dequeue()`, new),
+`app/src/services/lots.ts` (`insertLot()` calls it before invalidating), `app/package.json` /
+`pnpm-lock.yaml` (`+@playwright/test@1.63.0` dev dependency, asked first per AGENTS.md §0.6).
+**Mocked:** nothing new - Cashfree was already mocked server-side (`INTEGRATIONS_MOCK`/no
+`CASHFREE_SECRET_KEY`); the test's own camera/mic are Chromium's `--use-fake-device-for-media-stream`
+(real getUserMedia calls, fake hardware, not a code path change).
+**How to test by hand:** `cd app && pnpm test:e2e` (needs `scripts/.env` and the two test OTPs -
+910010 / 920001 - added in the Supabase dashboard, Auth → Phone → test OTPs). Runs end to end in
+under a minute once `APP_URL` is set (see 🔑 below); on failure,
+`pnpm exec playwright show-trace test-results/.../trace.zip` opens a full timeline with screenshots.
+Ran twice in a row to confirm `global-setup.ts` is idempotent.
+**Tests:** this item's own tests are the tests - `pnpm test:e2e` (1/1, twice in a row).
+`cd app && pnpm lint && pnpm typecheck && pnpm test` (344 tests, none new - see the "no unit test for
+dequeue()" note above) `&& pnpm build` all pass. No SQL/migration/AI-service file touched, so
+`test-sql.sh`/pytest don't apply.
+**Next / known gaps:**
+- 🔑 **`APP_URL` still needs to be set** (unchanged gap, first flagged in 4.8's handoff note) -
+  `shipments-create` throws `SETUP_MISSING_KEY` without it, which fails this test at "Send link to
+  driver". Set it before running: `bash scripts/set-key.sh APP_URL` (`http://localhost:5173` is fine
+  for now; the Vercel URL once 5.3 deploys), then push secrets. This test was verified end to end
+  with it set by hand for this session; without it, everything through "Mark dispatched" still
+  passes.
+- **The bigger of the two bugs above (no Realtime on several money/status screens) is still open** -
+  a real farmer/buyer who closes and reopens the app (not just this test's reload) can see a stale
+  state for up to 5 minutes after something changed on another device. `docs/progress.md`'s own
+  4.3-4.8 handoff notes already named this gap per screen; this item just adds the first concrete,
+  reproduced case. Worth a real look (Realtime channels on `escrow:{dealId}`/`deals:mine`, the shape
+  `bids.ts`'s `useLotBidsRealtime` already sets) before the next demo, not just before 5.6's practice
+  runs.
+- Not run against `cropket-demo` (doesn't exist yet, SPEC §8.3) or a deployed web build - only
+  `pnpm dev` locally, per this item's own scope.
+- Each run leaves one `RELEASED` lot/deal/escrow for these two accounts in `cropket-dev` (a real,
+  final state - no cleanup code, same call 2.1's ORS hand-test and 4.8's hand-test both made).
+- Not in `ci.yml` - it needs `cropket-dev` + test OTPs + `scripts/.env`, same reason the SQL tests
+  aren't in CI either (SPEC §8.4 "prototype").
+- **Next item: 5.3** Deploy: functions + secrets, AI service to Hugging Face Spaces, web to Vercel.

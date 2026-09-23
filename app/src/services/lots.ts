@@ -12,7 +12,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toAppError, AppError } from "@/lib/errors";
 import { db } from "@/offline/db";
-import { enqueue, useOutboxStatus } from "@/offline/outbox";
+import { dequeue, enqueue, useOutboxStatus } from "@/offline/outbox";
 import { queryClient } from "@/offline/persist";
 import { LotInput } from "@shared/schemas/lot.ts";
 import { toPointWKT, type LatLng } from "@shared/geo.ts";
@@ -195,6 +195,16 @@ export async function insertLot(payload: unknown): Promise<void> {
     { onConflict: "id", ignoreDuplicates: true },
   );
   if (error) throw toAppError(error);
+
+  // Delete this job's own outbox row *before* invalidating - getLot()
+  // checks db.outbox.get(id) first, so invalidating first (the order
+  // offline/sync.ts's sendOne() would leave this in on its own, since it
+  // only deletes after this function returns) would read this same
+  // still-present "sending" row and re-cache the pending view, which
+  // staleTime (5 min) then keeps around - reload or not - long after the
+  // real sync finished (offline/outbox.ts's dequeue() comment has the
+  // full story; found building the 5.2 e2e test).
+  await dequeue(input.id);
 
   // Moves the lot from "On phone only" to a real row with no reload - the
   // query client's staleTime (5 min) and refetchOnWindowFocus (off) mean

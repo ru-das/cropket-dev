@@ -104,6 +104,26 @@ export async function enqueue(
   await refreshOutboxSnapshot();
 }
 
+/**
+ * Removes a job the caller already knows is done. offline/sync.ts's own
+ * sendOne() already deletes a handler's item once the handler returns - but
+ * a handler (e.g. services/lots.ts's insertLot()) that reads the outbox
+ * inside its OWN follow-up query (a "is this id still queued?" read, the
+ * shape services/lots.ts's getLot() uses to show a lot before it's synced)
+ * must call this itself, before that follow-up read, not rely on sendOne()'s
+ * later delete - otherwise the read (and anything it invalidates/persists)
+ * can still see the about-to-be-deleted row and cache a stale "still
+ * pending" result that outlives the real sync (found building the 5.2 e2e
+ * test - a lot could finish syncing yet stay stuck "On phone only" even
+ * after a reload, since the stale result was what got persisted). Safe to
+ * call before sendOne()'s own delete too - deleting a missing key is a
+ * Dexie no-op, not an error.
+ */
+export async function dequeue(id: string): Promise<void> {
+  await db.outbox.delete(id);
+  await refreshOutboxSnapshot();
+}
+
 // --- live outbox snapshot, for the header (SyncStatus) and the shared
 // "something needs attention" strip (SyncTrouble, milestone 1.7) ---
 
