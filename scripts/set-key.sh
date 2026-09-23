@@ -42,6 +42,7 @@ AI_SERVICE_URL|fn|no|Your AI service address (Hugging Face Space URL or cloudfla
 AI_SERVICE_KEY|fn|yes|Any long random string. Also saved as SERVICE_KEY in ai-service/.env
 DATA_GOV_API_KEY|fn|no|data.gov.in → sign up → My Account → API key. Without it: seeded prices only
 AGMARKNET_RESOURCE_ID|fn|no|data.gov.in → "Current Daily Price of Various Commodities…" dataset page → resource id
+APP_URL|fn|no|Your web app's address (Vercel URL or http://localhost:5173 in dev). Used to build the driver trip link (shipments-create). Without it: falls back to the calling request's Origin
 CASHFREE_APP_ID|fn|no|merchant.cashfree.com → switch to Test/Sandbox → Developers → API Keys. Without it: mock payments
 CASHFREE_SECRET_KEY|fn|no|Same page as CASHFREE_APP_ID
 ORS_API_KEY|fn|no|openrouteservice.org → sign up → Dashboard → API key. Without it: straight-line distance (demo)
