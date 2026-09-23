@@ -17,6 +17,7 @@ import BidsPage from "@/routes/farmer/BidsPage";
 import ConsentPage from "@/routes/farmer/ConsentPage";
 import ComparePage from "@/routes/farmer/ComparePage";
 import PricesPage from "@/routes/farmer/PricesPage";
+import KhataPage from "@/routes/farmer/KhataPage";
 import BuyerHome from "@/routes/buyer/BuyerHome";
 import BuyerLotDetailPage from "@/routes/buyer/BuyerLotDetailPage";
 import BuyerMegaLotDetailPage from "@/routes/buyer/BuyerMegaLotDetailPage";
@@ -25,7 +26,6 @@ import KycPage from "@/routes/buyer/KycPage";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
 import AdminKycPage from "@/routes/admin/AdminKycPage";
-import PlaceholderPage from "@/routes/PlaceholderPage";
 
 export default function AppRouter() {
   return (
@@ -49,7 +49,7 @@ export default function AppRouter() {
               <Route path="/farmer/scan" element={<ScanPage />} />
               <Route path="/farmer/scan/result/:id" element={<ScanResultPage />} />
               <Route path="/farmer/prices" element={<PricesPage />} />
-              <Route path="/farmer/khata" element={<PlaceholderPage titleKey="nav.khata" />} />
+              <Route path="/farmer/khata" element={<KhataPage />} />
               <Route path="/farmer/me" element={<MePage />} />
             </Route>
           </Route>

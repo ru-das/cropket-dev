@@ -350,7 +350,20 @@
     "statusLocked": "Money locked"
   },
   "khata": {
-    "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely"
+    "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely",
+    "receivedIn": "Received in {{month}}",
+    "locked": "Locked {{amount}}",
+    "onWay": "On the way: {{count}}",
+    "status": {
+      "yellow": "Money locked safely",
+      "blue": "On the way to buyer",
+      "green": "Received",
+      "red": "On hold"
+    },
+    "rowSpoken": "{{status}}, {{amount}}. {{title}}",
+    "summarySpoken": "Received in {{month}}, {{received}}. Locked, {{locked}}.",
+    "empty": "No money entries yet. Sell a lot to see it here.",
+    "emptyAction": "Go to my lots"
   },
   "common": {
     "comingSoon": "This screen is coming soon.",

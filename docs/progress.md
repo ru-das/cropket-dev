@@ -46,7 +46,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
 - [x] 4.2 `split.ts` + tests (100% branches, no paisa lost)
 - [x] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
-- [ ] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
+- [x] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
 - [ ] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
 - [ ] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
 - [ ] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
@@ -2497,4 +2497,58 @@ passes both (the pre-existing `ALLOWED_ORIGINS` CORS-origin gap on every functio
   gap: no FPO, no `/fpo/megalots` accept screen).
 - **Next item: 4.4** Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline) — the
   first thing that actually renders the `khata_entries` rows 4.3 starts writing.
+
+### 4.4 Khata screen — 2026-09-23
+
+**What it does:** the farmer's Digital Khata (SPEC.md §4.15, §9.2 Phase 4 "4.4"). `/farmer/khata`
+was still `PlaceholderPage` - it now shows the real passbook. `khata_entries` is append-only (a
+deal gets a 🟡 row at FUNDED today, and will get 🔵 at IN_TRANSIT (4.6) and 🟢 at RELEASED (4.8)
+later), so the screen doesn't just list every row - `summariseKhata()` (pure function) collapses
+the ledger to one row per deal (its latest entry, newest first) and computes the summary numbers:
+Locked = sum of deals still on their latest 🟡 row, On the way = count on 🔵, Received (this
+month) = sum of 🟢 rows dated in the current calendar month **in Asia/Kolkata**, not phone-local
+time (`Intl.DateTimeFormat` with `timeZone`, no date library). `KhataSummary` is the hero card
+("Received in September / ₹X / 🔒 Locked / 🚚 On the way"), `KhataRow` is one passbook line.
+**Decided with the user (plan step, not mid-build):** SPEC §6.4 / AGENTS.md §4 both say Khata rows
+use a 6 px left colour bar; `DESIGN.md`'s own precedence note overrides both for anything visual
+and its anti-pattern checklist explicitly forbids side-tab borders. Fixed the conflict in this
+change: `SPEC.md` §6.4 + its `KhataRow` component-table row, and `AGENTS.md` §4, now point at
+`DESIGN.md` instead of describing the bar. `KhataRow` uses a colour-tinted icon squircle (same
+pattern `BigTile`/`LotCard` already use) + status word + 🔊 instead - colour is still never the
+only signal.
+**Files:** `app/src/services/khata.ts` (new - `useMyKhata()`, `summariseKhata()`),
+`app/src/components/money/KhataSummary.tsx` (new), `app/src/components/money/KhataRow.tsx` (new),
+`app/src/routes/farmer/KhataPage.tsx` (new), `app/src/app/router.tsx` (`/farmer/khata` → real
+page), `app/src/routes/PlaceholderPage.tsx` (deleted - Khata was its last caller),
+`app/src/routes/farmer/LotDetailPage.tsx` (comment update only, no behaviour change),
+`app/src/locales/{en,hi,mr}.json` (`khata.*` keys), `app/tests/unit/services/khata.test.ts` (new),
+`SPEC.md` §6.4 + component table, `AGENTS.md` §4 (the DESIGN.md-precedence fix above).
+**Mocked:** nothing - reads real `khata_entries` rows through RLS `khata_select_own`, verified
+against `cropket-dev` data 4.3's own test already created.
+**How to test by hand:** as farmer `9090910001` with a deal already paid via 4.3's "Pay (demo)"
+button, open "Khata" from the bottom nav - shows one 🟡 row ("₹X - money locked safely"), the
+summary card reads "Locked ₹X" and "Received ₹0" (nothing released yet this month). A farmer with
+no deals sees the empty state with a link back to My lots. `pnpm build && pnpm preview`, open
+Khata once, then DevTools → Offline → reload → the same row still shows, with `DataAge` once the
+cache is older than 6 h. Checked at 360 px in English, Hindi and Marathi.
+**Tests:** `app/tests/unit/services/khata.test.ts` (4/4 - empty ledger, a deal's 🟡→🔵 rows
+collapse to one 🔵 row not counted as Locked, Locked sums only latest-🟡 rows across several
+deals, Received counts only this month's 🟢 rows with an IST month-boundary case). `pnpm lint &&
+pnpm typecheck && pnpm test` (310 tests, 4 new) `&& pnpm build` all pass. `impeccable detect
+app/src` - 0 anti-patterns. No SQL/migration/Edge Function touched, so `test-sql.sh`/pytest don't
+apply.
+**Next / known gaps:**
+- No buyer name on a row ("Sharma") - same gap 4.3's "Sold" card has; `business_name` sits behind
+  `buyer_kyc`'s select-own RLS. Upgrade path: reopen `fund_escrow()` to put the buyer's name into
+  `title_values` (small migration, same shape `accept_bid`'s reopens have used all along).
+- No `Countdown` ("Auto-release in…") on a row yet - only meaningful once DELIVERED sets
+  `auto_release_at`, which **4.9** builds.
+- No Realtime on `escrow:{dealId}` (SPEC §5.6) - the screen refetches on open/focus (TanStack
+  Query defaults) rather than updating live while it's open. Same gap 4.3 left open; still no
+  second screen forcing the decision.
+- "📄 Get statement" (SPEC §4.15) isn't built - P1, out of prototype scope.
+- Tapping a row does nothing - `khata_entries` carries a `deal_id`, not a `lot_id`, and there's no
+  farmer-facing deal detail page to link to yet (buyers have `BuyerDealPage`; farmers don't need
+  one until a screen has more to show than the Khata row itself already does).
+- **Next item: 4.5** Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`.
 

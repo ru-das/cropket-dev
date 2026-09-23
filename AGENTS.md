@@ -442,7 +442,7 @@ cropket/
 - Meaning colours are the same everywhere: 🟡 money locked · 🔵 on the way · 🟢 paid · 🔴 problem · 🟧 offline.
 - Primary tap targets ≥ 56 × 56 px, secondary ≥ 48 × 48 px. Body text 18 px. Works at 320 px width.
 - One main action per screen, at the bottom. Icon + word + 🔊 together. Never colour alone.
-- Cards: 1 px border, no shadow. Khata rows: 6 px left colour bar. No dark mode.
+- Cards: 1 px border, no shadow. No dark mode. Khata rows: see `DESIGN.md` (its precedence note overrides this line and `SPEC.md` §6.4 — no left colour bar, a tinted icon badge instead).
 - Inputs: label above, 56 px tall, `inputMode="numeric"` for numbers.
 - Plain words: "Money locked safely", not "Escrow funded". Buttons say what happens ("Save lot").
 - Advice says "may", never "will". Say "Assured grade", never "Certified grade". The floor price **warns, never blocks**.

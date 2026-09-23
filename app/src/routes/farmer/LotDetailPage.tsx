@@ -201,10 +201,10 @@ export default function LotDetailPage() {
           {/* Sold (3.6): no buyer name yet - see services/deals.ts DealView
               comment. 4.3 (Cashfree pay screen) is what moves the escrow
               past CREATED - until then this still reads "waiting for buyer
-              payment"; once FUNDED it shows the haldi "money locked" card,
-              the farmer's first 🟡 sighting of their own Khata state
-              (4.4 builds the actual Khata screen, reusing this same
-              escrowState field). */}
+              payment"; once FUNDED it shows the haldi "money locked" card.
+              4.4's Khata screen (/farmer/khata) shows the same 🟡 entry in
+              the full passbook, reading khata_entries directly rather than
+              this deal's escrowState. */}
           {lot.status === "sold" && deal && (
             <div
               className={

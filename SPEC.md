@@ -884,7 +884,7 @@ Draft item:  dashed border + tag               "On phone only"
 | `LiveBidBox` | `targetType`, `targetId`, `floor`, `canBid` | Subscribes to realtime bids; place-bid form. |
 | `BidRow` | `bid`, `onAccept`, `onReject` | Farmer side row with big buttons. |
 | `VerifiedBadge`, `TrustStars` | `verified`, `score` | Shown next to names everywhere. |
-| `KhataRow` | `entry: {colour, title, amount, dealId, createdAt}` | Left colour bar + icon + text + 🔊. |
+| `KhataRow` | `entry: {colour, title, amount, dealId, createdAt}` | Tinted icon badge (DESIGN.md, not a left colour bar) + text + 🔊. |
 | `KhataSummary` | `month`, `received`, `locked`, `inTransit` | Top summary. |
 | `Countdown` | `until: Date`, `label` | "Auto-release in 23:14:05". |
 | `OtpDigits` | `digits` | Big 4-box code (buyer). |
@@ -1268,7 +1268,7 @@ Dark mode: **not in scope.** Farmers use phones outdoors in sunlight; a high-con
 - Tap targets: **min 56 × 56 px** for primary, 48 × 48 for secondary. 8 px space between targets.
 - Radius by hierarchy (not one radius everywhere): buttons 12 px, cards 16 px, bottom sheets 24 px (top corners), badges full-round.
 - Elevation: cards use a 1 px `--line` border, **no shadow**. Only bottom sheets and the sticky action bar get a shadow (they float above content).
-- Khata rows and status strips use a **6 px left colour bar** — the passbook signature of the app.
+- Khata row styling: see `DESIGN.md` §5.1/§6, which overrides this section (its precedence note) and replaces the 6 px left colour bar with a tinted icon badge — a side-tab border is one of DESIGN.md's listed anti-patterns.
 
 ### 6.5 Components style (shadcn overrides)
 - **Button**: primary = `--leaf` fill, white text, 56 px, full width on mobile. Secondary = white with `--leaf` border. Danger = `--mirchi` text button (not filled) except in admin.

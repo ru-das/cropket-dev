@@ -350,7 +350,20 @@
     "statusLocked": "पैसा लॉक है"
   },
   "khata": {
-    "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसा सुरक्षित रूप से लॉक है"
+    "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसा सुरक्षित रूप से लॉक है",
+    "receivedIn": "{{month}} में मिला",
+    "locked": "{{amount}} लॉक है",
+    "onWay": "रास्ते में: {{count}}",
+    "status": {
+      "yellow": "पैसा सुरक्षित रूप से लॉक है",
+      "blue": "खरीदार के पास जा रहा है",
+      "green": "मिल गया",
+      "red": "रोका गया है"
+    },
+    "rowSpoken": "{{status}}, {{amount}}। {{title}}",
+    "summarySpoken": "{{month}} में मिला, {{received}}। लॉक है, {{locked}}।",
+    "empty": "अभी कोई पैसे की एंट्री नहीं है। लॉट बेचकर यहां देखें।",
+    "emptyAction": "मेरे लॉट पर जाएं"
   },
   "common": {
     "comingSoon": "यह स्क्रीन जल्द आएगी।",
