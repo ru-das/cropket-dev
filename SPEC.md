@@ -924,6 +924,8 @@ Draft item:  dashed border + tag               "On phone only"
 | `revoke_consent` | farmer | `consent_id` | `revoked_at` | Also writes to `data_access_logs`. |
 | `group_mega_lots` | trigger on lot listed | — | — | Finds same crop + same grade + unsold lots within 10 km (`ST_DWithin`). Creates a mega lot when the total reaches the target (default 500 kg). |
 | `escrow_transition` | service role only | see 5.7 | `escrows` row | The only way escrow state changes. |
+| `fund_escrow` | service role only | `cashfree_order_id, payment_ref, amount_paise` | `escrows` row | CREATED → FUNDED via `escrow_transition`; writes the farmer's first Khata 🟡 row in the same transaction. Idempotent on order id; fails closed on an amount mismatch. |
+| `buyer_deals` | verified/unverified buyer (own) | — | rows: deal + escrow state + lot summary | `security definer` + `auth.uid()`, not a `lots`/`deals` RLS policy — a `lots` policy reading `deals` back would recurse into `deals_select_party`. |
 | `nearest_cold_storages` | service role | `lat, lng, limit` | rows with `distance_km` | PostGIS ordered by distance. |
 | `buyers_within` | service role | `lat, lng, km` | buyer ids | Used for flash-sale alerts. |
 
@@ -939,8 +941,8 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `route-distance` | farmer | `from {lat,lng}, to[]` | `{km, minutes, alternatives[]}` per destination | OpenRouteService with 24 h cache. |
 | `kyc-verify` | buyer | `business_name, gst_number, pan` | `{status, source}` | DigiLocker / GST adapter (mock). Sets `buyer_kyc` and `profiles.kyc_status`. |
 | `tts` | any user | `text, lang` | `{url}` | Bhashini adapter, cached in `tts_cache`. |
-| `escrow-pay` | buyer | `escrow_id` | `{paymentSessionId}` or mock `{mockPayUrl}` | Creates the Cashfree order for deal total + 1% platform fee. |
-| `cashfree-webhook` | Cashfree | raw body | `200` | Verifies signature → `FUNDED` → Khata 🟡 row → push to farmer. Idempotent on payment id. |
+| `escrow-pay` | buyer | `escrow_id` | `{state, source, paymentSessionId}` | Creates the Cashfree order for deal total + 1% platform fee. In mock mode, funds the escrow itself right after (`fund_escrow`) — `source: "mock"`, `paymentSessionId: null`, `state: "FUNDED"`; in real mode returns `source: "cashfree"` and a `paymentSessionId` to open. |
+| `cashfree-webhook` | Cashfree | raw body | `200` | Verifies signature → `fund_escrow` → `FUNDED` → Khata 🟡 row. Idempotent on order id. In mock mode (no `CASHFREE_SECRET_KEY`) refuses every request with `401` — there is no real Cashfree to sign one, so `escrow-pay` is the only path that funds an escrow while the prototype has no sandbox key. Push to the farmer isn't built (prototype skips push everywhere). |
 | `escrow-release` | internal (other functions) | `escrow_id, reason` | `{state, payouts[]}` | Runs `split.ts`, sends split instructions, writes `payouts`, Khata 🟢 rows, push. |
 | `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{autoReleaseAt}` | Sets the timer to now. |
 | `shipments-create` | seller | `deal_id, transporter_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl}` | Makes a random 32-byte token, stores only its hash, expiry 72 h, sends SMS (mock). |

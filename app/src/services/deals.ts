@@ -10,14 +10,17 @@ import { queryClient } from "@/offline/persist";
 import { lotKeys } from "@/services/lots";
 import { bidKeys } from "@/services/bids";
 import { AcceptBidInput, AcceptBidResult } from "@shared/schemas/deal.ts";
+import type { Crop } from "@shared/crops.ts";
 import type { Database } from "@/lib/database.types";
 
 type DealRow = Database["public"]["Tables"]["deals"]["Row"];
 
 /** One deal, shaped for the farmer's lot-detail "Sold" card. No buyer
  * identity yet - `business_name` sits behind buyer_kyc's select-own RLS,
- * and 4.3/4.4 need it anyway; they can add a `lot_deal()` security definer
- * function the way 3.5 added `lot_bids()`. */
+ * and 4.4 needs it anyway; it can add a `lot_deal()` security definer
+ * function the way 3.5 added `lot_bids()`. `escrowState` is null only for
+ * the instant between accept_bid's return and this query's next read -
+ * accept_bid (4.1) always creates the escrow in the same transaction. */
 export type DealView = {
   id: string;
   pricePerQuintalPaise: number;
@@ -25,9 +28,10 @@ export type DealView = {
   totalPaise: number;
   feePaise: number;
   pickupDate: string;
+  escrowState: Database["public"]["Enums"]["escrow_state"] | null;
 };
 
-function toDealView(row: DealRow): DealView {
+function toDealView(row: DealRow, escrowState: Database["public"]["Enums"]["escrow_state"] | null): DealView {
   return {
     id: row.id,
     pricePerQuintalPaise: row.price_per_quintal_paise,
@@ -35,11 +39,13 @@ function toDealView(row: DealRow): DealView {
     totalPaise: row.total_paise,
     feePaise: row.fee_paise,
     pickupDate: row.pickup_date,
+    escrowState,
   };
 }
 
 export const dealKeys = {
   forLot: (lotId: string) => ["deal", "lot", lotId] as const,
+  mine: () => ["deal", "mine"] as const,
 };
 
 /**
@@ -91,7 +97,20 @@ export function useAcceptBid(lotId: string) {
 async function getDealForLot(lotId: string): Promise<DealView | null> {
   const { data, error } = await supabase.from("deals").select("*").eq("lot_id", lotId).maybeSingle();
   if (error) throw toAppError(error);
-  return data ? toDealView(data) : null;
+  if (!data) return null;
+
+  // Two simple queries, not an embedded select - escrows has no FK back to
+  // deals in the generated Relationships (the FK is the other way round,
+  // deals has none to escrows), so there's no `deals.select("*, escrows(state)")`
+  // to reach for; escrow-pay/index.ts reads the same two tables the same way.
+  const { data: escrow, error: escrowError } = await supabase
+    .from("escrows")
+    .select("state")
+    .eq("deal_id", data.id)
+    .maybeSingle();
+  if (escrowError) throw toAppError(escrowError);
+
+  return toDealView(data, escrow?.state ?? null);
 }
 
 /** The deal for a sold lot, if any - LotDetailPage's "Sold" card. */
@@ -101,4 +120,54 @@ export function useDealForLot(lotId: string | undefined) {
     queryFn: () => getDealForLot(lotId as string),
     enabled: lotId !== undefined,
   });
+}
+
+/** One of the buyer's own deals, shaped for BuyerHome's "My deals" list
+ * and BuyerDealPage's pay screen (SPEC.md §4.14, §9.2 Phase 4 "4.3"). */
+export type BuyerDealView = {
+  dealId: string;
+  escrowId: string;
+  escrowState: Database["public"]["Enums"]["escrow_state"];
+  escrowTotalPaise: number;
+  lotId: string;
+  crop: Crop;
+  grade: string | null;
+  qrCode: string;
+  quantityKg: number;
+  pricePerQuintalPaise: number;
+  totalPaise: number;
+  feePaise: number;
+  pickupDate: string;
+};
+
+type BuyerDealRow = Database["public"]["Functions"]["buyer_deals"]["Returns"][number];
+
+function toBuyerDealView(row: BuyerDealRow): BuyerDealView {
+  return {
+    dealId: row.deal_id,
+    escrowId: row.escrow_id,
+    escrowState: row.escrow_state,
+    escrowTotalPaise: row.escrow_total_paise,
+    lotId: row.lot_id,
+    crop: row.crop as Crop,
+    grade: row.grade,
+    qrCode: row.qr_code,
+    quantityKg: row.quantity_kg,
+    pricePerQuintalPaise: row.price_per_quintal_paise,
+    totalPaise: row.total_paise,
+    feePaise: row.fee_paise,
+    pickupDate: row.pickup_date,
+  };
+}
+
+async function getBuyerDeals(): Promise<BuyerDealView[]> {
+  const { data, error } = await supabase.rpc("buyer_deals");
+  if (error) throw toAppError(error);
+  return (data ?? []).map(toBuyerDealView);
+}
+
+/** The signed-in buyer's own deals, best (most recent) first - BuyerHome's
+ * "My deals" list. */
+export function useBuyerDeals() {
+  return useQuery({ queryKey: dealKeys.mine(), queryFn: getBuyerDeals });
 }

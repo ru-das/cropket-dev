@@ -45,7 +45,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 ## M4 — Escrow and Digital Khata
 - [x] 4.1 `escrows`, `escrow_transitions`, `escrow_events`, `payouts`, `khata_entries` + `escrow_transition()` + SQL tests
 - [x] 4.2 `split.ts` + tests (100% branches, no paisa lost)
-- [ ] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
+- [x] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
 - [ ] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
 - [ ] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
 - [ ] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
@@ -2404,13 +2404,97 @@ fail-closed throw cases, and the 50-case sweep). `pnpm lint && pnpm typecheck &&
 pass. No SQL/migration/Edge Function/UI touched this item, so `test-sql.sh`/pytest/`impeccable
 detect` don't apply.
 **Next / known gaps:**
-- `splitRelease()` has no caller yet — **4.3** (mock Cashfree pay + webhook → FUNDED) is next in
-  the milestone order, but it's **4.8** (`escrow-release`) that will actually call `split.ts`,
-  map its lines to `payouts` rows, and decide whose `profiles.id` the `platform_fee` line's
-  `to_user` is (the line itself carries no user id on purpose — that's a routing decision, not a
-  math one).
+- `splitRelease()` has no caller yet — it's **4.8** (`escrow-release`) that will actually call
+  `split.ts`, map its lines to `payouts` rows, and decide whose `profiles.id` the `platform_fee`
+  line's `to_user` is (the line itself carries no user id on purpose — that's a routing decision,
+  not a math one).
 - Crate-hold, driver-freight and EMI deductions (SPEC §5.7 steps 1–3) aren't implemented —
   unchanged gap, tracked in SPEC §5.7 now instead of only in this file.
 - **Next item: 4.3** `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button +
   `cashfree-webhook` → FUNDED + Khata 🟡.
+
+### 4.3 integrations/cashfree (mock) + escrow-pay + Pay (demo) + cashfree-webhook → FUNDED + Khata 🟡 — 2026-09-23
+
+**What it does:** the first money move (SPEC.md §2.2, §4.14, §5.4, §5.7, §9.2 Phase 4 "4.3"). Until
+now `accept_bid` left every escrow sitting in `CREATED` with nothing to look at in the app.
+`fund_escrow()` (new SQL function, service-role only, same "one function moves money" shape
+`escrow_transition()` set) is the only way an escrow reaches `FUNDED`: it runs
+`escrow_transition(..., 'FUNDED', ...)` and, in the same transaction, writes the farmer's first
+`khata_entries` row (🟡 `khata.moneyLocked`, at the deal total — the escrow itself holds the
+bigger deal-total-plus-fee number, decided in 4.1). It's idempotent on `cashfree_order_id`
+(a new unique column on `escrows`, promised by 4.1's own header): a repeat call for an
+already-`FUNDED` order returns the row unchanged, no second event or Khata row.
+`escrow-pay` (buyer, Edge Function) is the only caller a browser can reach: in mock mode it calls
+`fund_escrow()` itself right after creating the (fake) Cashfree order, so "Pay (demo)" funds the
+escrow in one tap. `cashfree-webhook` verifies a Cashfree signature first and **refuses every
+request in mock mode** (401, fail closed) — there is no secret to check a signature against and
+no real Cashfree that will ever call it without a sandbox key, so it stays dead code until a real
+`CASHFREE_SECRET_KEY` exists. `buyer_deals()` (new SQL function, security definer) is what lets
+the buyer see their own deals at all — `deals_select_party` already reads `lots`, so a `lots`
+policy reading `deals` back would be "infinite recursion in policy" (same reasoning 3.5's
+`lot_bids()` gives). BuyerHome now shows a "My deals" list (state pill: "Pay now" / "Money
+locked") linking to the new `/buyer/deals/:id` pay screen (SPEC §4.14's itemised layout - deal
+total, 1% fee, escrow total - one CTA, wrapped in `RequireOnline` like `LiveBidBox`'s "Place
+bid"). The farmer's own lot-detail "Sold" card (3.6) now reads `escrowState` too: it still says
+"waiting for buyer payment" in pass-green while `CREATED`, and flips to a haldi "Money locked
+safely" card once `FUNDED`.
+**Decided with the user:** "Pay (demo)" makes **one** call to `escrow-pay`, not a second call to
+`cashfree-webhook` from the browser — the webhook stays a single, real-signature-only door, so
+there is never a second way in to fund an escrow. `real.ts` (both cashfree and the webhook's real
+signature check) still throws/refuses — no real Cashfree checkout exists in the app for a
+`paymentSessionId` to open yet.
+**Files:** `supabase/migrations/20260923190000_escrow_pay.sql` (new — `cashfree_order_id`,
+`fund_escrow()`, `buyer_deals()`), `supabase/tests/fund_escrow.sql` (new, 13 checks),
+`supabase/functions/_shared/domain/schemas/escrow.ts` (new — `EscrowPayInput`/`EscrowPayResult`/
+`CashfreeOrder`/`CashfreeWebhookEvent`), `supabase/functions/_shared/integrations/cashfree/`
+(new — `index.ts`/`mock.ts`/`real.ts`/`types.ts`/`signature.ts`, the SPEC §2.2 adapter shape plus
+a pure HMAC-SHA256 `cashfreeSignature()` Vitest can call directly), `supabase/functions/escrow-pay/
+index.ts` (new), `supabase/functions/cashfree-webhook/index.ts` (new), `supabase/config.toml`
+(both functions' blocks), `scripts/check-functions.sh` (the "own auth ran" live check now also
+accepts `WEBHOOK_SIGNATURE_INVALID`, since cashfree-webhook has no JWT or cron secret, only a
+signature), `app/tests/unit/integrations/cashfree.test.ts` (new, 7/7), `app/src/services/deals.ts`
+(`DealView` gains `escrowState`; new `BuyerDealView` + `useBuyerDeals()`), `app/src/services/
+escrow.ts` (new — `usePayEscrow()`), `app/src/routes/buyer/BuyerDealPage.tsx` (new, route
+`/buyer/deals/:id`), `app/src/routes/buyer/BuyerHome.tsx` ("My deals" list), `app/src/routes/
+farmer/LotDetailPage.tsx` (Sold card reads `escrowState`), `app/src/app/router.tsx` (1 new route),
+`app/src/lib/errors.ts` (`ESCROW_NOT_FOUND`, `PAYMENTS_UNAVAILABLE`), `app/src/locales/
+{en,hi,mr}.json` (`deal.*`, `khata.moneyLocked`, `lots.deal.moneyLocked`, 2 error keys),
+`app/src/lib/database.types.ts` + `supabase/functions/_shared/database.types.ts` (regenerated).
+**Mocked:** Cashfree order creation and payment — shown with `<DemoDataTag>` on the pay screen.
+**How to test by hand:** as farmer `9090910001`, accept a bid the way 3.6's test already does (lot
+must be `sold` with a `CREATED` escrow). As buyer `9090910002`, BuyerHome now shows "My deals"
+with a red "Pay now" pill; open it, the pay screen shows the itemised total; tap "Pay and lock
+money" — it flips to the haldi "Money locked safely" card, and BuyerHome's pill turns to "Money
+locked". Table editor: the escrow is `FUNDED` with `cashfree_order_id` set, 2 `escrow_events` rows
+(`CREATED`→ null-to-CREATED from accept_bid, plus `CREATED`→`FUNDED`), 1 yellow `khata_entries`
+row for the farmer. Tapping the button again (or reloading the pay page) changes nothing. The
+farmer's own lot detail now shows the haldi "Money locked safely" card. Checked at 360 px in
+English, Hindi and Marathi.
+**Tests:** `supabase/tests/fund_escrow.sql` (13/13 — CREATED→FUNDED, one event carrying the
+payment ref, one yellow Khata row at the deal total (not the bigger escrow total), a repeat call
+adds neither, a wrong amount and an unknown order are both refused, `authenticated` cannot call
+it, `buyer_deals()` returns the buyer's own deal with escrow state and nothing for a different
+buyer). `bash scripts/test-sql.sh` — full suite green, 18/18 files. `app/tests/unit/integrations/
+cashfree.test.ts` (7/7 — mock output passes `CashfreeOrder`, `cashfreeSignature` matches a
+known-answer vector computed independently with `openssl`, a changed body gives a different
+signature, `CashfreeWebhookEvent` parses/rejects). `pnpm lint && pnpm typecheck && pnpm test`
+(306 tests, 7 new) `&& pnpm build` all pass. `impeccable detect app/src` — 0 anti-patterns.
+Deployed `escrow-pay` and `cashfree-webhook` to `cropket-dev`; `bash scripts/check-functions.sh`
+passes both (the pre-existing `ALLOWED_ORIGINS` CORS-origin gap on every function is unrelated —
+`curl` sends no `Origin` header, so it fails the same way for functions untouched by this change).
+**Next / known gaps:**
+- No delivery OTP or `mark_dispatched` yet — the buyer's "Money locked safely" card is the only
+  state past `FUNDED` the app can reach. **4.5**/4.6 build the next moves.
+- No Realtime on `escrow:{dealId}` (SPEC §5.6) — the farmer's lot detail and the buyer's deal page
+  both update on refetch/refocus (TanStack Query's default), not live. Worth adding once 4.4's
+  Khata screen gives Realtime a second reason to matter here.
+- No push to the farmer when money locks — out of prototype scope (push is skipped everywhere).
+- `CREATED` → `CANCELLED` after 2 h (SPEC §5.7's row) isn't built — nothing times out an unpaid
+  deal yet. Needs a cron the same shape as **4.9**'s `cron-auto-settle`, or that function extended
+  to also sweep `CREATED` escrows past 2 h once it exists.
+- A mega-lot deal can't be funded — `fund_escrow()` raises `NOT_IMPLEMENTED mega_lot_deal` on
+  purpose (`deals.lot_id` null), and no mega-lot deal can exist yet anyway (3.4/3.5's unchanged
+  gap: no FPO, no `/fpo/megalots` accept screen).
+- **Next item: 4.4** Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline) — the
+  first thing that actually renders the `khata_entries` rows 4.3 starts writing.
 

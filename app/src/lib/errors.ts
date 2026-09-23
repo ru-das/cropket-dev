@@ -23,6 +23,8 @@ const CODE_TO_MESSAGE_KEY = {
   CONSENT_REQUIRED: "errors.consentRequired",
   MIC_DENIED: "errors.micDenied",
   MIC_UNAVAILABLE: "errors.micUnavailable",
+  ESCROW_NOT_FOUND: "errors.escrowNotFound",
+  PAYMENTS_UNAVAILABLE: "errors.paymentsUnavailable",
   // Never reachable through the UI (RequireAuth already guards every screen
   // that calls place_bid) - reuses the existing copy rather than a new key
   // for a defensive-only path.

@@ -151,6 +151,7 @@
     "deal": {
       "soldTitle": "Sold",
       "waitingPayment": "Waiting for buyer payment",
+      "moneyLocked": "Money locked safely",
       "pickupDate": "Pickup {{date}}"
     },
     "status": {
@@ -332,6 +333,25 @@
     "memberLot": "{{kg}} kg",
     "notFound": "This mega lot isn't available."
   },
+  "deal": {
+    "payTitle": "Pay for deal {{code}}",
+    "itemLabel": "{{crop}}, Grade {{grade}}, {{qty}} kg @ {{price}}",
+    "itemLabelNoGrade": "{{crop}}, {{qty}} kg @ {{price}}",
+    "feeLabel": "Platform & safety fee (1%)",
+    "totalLabel": "Total",
+    "payButton": "Pay and lock money",
+    "reassurance": "Your money is held by a regulated payment partner, not by Cropket. It is released only after delivery.",
+    "payOffline": "Needs internet to pay",
+    "lockedTitle": "Money locked safely",
+    "lockedBody": "{{code}} will be released to the farmer after delivery is confirmed.",
+    "notFound": "This deal was not found.",
+    "myDeals": "My deals",
+    "payNow": "Pay now",
+    "statusLocked": "Money locked"
+  },
+  "khata": {
+    "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely"
+  },
   "common": {
     "comingSoon": "This screen is coming soon.",
     "loading": "Loading…",
@@ -362,6 +382,8 @@
     "consentRequired": "Please record your voice consent first.",
     "micDenied": "Microphone permission was not given. You can go back and try again.",
     "micUnavailable": "Could not use the microphone. Check your phone and try again.",
+    "escrowNotFound": "We could not find this deal's payment.",
+    "paymentsUnavailable": "Payment is not available right now. Try again shortly.",
     "unknown": "Something went wrong. Try again."
   }
 }

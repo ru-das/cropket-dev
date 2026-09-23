@@ -7,11 +7,13 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { Building2, LogOut, PackageSearch, TriangleAlert } from "lucide-react";
+import { Building2, ChevronRight, LogOut, PackageSearch, TriangleAlert } from "lucide-react";
+import { formatRupees } from "@shared/money.ts";
 import { useAuth } from "@/app/authContext";
 import { signOut } from "@/services/auth";
 import { useListedLots, useListedLotPhotos } from "@/services/lots";
 import { useListedMegaLots } from "@/services/megaLots";
+import { useBuyerDeals } from "@/services/deals";
 import VerifiedBadge from "@/components/common/VerifiedBadge";
 import DemoDataTag from "@/components/common/DemoDataTag";
 import BuyerLotCard from "@/components/lot/BuyerLotCard";
@@ -26,6 +28,7 @@ export default function BuyerHome() {
   const verified = profile?.kyc_status === "verified";
 
   const [filters, setFilters] = useState(DEFAULT_MARKET_FILTERS);
+  const { data: deals } = useBuyerDeals();
   const { data: lots, isLoading: lotsLoading } = useListedLots();
   const { data: megaLots, isLoading: megaLotsLoading } = useListedMegaLots();
   const isLoading = lotsLoading || megaLotsLoading;
@@ -89,6 +92,40 @@ export default function BuyerHome() {
             {t("kyc.buyerHomeBannerCta")}
           </span>
         </Link>
+      )}
+
+      {deals && deals.length > 0 && (
+        <div className="rounded-3xl border-2 border-line bg-surface shadow-card">
+          <h2 className="px-5 pt-4 font-display text-xl font-black text-ink">{t("deal.myDeals")}</h2>
+          <div className="divide-y divide-line/60">
+            {deals.map((deal) => (
+              <Link
+                key={deal.dealId}
+                to={`/buyer/deals/${deal.dealId}`}
+                className="flex items-center gap-3 px-5 py-4 transition-colors hover:bg-surface-subtle active:scale-[0.99]"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-base font-bold text-ink">
+                    {t(`crop.${deal.crop}`)} · {deal.quantityKg} {t("lots.kg")}
+                  </p>
+                  <p className="mt-0.5 tabular-nums text-meta text-ink-muted">
+                    {formatRupees(deal.escrowTotalPaise)}
+                  </p>
+                </div>
+                <span
+                  className={
+                    deal.escrowState === "CREATED"
+                      ? "shrink-0 rounded-full border border-mirchi/40 bg-mirchi-light px-3 py-1 font-display text-xs font-bold text-mirchi-text"
+                      : "shrink-0 rounded-full border border-haldi/40 bg-haldi-light px-3 py-1 font-display text-xs font-bold text-haldi-text"
+                  }
+                >
+                  {deal.escrowState === "CREATED" ? t("deal.payNow") : t("deal.statusLocked")}
+                </span>
+                <ChevronRight aria-hidden="true" size={20} className="shrink-0 text-ink-muted" />
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="flex items-center justify-between gap-2">
