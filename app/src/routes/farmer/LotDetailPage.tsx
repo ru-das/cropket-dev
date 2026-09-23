@@ -13,6 +13,7 @@ import GradeBadge from "@/components/lot/GradeBadge";
 import QRLabel from "@/components/lot/QRLabel";
 import VoiceButton from "@/components/voice/VoiceButton";
 import RequireOnline from "@/components/common/RequireOnline";
+import DriverLinkCard from "@/components/logistics/DriverLinkCard";
 import { useLot, useLotPhoto, useListLot } from "@/services/lots";
 import { useLotBids, useLotBidsRealtime, useMyLotBids, highestBid } from "@/services/bids";
 import { useMegaLotForLot } from "@/services/megaLots";
@@ -290,6 +291,10 @@ export default function LotDetailPage() {
                   </RequireOnline>
                 </div>
               )}
+
+              {/* Driver link (SPEC §4.16, §5.4, §9.2 Phase 4 "4.7") - only
+                  once the escrow is IN_TRANSIT (4.6's own move). */}
+              {deal.escrowState === "IN_TRANSIT" && <DriverLinkCard dealId={deal.id} />}
             </>
           )}
 

@@ -26,6 +26,9 @@ const CODE_TO_MESSAGE_KEY = {
   ESCROW_NOT_FOUND: "errors.escrowNotFound",
   ESCROW_WRONG_STATE: "errors.escrowWrongState",
   PAYMENTS_UNAVAILABLE: "errors.paymentsUnavailable",
+  DEAL_NOT_FOUND: "errors.dealNotFound",
+  TRIP_NOT_FOUND: "errors.tripNotFound",
+  OTP_LOCKED: "errors.otpLocked",
   // Never reachable through the UI (RequireAuth already guards every screen
   // that calls place_bid) - reuses the existing copy rather than a new key
   // for a defensive-only path.

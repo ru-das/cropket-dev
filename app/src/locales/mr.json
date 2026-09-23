@@ -155,7 +155,21 @@
       "onTheWay": "खरेदीदाराकडे जात आहे",
       "pickupDate": "पिकअप {{date}}",
       "markDispatched": "पाठवले असे नोंदवा",
-      "dispatchOffline": "पाठवले नोंदवण्यासाठी इंटरनेट लागेल"
+      "dispatchOffline": "पाठवले नोंदवण्यासाठी इंटरनेट लागेल",
+      "driverLinkTitle": "ड्रायव्हरला लिंक पाठवा",
+      "driverLinkVehicleLabel": "वाहन क्रमांक",
+      "driverLinkVehiclePlaceholder": "MH15AB1234",
+      "driverLinkPhoneLabel": "ड्रायव्हरचा फोन नंबर",
+      "driverLinkPhonePlaceholder": "98765 43210",
+      "driverLinkSend": "ड्रायव्हरला लिंक पाठवा",
+      "driverLinkOffline": "ड्रायव्हर लिंक बनवण्यासाठी इंटरनेट लागेल",
+      "driverLinkMade": "{{vehicle}} साठी लिंक तयार आहे",
+      "driverLinkExists": "{{vehicle}} साठी ड्रायव्हर लिंक तयार झाली आहे",
+      "driverLinkMakeNew": "नवीन लिंक बनवा",
+      "driverLinkCopy": "कॉपी करा",
+      "driverLinkCopied": "कॉपी झाले",
+      "driverLinkShare": "शेअर करा",
+      "driverLinkNote": "SMS अजून पाठवलेला नाही - ही लिंक स्वतः पाठवा (कॉल, व्हॉट्सअ‍ॅप किंवा वाचून सांगा)."
     },
     "status": {
       "draft": "मसुदा",
@@ -359,6 +373,7 @@
   "khata": {
     "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसे सुरक्षितपणे लॉक आहेत",
     "onTheWay": "{{quantityKg}} किलो {{crop}} - खरेदीदाराकडे जात आहे",
+    "deliveredLocked": "{{quantityKg}} किलो {{crop}} - डिलिव्हर झाले, पैसे अजूनही लॉक आहेत",
     "receivedIn": "{{month}} मध्ये मिळाले",
     "locked": "{{amount}} लॉक आहे",
     "onWay": "वाटेत: {{count}}",
@@ -406,6 +421,9 @@
     "escrowNotFound": "या डीलचे पेमेंट सापडले नाही.",
     "escrowWrongState": "डिलिव्हरी कोड अजून दाखवण्यासाठी तयार नाही.",
     "paymentsUnavailable": "पेमेंट आत्ता उपलब्ध नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.",
+    "dealNotFound": "आम्हाला ही डील सापडली नाही.",
+    "tripNotFound": "ही लिंक कालबाह्य झाली आहे किंवा बरोबर नाही. शेतकऱ्याकडून नवीन लिंक मागा.",
+    "otpLocked": "खूप वेळा चुकीचा प्रयत्न झाला. हा कोड आता लॉक आहे.",
     "unknown": "काहीतरी चुकले. पुन्हा प्रयत्न करा."
   }
 }

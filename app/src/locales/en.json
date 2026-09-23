@@ -155,7 +155,21 @@
       "onTheWay": "On the way to buyer",
       "pickupDate": "Pickup {{date}}",
       "markDispatched": "Mark dispatched",
-      "dispatchOffline": "Needs internet to mark dispatched"
+      "dispatchOffline": "Needs internet to mark dispatched",
+      "driverLinkTitle": "Send a link to the driver",
+      "driverLinkVehicleLabel": "Vehicle number",
+      "driverLinkVehiclePlaceholder": "MH15AB1234",
+      "driverLinkPhoneLabel": "Driver's phone number",
+      "driverLinkPhonePlaceholder": "98765 43210",
+      "driverLinkSend": "Send link to driver",
+      "driverLinkOffline": "Needs internet to make a driver link",
+      "driverLinkMade": "Link ready for {{vehicle}}",
+      "driverLinkExists": "Driver link made for {{vehicle}}",
+      "driverLinkMakeNew": "Make a new link",
+      "driverLinkCopy": "Copy",
+      "driverLinkCopied": "Copied",
+      "driverLinkShare": "Share",
+      "driverLinkNote": "SMS is not sent yet - share this link yourself (call, WhatsApp, or read it out)."
     },
     "status": {
       "draft": "Draft",
@@ -359,6 +373,7 @@
   "khata": {
     "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely",
     "onTheWay": "{{quantityKg}} kg {{crop}} - on the way to buyer",
+    "deliveredLocked": "{{quantityKg}} kg {{crop}} - delivered, money still locked",
     "receivedIn": "Received in {{month}}",
     "locked": "Locked {{amount}}",
     "onWay": "On the way: {{count}}",
@@ -406,6 +421,9 @@
     "escrowNotFound": "We could not find this deal's payment.",
     "escrowWrongState": "The delivery code is not ready to show yet.",
     "paymentsUnavailable": "Payment is not available right now. Try again shortly.",
+    "dealNotFound": "We could not find this deal.",
+    "tripNotFound": "This link has expired or is not valid. Ask the farmer for a new one.",
+    "otpLocked": "Too many wrong tries. This code is now locked.",
     "unknown": "Something went wrong. Try again."
   }
 }
