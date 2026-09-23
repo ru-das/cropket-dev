@@ -752,6 +752,38 @@ export type Database = {
           },
         ]
       }
+      pods: {
+        Row: {
+          created_at: string
+          location: unknown
+          photo_path: string
+          shipment_id: string
+          taken_at: string
+        }
+        Insert: {
+          created_at?: string
+          location?: unknown
+          photo_path: string
+          shipment_id: string
+          taken_at: string
+        }
+        Update: {
+          created_at?: string
+          location?: unknown
+          photo_path?: string
+          shipment_id?: string
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pods_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: true
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           banned: boolean
@@ -859,6 +891,47 @@ export type Database = {
           to_lng?: number
         }
         Relationships: []
+      }
+      shipments: {
+        Row: {
+          created_at: string
+          deal_id: string
+          driver_phone: string
+          id: string
+          token_expires_at: string
+          trip_token_hash: string
+          updated_at: string
+          vehicle_number: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          driver_phone: string
+          id?: string
+          token_expires_at: string
+          trip_token_hash: string
+          updated_at?: string
+          vehicle_number: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          driver_phone?: string
+          id?: string
+          token_expires_at?: string
+          trip_token_hash?: string
+          updated_at?: string
+          vehicle_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transporters: {
         Row: {
@@ -1025,6 +1098,33 @@ export type Database = {
       record_otp_attempt: {
         Args: { p_correct: boolean; p_escrow: string }
         Returns: number
+      }
+      record_pod: {
+        Args: {
+          p_lat: number
+          p_lng: number
+          p_photo_path: string
+          p_shipment_id: string
+          p_taken_at: string
+        }
+        Returns: {
+          auto_release_at: string | null
+          cashfree_order_id: string | null
+          created_at: string
+          deal_id: string
+          delivered_at: string | null
+          id: string
+          otp_tries: number
+          state: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "escrows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       trigger_cron_fetch_prices: { Args: never; Returns: number }
     }
