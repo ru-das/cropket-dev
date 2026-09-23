@@ -712,7 +712,7 @@ export type Database = {
           id: string
           provider_ref: string | null
           status: string
-          to_user: string
+          to_user: string | null
           type: string
         }
         Insert: {
@@ -722,7 +722,7 @@ export type Database = {
           id?: string
           provider_ref?: string | null
           status?: string
-          to_user: string
+          to_user?: string | null
           type: string
         }
         Update: {
@@ -732,7 +732,7 @@ export type Database = {
           id?: string
           provider_ref?: string | null
           status?: string
-          to_user?: string
+          to_user?: string | null
           type?: string
         }
         Relationships: [
@@ -1106,6 +1106,32 @@ export type Database = {
           p_photo_path: string
           p_shipment_id: string
           p_taken_at: string
+        }
+        Returns: {
+          auto_release_at: string | null
+          cashfree_order_id: string | null
+          created_at: string
+          deal_id: string
+          delivered_at: string | null
+          id: string
+          otp_tries: number
+          state: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "escrows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      release_escrow: {
+        Args: {
+          p_escrow: string
+          p_payouts: Json
+          p_provider_ref: string
+          p_reason: string
         }
         Returns: {
           auto_release_at: string | null

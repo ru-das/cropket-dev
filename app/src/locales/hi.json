@@ -153,6 +153,7 @@
       "waitingPayment": "खरीदार के भुगतान का इंतज़ार",
       "moneyLocked": "पैसा सुरक्षित रूप से लॉक है",
       "onTheWay": "खरीदार के पास जा रहा है",
+      "received": "पैसा मिल गया ✅",
       "pickupDate": "पिकअप {{date}}",
       "markDispatched": "भेज दिया गया बताएं",
       "dispatchOffline": "भेजा बताने के लिए इंटरनेट चाहिए",
@@ -361,6 +362,8 @@
     "payOffline": "भुगतान के लिए इंटरनेट चाहिए",
     "lockedTitle": "पैसा सुरक्षित रूप से लॉक है",
     "lockedBody": "डिलीवरी की पुष्टि के बाद {{code}} किसान को दिया जाएगा।",
+    "paidTitle": "किसान को भुगतान हो गया",
+    "paidBody": "डिलीवरी की पुष्टि हो गई है और पैसा भेज दिया गया है।",
     "deliveryCodeTitle": "डिलीवरी कोड",
     "deliveryCodeHint": "यह कोड ड्राइवर को तभी दें जब आप सामान की जांच कर लें।",
     "deliveryCodeSpoken": "डिलीवरी कोड {{digits}}।",
@@ -368,12 +371,14 @@
     "myDeals": "मेरी डील्स",
     "payNow": "अभी भुगतान करें",
     "statusLocked": "पैसा लॉक है",
-    "statusOnTheWay": "रास्ते में"
+    "statusOnTheWay": "रास्ते में",
+    "statusPaid": "किसान को भुगतान हुआ"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसा सुरक्षित रूप से लॉक है",
     "onTheWay": "{{quantityKg}} किलो {{crop}} - खरीदार के पास जा रहा है",
     "deliveredLocked": "{{quantityKg}} किलो {{crop}} - डिलीवर हुआ, पैसा अभी भी लॉक है",
+    "received": "{{quantityKg}} किलो {{crop}} - पैसा मिल गया",
     "receivedIn": "{{month}} में मिला",
     "locked": "{{amount}} लॉक है",
     "onWay": "रास्ते में: {{count}}",

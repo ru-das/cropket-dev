@@ -7,7 +7,7 @@
 // locked safely" with no separate webhook step in this demo.
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Lock, ShieldCheck } from "lucide-react";
 import { formatRupees } from "@shared/money.ts";
 import VoiceButton from "@/components/voice/VoiceButton";
 import DemoDataTag from "@/components/common/DemoDataTag";
@@ -54,6 +54,7 @@ export default function BuyerDealPage() {
   }
 
   const locked = deal.escrowState !== "CREATED";
+  const released = deal.escrowState === "RELEASED";
   const itemLabel = deal.grade
     ? t("deal.itemLabel", { crop: t(`crop.${deal.crop}`), grade: deal.grade, qty: deal.quantityKg, price: formatRupees(deal.pricePerQuintalPaise) })
     : t("deal.itemLabelNoGrade", { crop: t(`crop.${deal.crop}`), qty: deal.quantityKg, price: formatRupees(deal.pricePerQuintalPaise) });
@@ -95,7 +96,14 @@ export default function BuyerDealPage() {
         </div>
       </div>
 
-      {locked ? (
+      {released ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-pass/40 bg-pass-light p-5 text-center shadow-glow-leaf">
+          <CheckCircle2 aria-hidden="true" size={28} className="text-pass-text" />
+          <p className="font-display text-lg font-black text-pass-text">{t("deal.paidTitle")}</p>
+          <p className="text-meta text-ink-muted">{t("deal.paidBody")}</p>
+          <VoiceButton textKey="deal.paidBody" className="mt-1 h-9 w-9 shadow-xs" />
+        </div>
+      ) : locked ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-haldi/40 bg-haldi-light p-5 text-center shadow-glow-haldi">
           <ShieldCheck aria-hidden="true" size={28} className="text-haldi-text" />
           <p className="font-display text-lg font-black text-haldi-text">{t("deal.lockedTitle")}</p>

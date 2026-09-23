@@ -227,7 +227,9 @@ export default function LotDetailPage() {
                     ? "rounded-2xl border-2 border-pass/40 bg-pass-light/40 p-4 text-center"
                     : deal.escrowState === "IN_TRANSIT"
                       ? "rounded-2xl border-2 border-neel/40 bg-neel-light p-4 text-center"
-                      : "rounded-2xl border-2 border-haldi/40 bg-haldi-light p-4 text-center shadow-glow-haldi"
+                      : deal.escrowState === "RELEASED"
+                        ? "rounded-2xl border-2 border-pass/40 bg-pass-light p-4 text-center shadow-glow-leaf"
+                        : "rounded-2xl border-2 border-haldi/40 bg-haldi-light p-4 text-center shadow-glow-haldi"
                 }
               >
                 <p
@@ -236,7 +238,9 @@ export default function LotDetailPage() {
                       ? "font-display text-meta font-bold text-pass-text"
                       : deal.escrowState === "IN_TRANSIT"
                         ? "font-display text-meta font-bold text-neel-text"
-                        : "font-display text-meta font-bold text-haldi-text"
+                        : deal.escrowState === "RELEASED"
+                          ? "font-display text-meta font-bold text-pass-text"
+                          : "font-display text-meta font-bold text-haldi-text"
                   }
                 >
                   {t("lots.deal.soldTitle")}
@@ -252,7 +256,9 @@ export default function LotDetailPage() {
                     ? t("lots.deal.waitingPayment")
                     : deal.escrowState === "IN_TRANSIT"
                       ? t("lots.deal.onTheWay")
-                      : t("lots.deal.moneyLocked")}
+                      : deal.escrowState === "RELEASED"
+                        ? t("lots.deal.received")
+                        : t("lots.deal.moneyLocked")}
                 </p>
                 <VoiceButton
                   textKey={
@@ -260,7 +266,9 @@ export default function LotDetailPage() {
                       ? "lots.deal.waitingPayment"
                       : deal.escrowState === "IN_TRANSIT"
                         ? "lots.deal.onTheWay"
-                        : "lots.deal.moneyLocked"
+                        : deal.escrowState === "RELEASED"
+                          ? "lots.deal.received"
+                          : "lots.deal.moneyLocked"
                   }
                   className="mx-auto mt-2 h-9 w-9 shadow-xs"
                 />

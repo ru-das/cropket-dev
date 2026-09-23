@@ -293,9 +293,10 @@ cropket/
 │       │   │       agristack/ digilocker/ uli/ cersai/ enwr/ transport/ whatsapp/ krishi_dss/
 │       │   ├── http.ts            ← handle() answers OPTIONS + stamps CORS on every reply, json(), error()
 │       │   ├── auth.ts            ← requireRole() (verifies the JWT itself), requireCronSecret()
-│       │   └── db.ts              ← service-role client (server only)
+│       │   ├── db.ts              ← service-role client (server only)
+│       │   └── release.ts         ← releaseEscrow() - shared, not a deployed function (§5.4 "4.8")
 │       ├── grade/  route-distance/  kyc-verify/  tts/
-│       ├── escrow-pay/  cashfree-webhook/  escrow-release/  escrow-skip-timer/
+│       ├── escrow-pay/  cashfree-webhook/  escrow-skip-timer/
 │       ├── shipments-create/  trip/
 │       ├── disputes-create/  dispute-resolve/  storage-booking/
 │       ├── loans-lead/  push-send/
@@ -926,7 +927,8 @@ Draft item:  dashed border + tag               "On phone only"
 | `escrow_transition` | service role only | see 5.7 | `escrows` row | The only way escrow state changes. |
 | `fund_escrow` | service role only | `cashfree_order_id, payment_ref, amount_paise` | `escrows` row | CREATED → FUNDED via `escrow_transition`; writes the farmer's first Khata 🟡 row in the same transaction. Idempotent on order id; fails closed on an amount mismatch. |
 | `buyer_deals` | verified/unverified buyer (own) | — | rows: deal + escrow state + lot summary | `security definer` + `auth.uid()`, not a `lots`/`deals` RLS policy — a `lots` policy reading `deals` back would recurse into `deals_select_party`. |
-| `record_otp_attempt` | service role only | `escrow_id, correct` | tries left (int) | Escrow must be `DELIVERED`. 5 wrong tries locks it (`OTP_LOCKED`). Called by `trip`'s `POST /otp` (§5.4, 4.7) - `escrow-release` on a correct guess is 4.8, not built yet. |
+| `record_otp_attempt` | service role only | `escrow_id, correct` | tries left (int) | Escrow must be `DELIVERED`. 5 wrong tries locks it (`OTP_LOCKED`). Called by `trip`'s `POST /otp` (§5.4, 4.7) - a correct guess then calls `release_escrow()` via `_shared/release.ts` (4.8). |
+| `release_escrow` | service role only | `escrow_id, reason, payouts (jsonb), provider_ref` | `escrows` row | DELIVERED → RELEASED via `escrow_transition`; writes `payouts` rows and one green Khata row per `farmer_share` line, in the same transaction. Fails closed if the payout total doesn't match the escrow total (`SPLIT_MISMATCH`). Called by `_shared/release.ts`, never directly. |
 | `nearest_cold_storages` | service role | `lat, lng, limit` | rows with `distance_km` | PostGIS ordered by distance. |
 | `buyers_within` | service role | `lat, lng, km` | buyer ids | Used for flash-sale alerts. |
 
@@ -945,7 +947,7 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | `escrow-pay` | buyer | `escrow_id` | `{state, source, paymentSessionId}` | Creates the Cashfree order for deal total + 1% platform fee. In mock mode, funds the escrow itself right after (`fund_escrow`) — `source: "mock"`, `paymentSessionId: null`, `state: "FUNDED"`; in real mode returns `source: "cashfree"` and a `paymentSessionId` to open. |
 | `cashfree-webhook` | Cashfree | raw body | `200` | Verifies signature → `fund_escrow` → `FUNDED` → Khata 🟡 row. Idempotent on order id. In mock mode (no `CASHFREE_SECRET_KEY`) refuses every request with `401` — there is no real Cashfree to sign one, so `escrow-pay` is the only path that funds an escrow while the prototype has no sandbox key. Push to the farmer isn't built (prototype skips push everywhere). |
 | `delivery-code` | buyer | `escrow_id` | `{code}` | Recomputes the 4-digit delivery code (§5.6) with `OTP_PEPPER` — nothing is looked up. Refuses (`409`) unless the escrow is `FUNDED` or later. |
-| `escrow-release` | internal (other functions) | `escrow_id, reason` | `{state, payouts[]}` | Runs `split.ts`, sends split instructions, writes `payouts`, Khata 🟢 rows, push. |
+| `escrow-release` | shared module, not deployed | `escrowId, reason` | `escrows` row | `_shared/release.ts`'s `releaseEscrow()` (4.8) - no HTTP caller of its own, so it isn't a separate Edge Function: `trip`'s `POST /otp` calls it directly on a correct guess, and 4.9's `cron-auto-settle` will too. Runs `split.ts`, calls the Cashfree adapter's `releaseSplit` (mock: an instant provider ref; real: not built, 502s), then `release_escrow()` (§5.3). Idempotent - an already-RELEASED escrow returns unchanged without a second Cashfree call. |
 | `escrow-skip-timer` | admin, only when `DEMO_MODE=true` | `escrow_id` | `{autoReleaseAt}` | Sets the timer to now. |
 | `shipments-create` | seller | `deal_id, driver_phone, vehicle_number` | `{shipment_id, tripUrl, source: "mock"}` | Makes a random 32-byte token, stores only its hash (`shipments.trip_token_hash`), expiry 72 h. No `transporter_id` in the prototype (no transporter picker, P1) and no SMS is sent - the link is returned once, in this response, shown on the seller's own screen (§9.5). A repeat call for the same deal rotates the token (new hash, old link stops working) - the seller's own "Make a new link" (4.7). |
 | `trip` | driver (token in path) | sub-routes below | — | One function with a small router. Token check on every call (hash the path token, look up `shipments`, `token_expires_at > now()` - same error, `TRIP_NOT_FOUND`, for unknown and expired). Returns no prices or phone numbers. Built in the prototype: `GET`, `pod`, `otp` below - `weigh`/`start`/`locations` are Phase 5's full driver checklist (P1, §9.2), not built. |
@@ -954,7 +956,7 @@ The app calls them with `supabase.functions.invoke(name, { body })`. File upload
 | ↳ `POST /trip/:token/start` (P1, Phase 5) | | — | `{state}` | Needs an origin slip. → `IN_TRANSIT`. Not built in the prototype - `mark_dispatched()` (4.6) is what reaches `IN_TRANSIT` instead. |
 | ↳ `POST /trip/:token/locations` (P1, Phase 5) | | `points[] {id, lat, lng, accuracy, at}` | `204` | Batch upload (works with the offline queue). Geofence check. Not built in the prototype. |
 | ↳ `POST /trip/:token/pod` | | multipart: `photo` (jpeg, ≤ 1 MB), `lat?`, `lng?`, `takenAt` | `{state, autoReleaseAt}` | Uploads to the private `pod` bucket, then `record_pod()` (§5.3) → `DELIVERED`; timer = server time + 24 h. `lat`/`lng` are optional - a driver who denies GPS still delivers. No offline queue in the prototype (`ponytail:` comment in the function) - the photo needs internet, same as the code below. |
-| ↳ `POST /trip/:token/otp` | | `otp` | `{correct, triesLeft}` | Calls `record_otp_attempt()` (§5.3) with the derived code (§5.6) compared server-side. 5 wrong → `OTP_LOCKED` (409), which is also the "admin alerted" event. A correct guess only reports `correct: true` in the prototype - it does not yet call `escrow-release` (that wiring is 4.8). |
+| ↳ `POST /trip/:token/otp` | | `otp` | `{correct, triesLeft}` | Calls `record_otp_attempt()` (§5.3) with the derived code (§5.6) compared server-side. 5 wrong → `OTP_LOCKED` (409), which is also the "admin alerted" event. A correct guess calls `releaseEscrow()` (`_shared/release.ts`, 4.8) before replying, so the escrow reaches RELEASED in the same request. A retry against an already-RELEASED escrow (a lost response) reports `{correct: true}` straight from the escrow's own state, without touching `record_otp_attempt()` again. |
 | `disputes-create` | buyer / farmer | `deal_id, reason, crate_qrs[], photo_paths[]` | `{dispute_id, heldAmount}` | → `DISPUTED`, holds only the rejected crates' value, runs auto-checks (weight buffer, video frames, delivery photo), starts rescue. |
 | `storage-booking` | internal | `shipment_id` | `{booking}` | Nearest cold storage; pays from FPO wallet, then overdraft (mock). |
 | `dispute-resolve` | admin | `dispute_id, outcome, amounts?, strike_user_id?` | `{state}` | `release` / `refund` / `partial` + liability rules + strikes. |
@@ -1010,7 +1012,7 @@ Enums: `user_role (farmer, buyer, fpo, admin, nbfc)`, `lot_status (draft, listed
 | `escrows` | id, deal_id, total_paise, state, otp_tries, delivered_at, auto_release_at, cashfree_order_id — no delivery-code column: the code is derived (`HMAC(OTP_PEPPER, escrow_id)`, §5.3 `record_otp_attempt`), never stored, hashed or otherwise |
 | `escrow_transitions` | from_state, to_state (the allowed list) |
 | `escrow_events` | id, escrow_id, from_state, to_state, reason, actor, created_at · **insert-only** |
-| `payouts` | id, escrow_id, to_user, amount_paise, type (farmer_share, driver_advance, driver_freight, emi, platform_fee, refund), status, provider_ref |
+| `payouts` | id, escrow_id, to_user (nullable - null only for `platform_fee`, which has no profiles row), amount_paise, type (farmer_share, driver_advance, driver_freight, emi, platform_fee, refund), status, provider_ref |
 | `khata_entries` | id, user_id, deal_id, amount_paise, colour, title_key, title_values (jsonb), created_at |
 | `transporters` | id, name, phone, rate_per_km_paise (seeded mock 3PL) |
 | `shipments` | id, deal_id (unique), driver_phone, vehicle_number, trip_token_hash, token_expires_at, created_at, updated_at — no `transporter_id`/`status`/`route_risk_score`/`language` in the prototype (4.7): no transporter picker yet, the escrow's own state is the single source of truth for status, and the driver page uses `LanguageSwitch` instead of a stored language |
@@ -1330,7 +1332,7 @@ Rules:
 | `DEMO_MODE` | `escrow-skip-timer`, demo reset |
 | `AI_SERVICE_URL`, `AI_SERVICE_KEY` | `grade`, `trip` |
 | `DATA_GOV_API_KEY`, `AGMARKNET_RESOURCE_ID` | `cron-fetch-prices` |
-| `CASHFREE_ENV` (`sandbox`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION` | `escrow-pay`, `cashfree-webhook`, `escrow-release` |
+| `CASHFREE_ENV` (`sandbox`), `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`, `CASHFREE_API_VERSION` | `escrow-pay`, `cashfree-webhook`, `trip` (via `_shared/release.ts`, 4.9's `cron-auto-settle` too once built) |
 | `ORS_API_KEY` | `route-distance` |
 | `DIGILOCKER_API_KEY` | `kyc-verify` |
 | `MAPPLS_CLIENT_ID`, `MAPPLS_CLIENT_SECRET` | optional maps adapter |

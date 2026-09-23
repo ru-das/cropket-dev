@@ -1,20 +1,25 @@
 // The only file other code imports for payments (SPEC.md §2.2). Picks mock
 // or real and validates every order against CashfreeOrder either way
 // (CLAUDE.md §5 "validate results with zod in both mock and real mode").
-import { CashfreeOrder } from "../../domain/schemas/escrow.ts";
+import { CashfreeOrder, CashfreeSplit } from "../../domain/schemas/escrow.ts";
 import * as mock from "./mock.ts";
 import * as real from "./real.ts";
 import { isMock } from "../mode.ts";
 import { requireEnv } from "../../env.ts";
 import { AppError } from "../../http.ts";
 import { cashfreeSignature } from "./signature.ts";
-import type { CreateOrderInput } from "./types.ts";
+import type { CreateOrderInput, ReleaseSplitInput } from "./types.ts";
 
-export type { CreateOrderInput };
+export type { CreateOrderInput, ReleaseSplitInput };
 
 export async function createOrder(input: CreateOrderInput): Promise<CashfreeOrder> {
   const impl = isMock("cashfree", ["CASHFREE_APP_ID", "CASHFREE_SECRET_KEY"]) ? mock : real;
   return CashfreeOrder.parse(await impl.createOrder(input));
+}
+
+export async function releaseSplit(input: ReleaseSplitInput): Promise<CashfreeSplit> {
+  const impl = isMock("cashfree", ["CASHFREE_APP_ID", "CASHFREE_SECRET_KEY"]) ? mock : real;
+  return CashfreeSplit.parse(await impl.releaseSplit(input));
 }
 
 // cashfree-webhook's first line of defence (CLAUDE.md §5 "verify the

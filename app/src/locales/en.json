@@ -153,6 +153,7 @@
       "waitingPayment": "Waiting for buyer payment",
       "moneyLocked": "Money locked safely",
       "onTheWay": "On the way to buyer",
+      "received": "Money received ✅",
       "pickupDate": "Pickup {{date}}",
       "markDispatched": "Mark dispatched",
       "dispatchOffline": "Needs internet to mark dispatched",
@@ -361,6 +362,8 @@
     "payOffline": "Needs internet to pay",
     "lockedTitle": "Money locked safely",
     "lockedBody": "{{code}} will be released to the farmer after delivery is confirmed.",
+    "paidTitle": "Paid to the farmer",
+    "paidBody": "Delivery is confirmed and the money has been released.",
     "deliveryCodeTitle": "Delivery code",
     "deliveryCodeHint": "Give this code to the driver only after you check the goods.",
     "deliveryCodeSpoken": "Delivery code {{digits}}.",
@@ -368,12 +371,14 @@
     "myDeals": "My deals",
     "payNow": "Pay now",
     "statusLocked": "Money locked",
-    "statusOnTheWay": "On the way"
+    "statusOnTheWay": "On the way",
+    "statusPaid": "Paid to farmer"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely",
     "onTheWay": "{{quantityKg}} kg {{crop}} - on the way to buyer",
     "deliveredLocked": "{{quantityKg}} kg {{crop}} - delivered, money still locked",
+    "received": "{{quantityKg}} kg {{crop}} - money received",
     "receivedIn": "Received in {{month}}",
     "locked": "Locked {{amount}}",
     "onWay": "On the way: {{count}}",

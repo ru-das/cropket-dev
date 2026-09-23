@@ -112,6 +112,25 @@ async function run(fn: Handler, req: Request): Promise<Response> {
   }
 }
 
+// A Postgres function's raised text is "CODE extra words" (AGENTS.md §5) -
+// most functions collapse every RPC error to INTERNAL because their own
+// checks already rule out the specific ones, but a caller whose own state
+// can be stale (the driver's trip page, 4.9's cron sweep) needs the real
+// code back as a translatable messageKey instead of a blank "something
+// went wrong". Shared so `trip`'s own RPC calls (record_pod,
+// record_otp_attempt) and `_shared/release.ts` (release_escrow) don't each
+// keep their own copy of this mapping.
+export function rpcAppError(message: string | undefined): AppError {
+  const code = (message ?? "").trim().split(/\s/)[0] || "INTERNAL";
+  const status =
+    code === "ESCROW_WRONG_STATE" || code === "OTP_LOCKED"
+      ? 409
+      : code === "SHIPMENT_NOT_FOUND" || code === "ESCROW_NOT_FOUND"
+        ? 404
+        : 500;
+  return new AppError(code, status, message);
+}
+
 export function handle(fn: Handler): Handler {
   return async (req: Request) => {
     const cors = corsHeaders(req);

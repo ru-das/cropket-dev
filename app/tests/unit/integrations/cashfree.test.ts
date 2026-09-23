@@ -3,8 +3,11 @@
 // CashfreeWebhookEvent are pure too (no Deno/env import), so they're
 // tested the same direct way.
 import { describe, expect, it } from "vitest";
-import { CashfreeOrder, CashfreeWebhookEvent } from "@shared/schemas/escrow.ts";
-import { createOrder as mockCreateOrder } from "../../../../supabase/functions/_shared/integrations/cashfree/mock.ts";
+import { CashfreeOrder, CashfreeSplit, CashfreeWebhookEvent } from "@shared/schemas/escrow.ts";
+import {
+  createOrder as mockCreateOrder,
+  releaseSplit as mockReleaseSplit,
+} from "../../../../supabase/functions/_shared/integrations/cashfree/mock.ts";
 import { cashfreeSignature } from "../../../../supabase/functions/_shared/integrations/cashfree/signature.ts";
 
 const ORDER_INPUT = { orderId: "order-abc", amountPaise: 959500, customerId: "buyer-1" };
@@ -24,6 +27,27 @@ describe("integrations/cashfree mock", () => {
   it("echoes the given order id", async () => {
     const order = await mockCreateOrder(ORDER_INPUT);
     expect(order.orderId).toBe("order-abc");
+  });
+});
+
+describe("integrations/cashfree releaseSplit mock", () => {
+  const SPLIT_INPUT = {
+    orderId: "order-abc",
+    lines: [
+      { type: "farmer_share" as const, farmerId: "farmer-1", amountPaise: 950000 },
+      { type: "platform_fee" as const, amountPaise: 9500 },
+    ],
+  };
+
+  it("returns a split result that passes CashfreeSplit, the same schema real.ts must pass", async () => {
+    const split = await mockReleaseSplit(SPLIT_INPUT);
+    expect(CashfreeSplit.safeParse(split).success).toBe(true);
+  });
+
+  it("always marks itself as a mock, with a provider_ref release.ts can store", async () => {
+    const split = await mockReleaseSplit(SPLIT_INPUT);
+    expect(split.source).toBe("mock");
+    expect(split.providerRef).toBe("mock_order-abc");
   });
 });
 

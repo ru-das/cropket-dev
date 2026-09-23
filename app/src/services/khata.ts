@@ -14,10 +14,15 @@ type KhataRow = Database["public"]["Tables"]["khata_entries"]["Row"];
 type KhataColour = Database["public"]["Enums"]["khata_colour"];
 
 // The title_key values written so far (4.3's `khata.moneyLocked`, 4.6's
-// `khata.onTheWay`, 4.7's `khata.deliveredLocked`). 4.8 adds its own here
-// as it starts writing 🟢 rows - an unknown key falls back to a generic
-// line in KhataRow rather than crashing.
-export const KHATA_TITLE_KEYS = ["khata.moneyLocked", "khata.onTheWay", "khata.deliveredLocked"] as const;
+// `khata.onTheWay`, 4.7's `khata.deliveredLocked`, 4.8's `khata.received`).
+// An unknown key falls back to a generic line in KhataRow rather than
+// crashing.
+export const KHATA_TITLE_KEYS = [
+  "khata.moneyLocked",
+  "khata.onTheWay",
+  "khata.deliveredLocked",
+  "khata.received",
+] as const;
 export type KhataTitleKey = (typeof KHATA_TITLE_KEYS)[number];
 
 // `title_values` is stored as jsonb with no schema of its own (CLAUDE.md §4

@@ -118,14 +118,18 @@ export default function BuyerHome() {
                       ? "shrink-0 rounded-full border border-mirchi/40 bg-mirchi-light px-3 py-1 font-display text-xs font-bold text-mirchi-text"
                       : deal.escrowState === "IN_TRANSIT"
                         ? "shrink-0 rounded-full border border-neel/40 bg-neel-light px-3 py-1 font-display text-xs font-bold text-neel-text"
-                        : "shrink-0 rounded-full border border-haldi/40 bg-haldi-light px-3 py-1 font-display text-xs font-bold text-haldi-text"
+                        : deal.escrowState === "RELEASED"
+                          ? "shrink-0 rounded-full border border-pass/40 bg-pass-light px-3 py-1 font-display text-xs font-bold text-pass-text"
+                          : "shrink-0 rounded-full border border-haldi/40 bg-haldi-light px-3 py-1 font-display text-xs font-bold text-haldi-text"
                   }
                 >
                   {deal.escrowState === "CREATED"
                     ? t("deal.payNow")
                     : deal.escrowState === "IN_TRANSIT"
                       ? t("deal.statusOnTheWay")
-                      : t("deal.statusLocked")}
+                      : deal.escrowState === "RELEASED"
+                        ? t("deal.statusPaid")
+                        : t("deal.statusLocked")}
                 </span>
                 <ChevronRight aria-hidden="true" size={20} className="shrink-0 text-ink-muted" />
               </Link>

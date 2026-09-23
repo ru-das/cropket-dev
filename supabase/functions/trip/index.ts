@@ -18,7 +18,7 @@
 // OTP; the photo joins it because there's no offline queue to put it in
 // yet). Upgrade path: Dexie's tripQueue (SPEC §5.8) + a background sync
 // runner, same shape offline/outbox.ts already has for the farmer side.
-import { handle, json, AppError } from "../_shared/http.ts";
+import { handle, json, AppError, rpcAppError } from "../_shared/http.ts";
 import { requireEnv } from "../_shared/env.ts";
 import { db } from "../_shared/db.ts";
 import {
@@ -30,6 +30,7 @@ import {
 } from "../_shared/domain/schemas/shipment.ts";
 import { hashTripToken } from "../_shared/domain/tripToken.ts";
 import { deliveryOtp } from "../_shared/domain/deliveryOtp.ts";
+import { releaseEscrow } from "../_shared/release.ts";
 
 const MAX_PHOTO_BYTES = 1024 * 1024;
 
@@ -86,24 +87,6 @@ async function loadShipment(token: string): Promise<ShipmentContext> {
   };
 }
 
-// A Postgres function's raised text is "CODE extra words" (AGENTS.md §5) -
-// escrow-pay/cashfree-webhook collapse every RPC error to INTERNAL because
-// their own checks already rule out the specific ones; record_pod/
-// record_otp_attempt don't have that luxury here (the driver's own page
-// state can be stale after a network blip), so the real code reaches the
-// driver as a translatable messageKey instead of a blank "something went
-// wrong".
-function rpcAppError(message: string | undefined): AppError {
-  const code = (message ?? "").trim().split(/\s/)[0] || "INTERNAL";
-  const status =
-    code === "ESCROW_WRONG_STATE" || code === "OTP_LOCKED"
-      ? 409
-      : code === "SHIPMENT_NOT_FOUND" || code === "ESCROW_NOT_FOUND"
-        ? 404
-        : 500;
-  return new AppError(code, status, message);
-}
-
 async function handleGet(ctx: ShipmentContext) {
   return json({
     ok: true,
@@ -150,6 +133,16 @@ async function handlePod(req: Request, ctx: ShipmentContext) {
 
 async function handleOtp(req: Request, ctx: ShipmentContext) {
   const input = OtpSubmitInput.parse(await req.json());
+
+  // A retry after a lost response (the first call already released the
+  // money, but the driver's page never saw the reply) must not fail -
+  // record_otp_attempt() only accepts a DELIVERED escrow, and a released
+  // one no longer is one. Nothing left to check or count: the escrow's
+  // own state is proof the code was already right.
+  if (ctx.escrowState === "RELEASED") {
+    return json({ ok: true, data: OtpSubmitResult.parse({ correct: true, triesLeft: 5 }) });
+  }
+
   const expected = await deliveryOtp(requireEnv("OTP_PEPPER"), ctx.escrowId);
   const correct = input.otp === expected;
 
@@ -162,9 +155,13 @@ async function handleOtp(req: Request, ctx: ShipmentContext) {
   });
   if (rpcError || triesLeft === null) throw rpcAppError(rpcError?.message);
 
-  // ponytail: a correct code just reports itself here - it doesn't call
-  // escrow-release yet (that's 4.8; today's escrow sits in DELIVERED
-  // until 4.8 or 4.9's 24h timer moves it on).
+  // A correct guess releases the money right away (SPEC §5.7 "correct OTP
+  // entered by the driver" - 4.9's 24h timer is the other path to the same
+  // call). Any thrown error here is already a properly-coded AppError
+  // (releaseEscrow uses the same rpcAppError mapping), so it just
+  // propagates through handle() like any other failure.
+  if (correct) await releaseEscrow(ctx.escrowId, "otp");
+
   return json({ ok: true, data: OtpSubmitResult.parse({ correct, triesLeft }) });
 }
 

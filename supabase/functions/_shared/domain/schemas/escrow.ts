@@ -40,6 +40,16 @@ export type DeliveryCodeResult = z.infer<typeof DeliveryCodeResult>;
 export const MarkDispatchedInput = z.object({ escrowId: z.uuid() });
 export type MarkDispatchedInput = z.infer<typeof MarkDispatchedInput>;
 
+// The cashfree adapter's release-split call (SPEC §5.4/§5.7, §9.2 Phase 4
+// "4.8") - validated in both mock and real mode, same reasoning
+// CashfreeOrder gives. `providerRef` is stored on every `payouts` row it
+// produces.
+export const CashfreeSplit = z.object({
+  providerRef: z.string(),
+  source: z.enum(["mock", "cashfree"]),
+});
+export type CashfreeSplit = z.infer<typeof CashfreeSplit>;
+
 export const CashfreeWebhookEvent = z.object({
   type: z.string(),
   data: z.object({

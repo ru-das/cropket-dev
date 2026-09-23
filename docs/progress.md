@@ -50,7 +50,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
 - [x] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
 - [x] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
-- [ ] 4.8 `escrow-release` (split, payouts, Khata 🟢)
+- [x] 4.8 `escrow-release` (split, payouts, Khata 🟢)
 - [ ] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
 
 ## M5 — Demo ready
@@ -1582,6 +1582,12 @@ the changed files: no findings.
   `curl -X OPTIONS .../kyc-verify -H "Origin: http://localhost:5173"` -> the header comes back
   fine. `check-functions.sh` itself needs a `-H "Origin: <one of ALLOWED_ORIGINS>"` on its probe to
   stay useful now that this is set; not fixed here (script change, out of this item's scope).
+- `APP_URL` — 4.7 added it to `scripts/set-key.sh`'s `KEYS` list (it builds a driver trip link's
+  full URL), but it was never actually set. Found while hand-testing 4.8: `shipments-create` fails
+  closed with `SETUP_MISSING_KEY APP_URL`, so a farmer can't make a driver link today. Run in your
+  terminal: `bash scripts/set-key.sh APP_URL` (the web app's own URL, e.g.
+  `https://cropket-dev.vercel.app` or `http://localhost:5173` for local testing), then
+  `supabase secrets set --env-file supabase/functions/.env`.
 
 ### Adapt — Responsive layout for laptops, bigger phones, big screens — 2026-09-19
 
@@ -2801,4 +2807,125 @@ token → `TRIP_NOT_FOUND`.
   4 digits), not a real RTO registry check - it only needs to catch a typo before the link goes to
   a stranger's phone.
 - **Next item: 4.8** `escrow-release` (split, payouts, Khata 🟢).
+
+### 4.8 escrow-release (split, payouts, Khata 🟢) — 2026-09-23
+
+**What it does:** the last P0 money step (SPEC.md §5.3, §5.4, §5.6, §5.7, §9.2 Phase 4 "4.8"). Until
+now a correct delivery code (4.7's `trip` `POST /otp`) only reported `{correct: true}` - the escrow
+stayed `DELIVERED` and no money moved. `release_escrow()` (new SQL function, same "one function,
+one transaction" shape `fund_escrow()`/`mark_dispatched()`/`record_pod()` all use) is the only way an
+escrow reaches `RELEASED`: `DELIVERED → RELEASED` via `escrow_transition()`, then `payouts` rows and
+one green `khata_entries` row per farmer, all in one transaction. It's handed the payout lines
+(already computed) as jsonb and just checks they sum to the escrow total exactly (`SPLIT_MISMATCH`
+if not) - it doesn't call `split.ts` itself, since a SQL function can't import TypeScript. It also
+refuses anything that isn't `DELIVERED` (`ESCROW_WRONG_STATE`) - this is what stops 4.9's future
+24h timer from ever releasing a `DISPUTED` escrow, and is idempotent on an already-`RELEASED` escrow
+(the row lock plus this branch is what makes "two parallel releases give one release" true).
+**Decided with the user (plan step): `escrow-release` is a shared module, not a deployed Edge
+Function.** SPEC's own row for it has no HTTP caller of its own - only other server-side code
+(`trip`'s `POST /otp` today, 4.9's `cron-auto-settle` next) - so `_shared/release.ts`'s
+`releaseEscrow(escrowId, reason)` is a plain function `trip/index.ts` imports directly. No network
+hop, no internal secret, no `config.toml` block, one fewer thing to deploy. It loads the escrow/
+deal/lot, calls `splitRelease()` (4.2, already 100%-branch-tested, unchanged), sends the lines to a
+new `cashfree.releaseSplit()` adapter call (mock: an instant `mock_<order>` provider ref; real: not
+built, 502s - same honesty rule `createOrder`'s real.ts already follows), then `release_escrow()`.
+Split first, DB second, so a failed real-mode call throws before any row changes (CLAUDE.md §5
+"Money (fail closed)") - the escrow stays `DELIVERED` instead of moving to `RELEASED` with no real
+payout behind it.
+**A real bug caught by hand-testing, not by the SQL tests:** after wiring `trip`'s `handleOtp` to
+call `releaseEscrow()`, a retried OTP submission (the correct code already released the money, but
+the driver's page never saw the reply - a lost response, not a wrong guess) hit
+`record_otp_attempt()`'s own `state <> DELIVERED` guard and threw `ESCROW_WRONG_STATE`, since the
+escrow was no longer `DELIVERED` by the time the retry landed. The pgTAP tests for `release_escrow()`
+itself couldn't catch this - it's a `trip`/`record_otp_attempt` interaction, one level up from what
+that function tests. Fixed with one guard at the top of `handleOtp`: if the escrow is already
+`RELEASED`, report `{correct: true}` straight from that fact, without calling `record_otp_attempt()`
+again at all. Found and fixed by driving the real deployed `trip` function end to end with `curl`
+(see below), not guessed.
+**Files:** `supabase/migrations/20260923230000_release_escrow.sql` (new - drops the `not null` on
+`payouts.to_user` + a check constraint requiring it for every type except `platform_fee`,
+`release_escrow()`), `supabase/tests/release_escrow.sql` (new, 15 checks), `supabase/functions/
+_shared/release.ts` (new - `releaseEscrow()`), `supabase/functions/_shared/http.ts` (`rpcAppError()`
+moved here from `trip/index.ts` so both `trip` and `release.ts` share one "Postgres error text →
+coded AppError" mapping instead of two copies), `supabase/functions/_shared/domain/schemas/
+escrow.ts` (`CashfreeSplit`), `supabase/functions/_shared/integrations/cashfree/{index,mock,real,
+types}.ts` (`releaseSplit()` added alongside `createOrder()`, same mock/real split), `supabase/
+functions/trip/index.ts` (`handleOtp` calls `releaseEscrow()` on a correct guess; the already-
+RELEASED retry guard above), `app/src/services/trip.ts` (`useSubmitOtp` now invalidates the trip
+state on every settle, so a correct guess's own refetch picks up `RELEASED` and the page's existing
+"state past DELIVERED" fallback shows "Delivery done" - no new UI needed there), `app/src/services/
+khata.ts` (`khata.received` added to `KHATA_TITLE_KEYS`), `app/src/routes/farmer/LotDetailPage.tsx`
+(Sold card gets a `RELEASED` branch, pass-green, "Money received ✅"), `app/src/routes/buyer/
+BuyerHome.tsx` ("My deals" pill gets a `RELEASED` state, "Paid to farmer"), `app/src/routes/buyer/
+BuyerDealPage.tsx` (the locked card turns pass-green with "Paid to the farmer" once `RELEASED` - the
+delivery-code card is already hidden by then, `CODE_VISIBLE_STATES` never included `RELEASED`),
+`app/src/locales/{en,hi,mr}.json` (`lots.deal.received`, `khata.received`, `deal.paidTitle`/
+`paidBody`/`statusPaid`), `app/tests/unit/integrations/cashfree.test.ts` (+2 - `releaseSplit`'s mock
+output passes `CashfreeSplit`), `app/src/lib/database.types.ts` + `supabase/functions/_shared/
+database.types.ts` (regenerated), `SPEC.md` §3/§5.3/§5.4/§5.6/§7.2 (the shared-module decision, the
+new `release_escrow` row, the nullable `to_user` column).
+**Mocked:** Cashfree Easy Split's actual transfer (`mock_<order-id>` provider ref, same as
+`escrow-pay`'s mock order). Mega-lot release isn't built - `release.ts` throws
+`NOT_IMPLEMENTED mega_lot_deal` for a `lot_id`-less deal, same unchanged gap `fund_escrow()`/
+`mark_dispatched()`/`record_pod()` all still carry (no mega-lot deal has ever reached `DELIVERED`).
+Push to the farmer is skipped (out of prototype scope everywhere).
+**How to test by hand:** drive the whole P0 chain for one deal - accept a bid, "Pay (demo)", "Mark
+dispatched", make a driver link, open it in a private window, take the delivery photo, then enter
+the buyer's code from their deal page. On the correct code the driver page moves straight to
+"Delivery done ✅" (it skips the transient "Code correct" line, since the state refetch that follows
+already shows past-`DELIVERED`). The farmer's Khata now shows a 🟢 row ("money received") and
+"Received this month" goes up; the lot's Sold card turns pass-green ("Money received ✅"); the
+buyer's deal page turns pass-green ("Paid to the farmer") and BuyerHome's pill reads "Paid to
+farmer". Re-opening the driver link and submitting any code again still says "Code correct" (the
+retry guard) and changes nothing further. Checked at 360 px in English, Hindi and Marathi.
+**Verified live against `cropket-dev`, not just pgTAP** (curl, farmer `9090910001`/`910001`, buyer
+`9090910002`/`910002`): built a fresh lot → bid → deal → escrow through the real deployed functions
+(`place_bid`, `accept_bid`, `escrow-pay`, `mark_dispatched`), then drove the real deployed `trip`
+function through pod upload and OTP entry end to end. Confirmed in the table editor afterward: the
+escrow reached `RELEASED`; exactly 2 `payouts` rows summing to the escrow total (`farmer_share` to
+the farmer, `platform_fee` with `to_user` null); one green `khata_entries` row at the farmer's
+share; the full `escrow_events` trail (`CREATED → FUNDED → IN_TRANSIT → DELIVERED → RELEASED`, one
+row each, the last one's reason `"otp"`). A wrong code before the right one counted down
+`triesLeft`. Resubmitting the correct (and even a wrong) code afterward both correctly reported
+`{correct: true}` with no further DB change (the retry-guard fix above, confirmed live after
+redeploying `trip`). All test rows deleted afterward so `cropket-dev` stays clean, same as 2.1's ORS
+hand-test.
+**Gap hit hand-testing this, not caused by it:** `shipments-create` failed with
+`SETUP_MISSING_KEY APP_URL` - 4.7 added `APP_URL` to `scripts/set-key.sh`'s `KEYS` list but it was
+never actually set. Worked around for this test by inserting the `shipments` row directly (same
+token-hashing `tripToken.ts` uses) instead of through the function, so the real `trip` function
+itself could still be driven end to end. Added to the 🔑 Keys block below - this blocks a farmer
+from actually making a driver link today, unchanged by 4.8, but worth fixing before the next demo.
+**Tests:** `supabase/tests/release_escrow.sql` (15/15 - the happy path, both payout rows exactly at
+the split amounts with `platform_fee`'s `to_user` null, one green Khata row, an idempotent repeat,
+`IN_TRANSIT` and `DISPUTED` both refused, a mismatched payout total refused and leaves the escrow
+untouched, an unknown id refused, only the service role may call it, a direct insert violating the
+new check constraint). `bash scripts/test-sql.sh` - 20/22 files green; the 2 failures
+(`escrow_transition.sql`, `rls_crop_photos.sql`) are pre-existing and unrelated to this change (see
+below), confirmed by running them in isolation. `pnpm lint && pnpm typecheck && pnpm test` (332
+tests, 2 new) `&& pnpm build` all pass. The `impeccable` CLI isn't installed in this environment
+(unlike earlier milestones' sessions) - each edited file was still checked by the editor's own
+impeccable hook as it was written, with no issues found; a full `impeccable detect app/src` pass is
+still worth running once the CLI is available again.
+**Pre-existing SQL test failures, not caused by this change:**
+- `escrow_transition.sql`'s test 5 counts `select count(*) from escrow_events` with no `where`
+  clause, assuming the table starts empty in this shared dev database. Earlier milestones' own
+  hand-testing (curl, real `escrow_transition`/`fund_escrow`/`mark_dispatched`/`record_pod` calls
+  against `cropket-dev`) left 8 real committed rows behind, so the test now sees `21` instead of the
+  `13` it expects. Confirmed pre-existing: the 8 rows' timestamps predate this session. Fix is a test
+  change (scope the count to the escrow ids this file itself creates), not a schema/function change
+  - flagged here rather than touched, per AGENTS.md §6 "never weaken a test without asking".
+- `rls_crop_photos.sql`'s test 5 (`lives_ok` on an upsert) fails with `42P10: there is no unique or
+  exclusion constraint matching the ON CONFLICT specification` against `storage.objects` -
+  unrelated to escrow/storage entirely; looks like a Supabase-platform-side change to that table's
+  constraints since the test was written. Also pre-existing, also not touched.
+**Next / known gaps:**
+- Mega-lot release isn't built - unchanged gap, see "Mocked" above.
+- No push notification when money is released - out of prototype scope (push is skipped everywhere).
+- No admin view of a release event - Phase 5/P1, same as 4.7's own "no admin view of the driver
+  link" note.
+- The two pre-existing SQL test failures above need their own fix (or at least a triage) before
+  they're mistaken for a regression by someone who didn't read this note.
+- **Next item: 4.9** `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`)
+  + `Countdown` - the 24h timer path to the same `releaseEscrow()` this item built.
 

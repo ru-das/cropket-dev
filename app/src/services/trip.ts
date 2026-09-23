@@ -64,12 +64,15 @@ async function submitOtp(token: string, input: OtpSubmitInput): Promise<OtpSubmi
   return OtpSubmitResult.parse(result);
 }
 
-/** Step 2's code entry. A correct guess doesn't move the escrow past
- * DELIVERED yet - that's 4.8 (escrow-release) - so the page reads
- * `correct`/`triesLeft` straight from this call's own result, not from a
- * state refetch. */
+/** Step 2's code entry. A correct guess now releases the money (4.8) and
+ * moves the escrow past DELIVERED, so a refetch after any call (right or
+ * wrong) picks that up - the page's own "state past DELIVERED" fallback
+ * (TripPage.tsx) is what then shows "Delivery done". */
 export function useSubmitOtp(token: string) {
   return useMutation<OtpSubmitResult, AppError, OtpSubmitInput>({
     mutationFn: (input) => submitOtp(token, input),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: tripKeys.state(token) });
+    },
   });
 }
