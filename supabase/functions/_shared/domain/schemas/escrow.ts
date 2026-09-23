@@ -26,6 +26,14 @@ export type CashfreeOrder = z.infer<typeof CashfreeOrder>;
 
 // Only the fields cashfree-webhook actually reads, from Cashfree's PG v2
 // webhook payload shape - not the whole envelope Cashfree sends.
+// `delivery-code` (SPEC §4.14, §5.4, §9.2 Phase 4 "4.5"). The code itself
+// is never stored - see `_shared/domain/deliveryOtp.ts`.
+export const DeliveryCodeInput = z.object({ escrowId: z.uuid() });
+export type DeliveryCodeInput = z.infer<typeof DeliveryCodeInput>;
+
+export const DeliveryCodeResult = z.object({ code: z.string().regex(/^\d{4}$/) });
+export type DeliveryCodeResult = z.infer<typeof DeliveryCodeResult>;
+
 export const CashfreeWebhookEvent = z.object({
   type: z.string(),
   data: z.object({

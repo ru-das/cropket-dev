@@ -396,6 +396,7 @@
     "micDenied": "Microphone permission was not given. You can go back and try again.",
     "micUnavailable": "Could not use the microphone. Check your phone and try again.",
     "escrowNotFound": "We could not find this deal's payment.",
+    "escrowWrongState": "The delivery code is not ready to show yet.",
     "paymentsUnavailable": "Payment is not available right now. Try again shortly.",
     "unknown": "Something went wrong. Try again."
   }
