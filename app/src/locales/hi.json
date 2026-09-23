@@ -152,7 +152,10 @@
       "soldTitle": "बिक गया",
       "waitingPayment": "खरीदार के भुगतान का इंतज़ार",
       "moneyLocked": "पैसा सुरक्षित रूप से लॉक है",
-      "pickupDate": "पिकअप {{date}}"
+      "onTheWay": "खरीदार के पास जा रहा है",
+      "pickupDate": "पिकअप {{date}}",
+      "markDispatched": "भेज दिया गया बताएं",
+      "dispatchOffline": "भेजा बताने के लिए इंटरनेट चाहिए"
     },
     "status": {
       "draft": "मसौदा",
@@ -350,10 +353,12 @@
     "notFound": "यह डील नहीं मिली।",
     "myDeals": "मेरी डील्स",
     "payNow": "अभी भुगतान करें",
-    "statusLocked": "पैसा लॉक है"
+    "statusLocked": "पैसा लॉक है",
+    "statusOnTheWay": "रास्ते में"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसा सुरक्षित रूप से लॉक है",
+    "onTheWay": "{{quantityKg}} किलो {{crop}} - खरीदार के पास जा रहा है",
     "receivedIn": "{{month}} में मिला",
     "locked": "{{amount}} लॉक है",
     "onWay": "रास्ते में: {{count}}",

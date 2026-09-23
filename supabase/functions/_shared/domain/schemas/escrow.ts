@@ -34,6 +34,12 @@ export type DeliveryCodeInput = z.infer<typeof DeliveryCodeInput>;
 export const DeliveryCodeResult = z.object({ code: z.string().regex(/^\d{4}$/) });
 export type DeliveryCodeResult = z.infer<typeof DeliveryCodeResult>;
 
+// mark_dispatched (SPEC §5.3, §9.2 Phase 4 "4.6") - called directly with
+// supabase.rpc(), not an Edge Function, but the input still gets a shared
+// schema like every other money/trading call (CLAUDE.md §4).
+export const MarkDispatchedInput = z.object({ escrowId: z.uuid() });
+export type MarkDispatchedInput = z.infer<typeof MarkDispatchedInput>;
+
 export const CashfreeWebhookEvent = z.object({
   type: z.string(),
   data: z.object({

@@ -920,7 +920,7 @@ Draft item:  dashed border + tag               "On phone only"
 | `place_bid` | verified buyer | `target_type, target_id, price_per_quintal` | `bid_id, is_highest, below_floor` | Buyer must be `kyc_status='verified'` and not banned. Target must be listed. |
 | `accept_bid` | farmer (lot) / FPO (mega lot) | `bid_id, consent_audio_path` | `deal_id, escrow_id` | One transaction: creates deal, rejects other bids, creates escrow in `CREATED`, marks lot `sold`. The delivery code needs no setup here — it's derived from the escrow id, not stored (§5.6). |
 | `buy_flash_sale` | verified buyer | `flash_sale_id, price` | `deal_id` | Row lock. First valid buyer wins. `price ≥ floor`. |
-| `mark_dispatched` | seller | `escrow_id` | `state` | Only when `ALLOW_SIMPLE_DISPATCH` is on. |
+| `mark_dispatched` | seller | `escrow_id` | `state` | FUNDED → IN_TRANSIT, the farmer's own "simple dispatch" move, used until full logistics (Phase 5) replaces it. No `ALLOW_SIMPLE_DISPATCH` check - it's a SQL function and can't read an Edge Function secret, and the flag stays `true` for the whole prototype anyway (§7.2). |
 | `revoke_consent` | farmer | `consent_id` | `revoked_at` | Also writes to `data_access_logs`. |
 | `group_mega_lots` | trigger on lot listed | — | — | Finds same crop + same grade + unsold lots within 10 km (`ST_DWithin`). Creates a mega lot when the total reaches the target (default 500 kg). |
 | `escrow_transition` | service role only | see 5.7 | `escrows` row | The only way escrow state changes. |
@@ -1341,7 +1341,7 @@ Rules:
 | `OTP_PEPPER` | derives the delivery code (`delivery-code`, `trip`) — never stored |
 | `INTEGRATIONS_MOCK` | e.g. `agristack,digilocker,uli,cersai,enwr,transport,sms,whatsapp,krishi_dss` (add `cashfree` if sandbox split is not enabled) |
 | `ALLOWED_ORIGINS` | Comma-separated web origins allowed to call functions from a browser (§5.2). Unset = every origin allowed; set it to the Vercel URL + dev/APK origins at the web deploy (§8, M5) |
-| `ALLOW_SIMPLE_DISPATCH` | `true` until full logistics is built |
+| `ALLOW_SIMPLE_DISPATCH` | `true` until full logistics is built. Not read anywhere in the prototype - `mark_dispatched()` (§5.3, 4.6) is a SQL function, so it can't check an Edge Function secret, and the flag never turns off before Phase 5 exists. Kept here as documentation of the intended behaviour for when Phase 5 needs to turn it off. |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | `whatsapp-webhook` |
 
 ### 7.3 AI service — `ai-service/.env`

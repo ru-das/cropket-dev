@@ -7,14 +7,17 @@
 // still see the code offline at the drop point once it's been fetched once.
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { callFunction } from "@/lib/callFunction";
-import type { AppError } from "@/lib/errors";
+import { supabase } from "@/lib/supabase";
+import { rpcError, type AppError } from "@/lib/errors";
 import { queryClient } from "@/offline/persist";
 import { dealKeys } from "@/services/deals";
+import { khataKeys } from "@/services/khata";
 import {
   EscrowPayInput,
   EscrowPayResult,
   DeliveryCodeInput,
   DeliveryCodeResult,
+  MarkDispatchedInput,
 } from "@shared/schemas/escrow.ts";
 
 async function payEscrow(input: EscrowPayInput): Promise<EscrowPayResult> {
@@ -54,5 +57,27 @@ export function useDeliveryCode(escrowId: string | undefined) {
     queryFn: () => getDeliveryCode(escrowId as string),
     enabled: escrowId !== undefined,
     staleTime: Infinity,
+  });
+}
+
+/** mark_dispatched (SPEC §5.3, §9.2 Phase 4 "4.6") - a Postgres RPC, not an
+ * Edge Function, called directly like accept_bid (deals.ts). Farmer-only,
+ * online-only (AGENTS.md §4), never queued in the outbox. */
+async function markDispatched(input: MarkDispatchedInput): Promise<void> {
+  const parsed = MarkDispatchedInput.parse(input);
+  const { error } = await supabase.rpc("mark_dispatched", { p_escrow_id: parsed.escrowId });
+  if (error) throw rpcError(error);
+}
+
+/** LotDetailPage's "Mark dispatched" button - invalidates the deal (so the
+ * Sold card flips to the blue "On the way" state) and the farmer's own
+ * Khata (mark_dispatched writes a new blue row there too). */
+export function useMarkDispatched(lotId: string) {
+  return useMutation<void, AppError, MarkDispatchedInput>({
+    mutationFn: markDispatched,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: dealKeys.forLot(lotId) });
+      void queryClient.invalidateQueries({ queryKey: khataKeys.mine() });
+    },
   });
 }

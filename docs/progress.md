@@ -48,7 +48,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(mock)` = uses 
 - [x] 4.3 `integrations/cashfree` (mock) + `escrow-pay` + "Pay (demo)" button + `cashfree-webhook` → FUNDED + Khata 🟡
 - [x] 4.4 Khata screen (`KhataRow`, `KhataSummary`, voice, readable offline)
 - [x] 4.5 Delivery OTP (hash + 5-try lock) + buyer sees `OtpDigits`
-- [ ] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
+- [x] 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵
 - [ ] 4.7 `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip` function + driver page `/t/:token` (delivery photo + OTP)
 - [ ] 4.8 `escrow-release` (split, payouts, Khata 🟢)
 - [ ] 4.9 `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`) + `Countdown`
@@ -2610,4 +2610,65 @@ JWTs (via the test-OTP auth endpoint): bad input → `400 VALIDATION_FAILED`, un
 - `mark_dispatched`/`FUNDED → IN_TRANSIT` (needed to actually reach `IN_TRANSIT`/`DELIVERED` by
   hand today) isn't built yet - **4.6** builds it, so today's manual test only reaches `FUNDED`.
 - **Next item: 4.6** "Mark dispatched" → IN_TRANSIT + Khata 🔵.
+
+### 4.6 "Mark dispatched" → IN_TRANSIT + Khata 🔵 — 2026-09-23
+
+**What it does:** the farmer's own move for the "simple dispatch" flow (SPEC.md §4.15, §5.3, §5.7,
+§9.2 Phase 4 "4.6"). `mark_dispatched(escrow_id)` (new SQL function, same "one function, one
+transaction" shape `fund_escrow()` set) is the only way an escrow reaches `IN_TRANSIT` in the
+prototype: it runs `escrow_transition(..., 'IN_TRANSIT', ...)` and, in the same transaction, writes
+a blue `khata_entries` row (`khata.onTheWay`, at the deal total). Only the farmer who owns the lot
+can call it (checked the same way `accept_bid`'s `LOT_NOT_FOUND` does - one error for "no such
+escrow" and "not yours", so a probe can't tell them apart), it only works from `FUNDED`, and a
+repeat call is idempotent (returns `IN_TRANSIT` unchanged, no second event or Khata row). The
+farmer's lot-detail "Sold" card now shows a "Mark dispatched" button (Truck icon, wrapped in
+`<RequireOnline>` like the pay button) while `FUNDED`, and flips to a neel "On the way to buyer"
+card once `IN_TRANSIT` - no confirm dialog, the label says exactly what happens. The buyer's home
+"My deals" pill also gets a third state, "On the way" (neel), for `IN_TRANSIT`.
+**Decided with the user (plan step):** SPEC originally gated `mark_dispatched` on
+`ALLOW_SIMPLE_DISPATCH`, an Edge Function secret - a SQL function can't read `Deno.env`, and the
+flag stays `true` until Phase 5 logistics exists, which is out of prototype scope. So the function
+has **no flag check at all** (a `ponytail:` comment in the migration explains why and gives the
+upgrade path: move the flag into `app_config` if Phase 5 ever needs to turn it off). Removed the
+dead `ALLOW_SIMPLE_DISPATCH=` line from `supabase/functions/.env.example` (nothing reads it; it was
+never in `scripts/set-key.sh`'s `KEYS` list either). `lots.status` stays `sold` through dispatch -
+the escrow state is the source of truth for the Sold card, and `lot_status.in_transit` remains
+unused (documented below, not a new gap).
+**Files:** `supabase/migrations/20260923210000_mark_dispatched.sql` (new), `supabase/tests/
+mark_dispatched.sql` (new, 11 checks), `supabase/functions/_shared/domain/schemas/escrow.ts`
+(`MarkDispatchedInput`), `app/src/services/deals.ts` (`DealView` gains `escrowId`, alongside
+`escrowState`), `app/src/services/escrow.ts` (`useMarkDispatched()`), `app/src/services/khata.ts`
+(`khata.onTheWay` added to `KHATA_TITLE_KEYS`), `app/src/routes/farmer/LotDetailPage.tsx` (Sold
+card reads `IN_TRANSIT`, adds the "Mark dispatched" button), `app/src/routes/buyer/BuyerHome.tsx`
+("On the way" pill), `app/src/locales/{en,hi,mr}.json` (`lots.deal.onTheWay`/`markDispatched`/
+`dispatchOffline`, `khata.onTheWay`, `deal.statusOnTheWay`), `app/src/lib/database.types.ts` +
+`supabase/functions/_shared/database.types.ts` (regenerated), `supabase/functions/.env.example`
+(dead flag line removed), `SPEC.md` §5.3 + §7.2 (document the no-flag decision).
+**Mocked:** nothing - real column state, real function, real Khata row, verified against
+`cropket-dev`.
+**How to test by hand:** as farmer `9090910001` with a `FUNDED` deal (pay it first with 4.3's
+"Pay (demo)" button), open the lot's detail page - a green "Mark dispatched" button shows under the
+haldi "Money locked" card; tap it, the card turns blue "On the way to buyer". Khata
+(`/farmer/khata`) now shows one 🔵 row and the summary's "On the way: 1" count goes up while
+"Locked" drops by the deal total. As buyer `9090910002`, BuyerHome's "My deals" pill for that deal
+now reads "On the way" (neel). Airplane mode disables the button with a reason line. Reloading or
+tapping again changes nothing. Checked at 360 px in English, Hindi and Marathi.
+**Tests:** `supabase/tests/mark_dispatched.sql` (11/11 - farmer-only, `FUNDED → IN_TRANSIT`, one
+event with the farmer as actor, one blue Khata row at the deal total, idempotent repeat, the buyer
+and another farmer both refused with the same `ESCROW_NOT_FOUND`, a `CREATED` escrow refused with
+`ESCROW_WRONG_STATE`, an unknown id refused, `anon` has no privilege at all). `bash
+scripts/test-sql.sh` - full suite green, 20/20 files. `pnpm lint && pnpm typecheck && pnpm test`
+(315 tests, no new ones - the logic is proven in SQL, the app service is a thin rpc wrapper) `&&
+pnpm build` all pass. `impeccable detect app/src` - 0 anti-patterns.
+**Next / known gaps:**
+- `lot_status.in_transit`/`delivered` stay unused - the Sold card and Khata both read the escrow's
+  own state, not `lots.status`, so the lot enum value exists but nothing writes it. Not a bug: SPEC
+  §5.6 defines the enum for the whole lifecycle, and the prototype's UI never needed a second
+  source of truth. Leave as-is unless a future screen reads `lots.status` directly for logistics.
+- No driver page yet, no way to reach `DELIVERED` by hand - **4.7** (`shipments-create` mock SMS +
+  `trip` function + driver page `/t/:token`) is what takes an `IN_TRANSIT` escrow further.
+- No Realtime on `escrow:{dealId}` - unchanged gap from 4.3/4.4/4.5; the buyer's deal page and the
+  farmer's Khata/lot-detail both update on refetch/refocus, not live.
+- **Next item: 4.7** `shipments` + `shipments-create` (SMS mock, link shown on screen) + `trip`
+  function + driver page `/t/:token` (delivery photo + OTP).
 

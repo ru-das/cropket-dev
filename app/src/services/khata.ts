@@ -1,8 +1,8 @@
 // Reads `khata_entries` (SPEC.md §4.15, §5.6, §9.2 Phase 4 "4.4") - the
 // only file that talks to Supabase for the farmer's Digital Khata (CLAUDE.md
 // §3 "data access from the app goes through services/*"). Read-only: the
-// only writer is `fund_escrow()` (4.3) and future 4.6/4.8 functions, never
-// the app.
+// only writer is `fund_escrow()` (4.3), `mark_dispatched()` (4.6) and a
+// future 4.8 function, never the app.
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/lib/supabase";
@@ -13,10 +13,10 @@ import type { Database } from "@/lib/database.types";
 type KhataRow = Database["public"]["Tables"]["khata_entries"]["Row"];
 type KhataColour = Database["public"]["Enums"]["khata_colour"];
 
-// The only title_key values written so far (4.3's `khata.moneyLocked`).
-// 4.6/4.8 add their own here as they start writing 🔵/🟢 rows - an unknown
-// key falls back to a generic line in KhataRow rather than crashing.
-export const KHATA_TITLE_KEYS = ["khata.moneyLocked"] as const;
+// The title_key values written so far (4.3's `khata.moneyLocked`, 4.6's
+// `khata.onTheWay`). 4.8 adds its own here as it starts writing 🟢 rows - an
+// unknown key falls back to a generic line in KhataRow rather than crashing.
+export const KHATA_TITLE_KEYS = ["khata.moneyLocked", "khata.onTheWay"] as const;
 export type KhataTitleKey = (typeof KHATA_TITLE_KEYS)[number];
 
 // `title_values` is stored as jsonb with no schema of its own (CLAUDE.md §4

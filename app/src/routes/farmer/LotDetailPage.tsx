@@ -7,15 +7,17 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShoppingCart, Gavel } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle, Clock, ShoppingCart, Gavel, Truck } from "lucide-react";
 import { formatRupees } from "@shared/money.ts";
 import GradeBadge from "@/components/lot/GradeBadge";
 import QRLabel from "@/components/lot/QRLabel";
 import VoiceButton from "@/components/voice/VoiceButton";
+import RequireOnline from "@/components/common/RequireOnline";
 import { useLot, useLotPhoto, useListLot } from "@/services/lots";
 import { useLotBids, useLotBidsRealtime, useMyLotBids, highestBid } from "@/services/bids";
 import { useMegaLotForLot } from "@/services/megaLots";
 import { useDealForLot } from "@/services/deals";
+import { useMarkDispatched } from "@/services/escrow";
 import { useOnline } from "@/offline/network";
 import { toAppError, type AppError } from "@/lib/errors";
 
@@ -36,6 +38,8 @@ export default function LotDetailPage() {
   const online = useOnline();
   const listLot = useListLot();
   const [sellError, setSellError] = useState<AppError | null>(null);
+  const markDispatched = useMarkDispatched(id ?? "");
+  const [dispatchError, setDispatchError] = useState<AppError | null>(null);
   // Mega lots: read-only for the member farmer (decided with the user for
   // 3.5 - SPEC §5.3 gives accept to the FPO, which doesn't exist in the
   // seed yet; see 3.4's handoff note "next / known gaps"). Only fetched
@@ -56,6 +60,15 @@ export default function LotDetailPage() {
       await listLot.mutateAsync(id);
     } catch (err) {
       setSellError(toAppError(err));
+    }
+  }
+
+  async function handleMarkDispatched(escrowId: string) {
+    setDispatchError(null);
+    try {
+      await markDispatched.mutateAsync({ escrowId });
+    } catch (err) {
+      setDispatchError(toAppError(err));
     }
   }
 
@@ -206,36 +219,78 @@ export default function LotDetailPage() {
               the full passbook, reading khata_entries directly rather than
               this deal's escrowState. */}
           {lot.status === "sold" && deal && (
-            <div
-              className={
-                deal.escrowState === "CREATED"
-                  ? "rounded-2xl border-2 border-pass/40 bg-pass-light/40 p-4 text-center"
-                  : "rounded-2xl border-2 border-haldi/40 bg-haldi-light p-4 text-center shadow-glow-haldi"
-              }
-            >
-              <p
+            <>
+              <div
                 className={
                   deal.escrowState === "CREATED"
-                    ? "font-display text-meta font-bold text-pass-text"
-                    : "font-display text-meta font-bold text-haldi-text"
+                    ? "rounded-2xl border-2 border-pass/40 bg-pass-light/40 p-4 text-center"
+                    : deal.escrowState === "IN_TRANSIT"
+                      ? "rounded-2xl border-2 border-neel/40 bg-neel-light p-4 text-center"
+                      : "rounded-2xl border-2 border-haldi/40 bg-haldi-light p-4 text-center shadow-glow-haldi"
                 }
               >
-                {t("lots.deal.soldTitle")}
-              </p>
-              <p className="mt-1 font-display text-2xl font-black text-ink tabular-nums">
-                {formatRupees(deal.totalPaise)}
-              </p>
-              <p className="mt-1 font-body text-sm font-semibold text-ink-muted">
-                {t("lots.deal.pickupDate", { date: pickupDateLabel(deal.pickupDate, i18n.language) })}
-              </p>
-              <p className="mt-2 font-body text-sm text-ink-muted">
-                {deal.escrowState === "CREATED" ? t("lots.deal.waitingPayment") : t("lots.deal.moneyLocked")}
-              </p>
-              <VoiceButton
-                textKey={deal.escrowState === "CREATED" ? "lots.deal.waitingPayment" : "lots.deal.moneyLocked"}
-                className="mx-auto mt-2 h-9 w-9 shadow-xs"
-              />
-            </div>
+                <p
+                  className={
+                    deal.escrowState === "CREATED"
+                      ? "font-display text-meta font-bold text-pass-text"
+                      : deal.escrowState === "IN_TRANSIT"
+                        ? "font-display text-meta font-bold text-neel-text"
+                        : "font-display text-meta font-bold text-haldi-text"
+                  }
+                >
+                  {t("lots.deal.soldTitle")}
+                </p>
+                <p className="mt-1 font-display text-2xl font-black text-ink tabular-nums">
+                  {formatRupees(deal.totalPaise)}
+                </p>
+                <p className="mt-1 font-body text-sm font-semibold text-ink-muted">
+                  {t("lots.deal.pickupDate", { date: pickupDateLabel(deal.pickupDate, i18n.language) })}
+                </p>
+                <p className="mt-2 font-body text-sm text-ink-muted">
+                  {deal.escrowState === "CREATED"
+                    ? t("lots.deal.waitingPayment")
+                    : deal.escrowState === "IN_TRANSIT"
+                      ? t("lots.deal.onTheWay")
+                      : t("lots.deal.moneyLocked")}
+                </p>
+                <VoiceButton
+                  textKey={
+                    deal.escrowState === "CREATED"
+                      ? "lots.deal.waitingPayment"
+                      : deal.escrowState === "IN_TRANSIT"
+                        ? "lots.deal.onTheWay"
+                        : "lots.deal.moneyLocked"
+                  }
+                  className="mx-auto mt-2 h-9 w-9 shadow-xs"
+                />
+              </div>
+
+              {/* "Mark dispatched" (SPEC §4.15, §5.3, §9.2 Phase 4 "4.6") -
+                  the farmer's own simple-dispatch move, only while the
+                  escrow is FUNDED. Same RequireOnline pattern as
+                  BuyerDealPage's "Pay and lock money" (money/trading
+                  actions are online-only, AGENTS.md §4). */}
+              {deal.escrowState === "FUNDED" && deal.escrowId && (
+                <div className="flex flex-col gap-2">
+                  {dispatchError && (
+                    <p className="text-center text-meta font-semibold text-mirchi-text">
+                      {t(dispatchError.messageKey)}
+                    </p>
+                  )}
+                  <RequireOnline reasonKey="lots.deal.dispatchOffline">
+                    <button
+                      type="button"
+                      disabled={markDispatched.isPending}
+                      onClick={() => void handleMarkDispatched(deal.escrowId as string)}
+                      className="flex h-16 w-full items-center justify-center gap-2.5 rounded-2xl bg-leaf font-display text-lg font-bold text-white shadow-hero transition-all hover:bg-leaf-hover active:scale-[0.98] disabled:bg-line disabled:text-ink-muted disabled:shadow-none"
+                    >
+                      <Truck aria-hidden="true" size={22} />
+                      <span>{t("lots.deal.markDispatched")}</span>
+                    </button>
+                  </RequireOnline>
+                </div>
+              )}
+            </>
           )}
 
           <Link

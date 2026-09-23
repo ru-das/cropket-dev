@@ -152,7 +152,10 @@
       "soldTitle": "विकले",
       "waitingPayment": "खरेदीदाराच्या पेमेंटची वाट पाहत आहे",
       "moneyLocked": "पैसे सुरक्षितपणे लॉक आहेत",
-      "pickupDate": "पिकअप {{date}}"
+      "onTheWay": "खरेदीदाराकडे जात आहे",
+      "pickupDate": "पिकअप {{date}}",
+      "markDispatched": "पाठवले असे नोंदवा",
+      "dispatchOffline": "पाठवले नोंदवण्यासाठी इंटरनेट लागेल"
     },
     "status": {
       "draft": "मसुदा",
@@ -350,10 +353,12 @@
     "notFound": "ही डील सापडली नाही.",
     "myDeals": "माझ्या डील्स",
     "payNow": "आता पेमेंट करा",
-    "statusLocked": "पैसे लॉक आहेत"
+    "statusLocked": "पैसे लॉक आहेत",
+    "statusOnTheWay": "वाटेत"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} किलो {{crop}} - पैसे सुरक्षितपणे लॉक आहेत",
+    "onTheWay": "{{quantityKg}} किलो {{crop}} - खरेदीदाराकडे जात आहे",
     "receivedIn": "{{month}} मध्ये मिळाले",
     "locked": "{{amount}} लॉक आहे",
     "onWay": "वाटेत: {{count}}",

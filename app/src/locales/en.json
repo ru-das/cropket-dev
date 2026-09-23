@@ -152,7 +152,10 @@
       "soldTitle": "Sold",
       "waitingPayment": "Waiting for buyer payment",
       "moneyLocked": "Money locked safely",
-      "pickupDate": "Pickup {{date}}"
+      "onTheWay": "On the way to buyer",
+      "pickupDate": "Pickup {{date}}",
+      "markDispatched": "Mark dispatched",
+      "dispatchOffline": "Needs internet to mark dispatched"
     },
     "status": {
       "draft": "Draft",
@@ -350,10 +353,12 @@
     "notFound": "This deal was not found.",
     "myDeals": "My deals",
     "payNow": "Pay now",
-    "statusLocked": "Money locked"
+    "statusLocked": "Money locked",
+    "statusOnTheWay": "On the way"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely",
+    "onTheWay": "{{quantityKg}} kg {{crop}} - on the way to buyer",
     "receivedIn": "Received in {{month}}",
     "locked": "Locked {{amount}}",
     "onWay": "On the way: {{count}}",
