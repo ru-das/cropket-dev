@@ -55,7 +55,10 @@ export type PodInput = z.infer<typeof PodInput>;
 
 export const PodResult = z.object({
   state: z.string(),
-  autoReleaseAt: z.iso.datetime().nullable(),
+  // { offset: true } - this comes straight from Postgres via PostgREST as
+  // "...+00:00", not the "...Z" shape a phone's own toISOString() makes
+  // (that's what `takenAt` above is checked against instead).
+  autoReleaseAt: z.iso.datetime({ offset: true }).nullable(),
 });
 export type PodResult = z.infer<typeof PodResult>;
 

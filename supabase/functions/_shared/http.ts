@@ -66,11 +66,24 @@ function corsHeaders(req: Request): Record<string, string> {
   return { ...base, "access-control-allow-origin": origin, vary: "Origin" };
 }
 
+// The deployed URL is always .../functions/v1/<fn-name>[/more/path] - the
+// last segment is only the function name for a function with no
+// sub-routes. `trip` (4.7) has both a token and a sub-route after its own
+// name (/trip/<token>/otp), and the last segment there is the token -
+// exactly what CLAUDE.md §5 "never log trip tokens" forbids. Anchoring on
+// "v1" instead of "pop()" gets the real function name regardless of how
+// many segments follow it.
+function fnNameFromUrl(url: string): string {
+  const segments = new URL(url).pathname.split("/").filter(Boolean);
+  const v1 = segments.indexOf("v1");
+  return (v1 >= 0 ? segments[v1 + 1] : segments[0]) ?? "unknown";
+}
+
 async function run(fn: Handler, req: Request): Promise<Response> {
   // fn name for the log line (CLAUDE.md §5 "Log as JSON: { fn, code, ... }")
   // - requestId/userId aren't threaded through this generic wrapper yet,
   // only fn and code are known at this point.
-  const fnName = new URL(req.url).pathname.split("/").filter(Boolean).pop() ?? "unknown";
+  const fnName = fnNameFromUrl(req.url);
   try {
     return await fn(req);
   } catch (err) {

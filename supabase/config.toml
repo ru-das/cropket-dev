@@ -451,3 +451,7 @@ import_map = "./functions/deno.json"
 [functions.shipments-create]
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.trip]
+verify_jwt = false
+import_map = "./functions/deno.json"

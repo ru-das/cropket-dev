@@ -124,9 +124,12 @@ for dir in "$FUNCTIONS_DIR"/*/; do
   # JWT. requireRole()/requireCronSecret() both return UNAUTHENTICATED;
   # cashfree-webhook has no JWT or cron secret at all, only a signature
   # (verifyWebhook), so its own-auth code is WEBHOOK_SIGNATURE_INVALID -
-  # still proof its own check ran, just a more specific one.
+  # still proof its own check ran, just a more specific one. `trip` has no
+  # JWT or cron secret either - its own-auth is the trip token in the URL
+  # path, which a bare POST to the function's own root carries none of, so
+  # its own-auth code is TRIP_NOT_FOUND.
   body="$(curl -s -X POST "$url" -H 'content-type: application/json' -d '{}' 2>/dev/null || true)"
-  if printf '%s' "$body" | grep -qE '"code":"(UNAUTHENTICATED|WEBHOOK_SIGNATURE_INVALID)"'; then
+  if printf '%s' "$body" | grep -qE '"code":"(UNAUTHENTICATED|WEBHOOK_SIGNATURE_INVALID|TRIP_NOT_FOUND)"'; then
     echo "✅ $name — rejects a call with no Authorization (own auth ran)"
   else
     echo "❌ $name — a call with no Authorization did not come back UNAUTHENTICATED: $body"
