@@ -285,6 +285,7 @@ export type Database = {
       escrows: {
         Row: {
           auto_release_at: string | null
+          cashfree_order_id: string | null
           created_at: string
           deal_id: string
           delivered_at: string | null
@@ -295,6 +296,7 @@ export type Database = {
         }
         Insert: {
           auto_release_at?: string | null
+          cashfree_order_id?: string | null
           created_at?: string
           deal_id: string
           delivered_at?: string | null
@@ -305,6 +307,7 @@ export type Database = {
         }
         Update: {
           auto_release_at?: string | null
+          cashfree_order_id?: string | null
           created_at?: string
           deal_id?: string
           delivered_at?: string | null
@@ -911,6 +914,24 @@ export type Database = {
           escrow_id: string
         }[]
       }
+      buyer_deals: {
+        Args: never
+        Returns: {
+          crop: string
+          deal_id: string
+          escrow_id: string
+          escrow_state: Database["public"]["Enums"]["escrow_state"]
+          escrow_total_paise: number
+          fee_paise: number
+          grade: string
+          lot_id: string
+          pickup_date: string
+          price_per_quintal_paise: number
+          qr_code: string
+          quantity_kg: number
+          total_paise: number
+        }[]
+      }
       escrow_transition: {
         Args: {
           p_actor?: string
@@ -920,6 +941,31 @@ export type Database = {
         }
         Returns: {
           auto_release_at: string | null
+          cashfree_order_id: string | null
+          created_at: string
+          deal_id: string
+          delivered_at: string | null
+          id: string
+          state: Database["public"]["Enums"]["escrow_state"]
+          total_paise: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "escrows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fund_escrow: {
+        Args: {
+          p_amount_paise: number
+          p_order_id: string
+          p_payment_ref: string
+        }
+        Returns: {
+          auto_release_at: string | null
+          cashfree_order_id: string | null
           created_at: string
           deal_id: string
           delivered_at: string | null
