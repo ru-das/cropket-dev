@@ -990,6 +990,16 @@ export type Database = {
           escrow_id: string
         }[]
       }
+      admin_delivered_escrows: {
+        Args: never
+        Returns: {
+          auto_release_at: string
+          crop: string
+          escrow_id: string
+          qr_code: string
+          total_paise: number
+        }[]
+      }
       buyer_deals: {
         Args: never
         Returns: {

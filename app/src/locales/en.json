@@ -289,6 +289,14 @@
     "reject": "Reject",
     "submittedOn": "Submitted {{date}}"
   },
+  "escrowAdmin": {
+    "title": "Auto-release timers",
+    "subtitle": "Delivered orders waiting to release",
+    "empty": "No delivered orders waiting right now.",
+    "releaseIn": "Auto-release in",
+    "skipButton": "Skip timer",
+    "skipOffline": "Needs internet to skip the timer"
+  },
   "market": {
     "title": "Marketplace",
     "lotCount": "{{count}} lots near you",
@@ -448,6 +456,7 @@
     "dealNotFound": "We could not find this deal.",
     "tripNotFound": "This link has expired or is not valid. Ask the farmer for a new one.",
     "otpLocked": "Too many wrong tries. This code is now locked.",
+    "demoOnly": "This only works in demo mode.",
     "unknown": "Something went wrong. Try again."
   }
 }

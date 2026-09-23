@@ -4,7 +4,7 @@
 // renders nothing for this role).
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router";
-import { Shield, LogOut, ShieldCheck, ChevronRight } from "lucide-react";
+import { Shield, LogOut, ShieldCheck, Clock, ChevronRight } from "lucide-react";
 import { useAuth } from "@/app/authContext";
 import { signOut } from "@/services/auth";
 
@@ -46,6 +46,20 @@ export default function AdminHome() {
         <div className="min-w-0 flex-1">
           <p className="font-display text-lg font-bold text-ink">{t("kyc.adminTitle")}</p>
           <p className="text-meta text-ink-muted">{t("kyc.adminSubtitle")}</p>
+        </div>
+        <ChevronRight aria-hidden="true" size={22} className="shrink-0 text-ink-muted" />
+      </Link>
+
+      <Link
+        to="/admin/escrows"
+        className="flex items-center gap-4 rounded-3xl border-2 border-line bg-surface p-5 shadow-card transition-all active:scale-[0.98] hover:border-haldi/40"
+      >
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-haldi/20 bg-haldi-light text-haldi-text">
+          <Clock size={26} aria-hidden="true" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-lg font-bold text-ink">{t("escrowAdmin.title")}</p>
+          <p className="text-meta text-ink-muted">{t("escrowAdmin.subtitle")}</p>
         </div>
         <ChevronRight aria-hidden="true" size={22} className="shrink-0 text-ink-muted" />
       </Link>

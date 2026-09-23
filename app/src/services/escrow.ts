@@ -8,16 +8,19 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { callFunction } from "@/lib/callFunction";
 import { supabase } from "@/lib/supabase";
-import { rpcError, type AppError } from "@/lib/errors";
+import { toAppError, rpcError, type AppError } from "@/lib/errors";
 import { queryClient } from "@/offline/persist";
 import { dealKeys } from "@/services/deals";
 import { khataKeys } from "@/services/khata";
+import type { Database } from "@/lib/database.types";
 import {
   EscrowPayInput,
   EscrowPayResult,
   DeliveryCodeInput,
   DeliveryCodeResult,
   MarkDispatchedInput,
+  SkipTimerInput,
+  SkipTimerResult,
 } from "@shared/schemas/escrow.ts";
 
 async function payEscrow(input: EscrowPayInput): Promise<EscrowPayResult> {
@@ -78,6 +81,45 @@ export function useMarkDispatched(lotId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: dealKeys.forLot(lotId) });
       void queryClient.invalidateQueries({ queryKey: khataKeys.mine() });
+    },
+  });
+}
+
+// Admin's "Skip timer" queue (SPEC §5.2, §8.6, §9.2 Phase 4 "4.9") -
+// AdminEscrowsPage.
+export type DeliveredEscrow = Database["public"]["Functions"]["admin_delivered_escrows"]["Returns"][number];
+
+export const escrowAdminKeys = {
+  delivered: () => ["escrow", "admin", "delivered"] as const,
+};
+
+async function getDeliveredEscrows(): Promise<DeliveredEscrow[]> {
+  const { data, error } = await supabase.rpc("admin_delivered_escrows");
+  if (error) throw toAppError(error);
+  return data ?? [];
+}
+
+/** Every DELIVERED escrow, soonest auto-release first - the admin's own
+ * skip-timer queue. Admin-only (RLS: admin_delivered_escrows() itself
+ * throws FORBIDDEN for anyone else). */
+export function useDeliveredEscrows() {
+  return useQuery({ queryKey: escrowAdminKeys.delivered(), queryFn: getDeliveredEscrows });
+}
+
+async function skipTimer(input: SkipTimerInput): Promise<SkipTimerResult> {
+  const parsed = SkipTimerInput.parse(input);
+  const result = await callFunction<SkipTimerResult>("escrow-skip-timer", parsed);
+  return SkipTimerResult.parse(result);
+}
+
+/** AdminEscrowsPage's "Skip timer" button - only works when DEMO_MODE=true
+ * (the function itself refuses otherwise, DEMO_ONLY). Releases the escrow
+ * immediately, so it invalidates the same queue it came from. */
+export function useSkipTimer() {
+  return useMutation<SkipTimerResult, AppError, SkipTimerInput>({
+    mutationFn: skipTimer,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: escrowAdminKeys.delivered() });
     },
   });
 }

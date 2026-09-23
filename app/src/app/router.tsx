@@ -26,6 +26,7 @@ import KycPage from "@/routes/buyer/KycPage";
 import FpoHome from "@/routes/fpo/FpoHome";
 import AdminHome from "@/routes/admin/AdminHome";
 import AdminKycPage from "@/routes/admin/AdminKycPage";
+import AdminEscrowsPage from "@/routes/admin/AdminEscrowsPage";
 import TripPage from "@/routes/trip/TripPage";
 
 export default function AppRouter() {
@@ -79,6 +80,7 @@ export default function AppRouter() {
             <Route element={<AppShell />}>
               <Route path="/admin" element={<AdminHome />} />
               <Route path="/admin/kyc" element={<AdminKycPage />} />
+              <Route path="/admin/escrows" element={<AdminEscrowsPage />} />
             </Route>
           </Route>
         </Route>
