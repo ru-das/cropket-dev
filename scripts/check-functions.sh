@@ -71,6 +71,16 @@ if [ -z "$SUPABASE_URL" ]; then
   exit 0
 fi
 
+# _shared/http.ts's corsHeaders() only echoes access-control-allow-origin
+# back for an Origin it recognizes (ALLOWED_ORIGINS, §7.2) - unset means
+# every origin gets "*" instead. A real browser's pre-flight always carries
+# its own Origin header, so once ALLOWED_ORIGINS is set, testing with no
+# Origin at all (a shape no browser produces) would fail every function
+# forever, for no real reason. Test with an origin that's actually allowed
+# instead - the first one in the list - so this checks what a browser gets.
+ALLOWED_ORIGINS="$(bash "$ROOT/scripts/set-key.sh" --get ALLOWED_ORIGINS 2>/dev/null)"
+TEST_ORIGIN="${ALLOWED_ORIGINS%%,*}"
+
 echo
 echo "Live checks against $SUPABASE_URL"
 echo "----------------------------------"
@@ -80,9 +90,14 @@ for dir in "$FUNCTIONS_DIR"/*/; do
   [ "$name" = "_shared" ] && continue
   url="$SUPABASE_URL/functions/v1/$name"
 
-  # OPTIONS: the browser's real pre-flight, no headers at all. Must be
-  # answered before the function's own auth ever runs.
-  options_status="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url" 2>/dev/null || echo "000")"
+  # OPTIONS: the browser's real pre-flight. Must be answered before the
+  # function's own auth ever runs. Origin is sent only when ALLOWED_ORIGINS
+  # is set (see above) - matches what a real browser at that origin sends.
+  if [ -n "$TEST_ORIGIN" ]; then
+    options_status="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url" -H "Origin: $TEST_ORIGIN" 2>/dev/null || echo "000")"
+  else
+    options_status="$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$url" 2>/dev/null || echo "000")"
+  fi
   if [ "$options_status" = "000" ]; then
     echo "⏭  $name — could not reach it (not deployed yet?)"
     continue
@@ -91,7 +106,11 @@ for dir in "$FUNCTIONS_DIR"/*/; do
     echo "❌ $name — OPTIONS returned $options_status, expected 204"
     failed=1
   else
-    cors="$(curl -s -D - -o /dev/null -X OPTIONS "$url" 2>/dev/null | grep -i '^access-control-allow-origin:' || true)"
+    if [ -n "$TEST_ORIGIN" ]; then
+      cors="$(curl -s -D - -o /dev/null -X OPTIONS "$url" -H "Origin: $TEST_ORIGIN" 2>/dev/null | grep -i '^access-control-allow-origin:' || true)"
+    else
+      cors="$(curl -s -D - -o /dev/null -X OPTIONS "$url" 2>/dev/null | grep -i '^access-control-allow-origin:' || true)"
+    fi
     if [ -z "$cors" ]; then
       echo "❌ $name — OPTIONS answered 204 but sent no access-control-allow-origin header"
       failed=1
