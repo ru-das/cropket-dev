@@ -14,6 +14,7 @@ import QRLabel from "@/components/lot/QRLabel";
 import VoiceButton from "@/components/voice/VoiceButton";
 import RequireOnline from "@/components/common/RequireOnline";
 import DriverLinkCard from "@/components/logistics/DriverLinkCard";
+import Countdown from "@/components/money/Countdown";
 import { useLot, useLotPhoto, useListLot } from "@/services/lots";
 import { useLotBids, useLotBidsRealtime, useMyLotBids, highestBid } from "@/services/bids";
 import { useMegaLotForLot } from "@/services/megaLots";
@@ -256,9 +257,11 @@ export default function LotDetailPage() {
                     ? t("lots.deal.waitingPayment")
                     : deal.escrowState === "IN_TRANSIT"
                       ? t("lots.deal.onTheWay")
-                      : deal.escrowState === "RELEASED"
-                        ? t("lots.deal.received")
-                        : t("lots.deal.moneyLocked")}
+                      : deal.escrowState === "DELIVERED"
+                        ? t("lots.deal.delivered")
+                        : deal.escrowState === "RELEASED"
+                          ? t("lots.deal.received")
+                          : t("lots.deal.moneyLocked")}
                 </p>
                 <VoiceButton
                   textKey={
@@ -266,13 +269,23 @@ export default function LotDetailPage() {
                       ? "lots.deal.waitingPayment"
                       : deal.escrowState === "IN_TRANSIT"
                         ? "lots.deal.onTheWay"
-                        : deal.escrowState === "RELEASED"
-                          ? "lots.deal.received"
-                          : "lots.deal.moneyLocked"
+                        : deal.escrowState === "DELIVERED"
+                          ? "lots.deal.delivered"
+                          : deal.escrowState === "RELEASED"
+                            ? "lots.deal.received"
+                            : "lots.deal.moneyLocked"
                   }
                   className="mx-auto mt-2 h-9 w-9 shadow-xs"
                 />
               </div>
+
+              {/* Countdown (SPEC §5.1, §9.2 Phase 4 "4.9") - the 24h
+                  auto-release timer, once the driver's delivery photo
+                  moved the escrow to DELIVERED (4.7) and before the OTP
+                  (4.8) or the timer (4.9's cron-auto-settle) releases it. */}
+              {deal.escrowState === "DELIVERED" && deal.autoReleaseAt && (
+                <Countdown until={deal.autoReleaseAt} labelKey="countdown.farmer" />
+              )}
 
               {/* "Mark dispatched" (SPEC §4.15, §5.3, §9.2 Phase 4 "4.6") -
                   the farmer's own simple-dispatch move, only while the

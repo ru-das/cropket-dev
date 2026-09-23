@@ -153,6 +153,7 @@
       "waitingPayment": "Waiting for buyer payment",
       "moneyLocked": "Money locked safely",
       "onTheWay": "On the way to buyer",
+      "delivered": "Delivered - money still locked",
       "received": "Money received ✅",
       "pickupDate": "Pickup {{date}}",
       "markDispatched": "Mark dispatched",
@@ -373,6 +374,11 @@
     "statusLocked": "Money locked",
     "statusOnTheWay": "On the way",
     "statusPaid": "Paid to farmer"
+  },
+  "countdown": {
+    "farmer": "Money comes to you in",
+    "buyer": "Money goes to the farmer in",
+    "soon": "Releasing the money now"
   },
   "khata": {
     "moneyLocked": "{{quantityKg}} kg {{crop}} - money locked safely",

@@ -30,12 +30,16 @@ export type DealView = {
   pickupDate: string;
   escrowId: string | null;
   escrowState: Database["public"]["Enums"]["escrow_state"] | null;
+  autoReleaseAt: string | null;
 };
 
-function toDealView(
-  row: DealRow,
-  escrow: { id: string; state: Database["public"]["Enums"]["escrow_state"] } | null,
-): DealView {
+type DealEscrow = {
+  id: string;
+  state: Database["public"]["Enums"]["escrow_state"];
+  auto_release_at: string | null;
+};
+
+function toDealView(row: DealRow, escrow: DealEscrow | null): DealView {
   return {
     id: row.id,
     pricePerQuintalPaise: row.price_per_quintal_paise,
@@ -45,6 +49,7 @@ function toDealView(
     pickupDate: row.pickup_date,
     escrowId: escrow?.id ?? null,
     escrowState: escrow?.state ?? null,
+    autoReleaseAt: escrow?.auto_release_at ?? null,
   };
 }
 
@@ -110,7 +115,7 @@ async function getDealForLot(lotId: string): Promise<DealView | null> {
   // to reach for; escrow-pay/index.ts reads the same two tables the same way.
   const { data: escrow, error: escrowError } = await supabase
     .from("escrows")
-    .select("id, state")
+    .select("id, state, auto_release_at")
     .eq("deal_id", data.id)
     .maybeSingle();
   if (escrowError) throw toAppError(escrowError);
@@ -134,6 +139,7 @@ export type BuyerDealView = {
   escrowId: string;
   escrowState: Database["public"]["Enums"]["escrow_state"];
   escrowTotalPaise: number;
+  autoReleaseAt: string | null;
   lotId: string;
   crop: Crop;
   grade: string | null;
@@ -153,6 +159,7 @@ function toBuyerDealView(row: BuyerDealRow): BuyerDealView {
     escrowId: row.escrow_id,
     escrowState: row.escrow_state,
     escrowTotalPaise: row.escrow_total_paise,
+    autoReleaseAt: row.auto_release_at,
     lotId: row.lot_id,
     crop: row.crop as Crop,
     grade: row.grade,

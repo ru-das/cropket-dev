@@ -13,6 +13,7 @@ import VoiceButton from "@/components/voice/VoiceButton";
 import DemoDataTag from "@/components/common/DemoDataTag";
 import RequireOnline from "@/components/common/RequireOnline";
 import OtpDigits from "@/components/money/OtpDigits";
+import Countdown from "@/components/money/Countdown";
 import { useBuyerDeals } from "@/services/deals";
 import { usePayEscrow, useDeliveryCode } from "@/services/escrow";
 import type { Database } from "@/lib/database.types";
@@ -115,6 +116,13 @@ export default function BuyerDealPage() {
           />
         </div>
       ) : null}
+
+      {/* Countdown (SPEC §5.1, §9.2 Phase 4 "4.9") - the 24h auto-release
+          timer, once the driver's delivery photo moved the escrow to
+          DELIVERED. */}
+      {deal.escrowState === "DELIVERED" && deal.autoReleaseAt && (
+        <Countdown until={deal.autoReleaseAt} labelKey="countdown.buyer" />
+      )}
 
       {showCode && deliveryCode.data && (
         <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-line bg-surface p-5 text-center shadow-card">

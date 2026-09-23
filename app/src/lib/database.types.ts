@@ -993,6 +993,7 @@ export type Database = {
       buyer_deals: {
         Args: never
         Returns: {
+          auto_release_at: string
           crop: string
           deal_id: string
           escrow_id: string
