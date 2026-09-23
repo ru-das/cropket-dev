@@ -86,9 +86,16 @@ select is(
   'every allowed move in escrow_transitions succeeds and lands in to_state'
 );
 
--- 5. every move above wrote exactly one escrow_events row.
+-- 5. every move above wrote exactly one escrow_events row. Scoped to this
+-- test's own 13 escrows (by their deal_id prefix, inserted above) - not a
+-- bare count(*), because escrow_events is real cross-session data on this
+-- shared dev database (earlier milestones' own hand-testing left real rows
+-- behind), same scoping fund_escrow.sql/mark_dispatched.sql already use.
 select is(
-  (select count(*)::int from escrow_events),
+  (select count(*)::int from escrow_events
+   where escrow_id in (
+     select id from escrows where deal_id::text like 'e4000000-0000-0000-0000-0000000000%'
+   )),
   (select count(*)::int from escrow_transitions),
   'every move wrote exactly one escrow_events row'
 );

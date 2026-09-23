@@ -53,11 +53,18 @@ select is(
   'a farmer sees only their own object, not the other user''s'
 );
 
+-- `where not is_versioned` matches storage.objects' own partial unique
+-- index (idx_objects_null_version) - a plain `on conflict (bucket_id,
+-- name)` no longer infers anything (there's no non-partial unique
+-- constraint on just those two columns), which is what the real Storage
+-- API's own upsert path already accounts for internally (confirmed live:
+-- app/src/services/photos.ts's upload(..., { upsert: true }) works fine
+-- against cropket-dev - only this test's hand-written SQL was stale).
 select lives_ok(
   $$ insert into storage.objects (bucket_id, name, owner)
      values ('crop-photos', '11111111-1111-1111-1111-111111111111/photo-1.jpg',
              '11111111-1111-1111-1111-111111111111')
-     on conflict (bucket_id, name) do update set owner = excluded.owner $$,
+     on conflict (bucket_id, name) where not is_versioned do update set owner = excluded.owner $$,
   'a retry (upsert) of an object already owned by the same user works'
 );
 

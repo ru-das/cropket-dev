@@ -2900,32 +2900,41 @@ from actually making a driver link today, unchanged by 4.8, but worth fixing bef
 the split amounts with `platform_fee`'s `to_user` null, one green Khata row, an idempotent repeat,
 `IN_TRANSIT` and `DISPUTED` both refused, a mismatched payout total refused and leaves the escrow
 untouched, an unknown id refused, only the service role may call it, a direct insert violating the
-new check constraint). `bash scripts/test-sql.sh` - 20/22 files green; the 2 failures
-(`escrow_transition.sql`, `rls_crop_photos.sql`) are pre-existing and unrelated to this change (see
-below), confirmed by running them in isolation. `pnpm lint && pnpm typecheck && pnpm test` (332
-tests, 2 new) `&& pnpm build` all pass. The `impeccable` CLI isn't installed in this environment
-(unlike earlier milestones' sessions) - each edited file was still checked by the editor's own
-impeccable hook as it was written, with no issues found; a full `impeccable detect app/src` pass is
-still worth running once the CLI is available again.
-**Pre-existing SQL test failures, not caused by this change:**
-- `escrow_transition.sql`'s test 5 counts `select count(*) from escrow_events` with no `where`
+new check constraint). `bash scripts/test-sql.sh` - full suite green, 22/22 files (2 pre-existing
+failures found and fixed in the same session, see below). `pnpm lint && pnpm typecheck && pnpm
+test` (332 tests, 2 new) `&& pnpm build` all pass. The `impeccable` CLI isn't installed in this
+environment (unlike earlier milestones' sessions) - each edited file was still checked by the
+editor's own impeccable hook as it was written, with no issues found; a full `impeccable detect
+app/src` pass is still worth running once the CLI is available again.
+**Two pre-existing SQL test bugs found while verifying this item, and fixed (not caused by
+escrow-release itself - both root-caused before touching either file, per AGENTS.md §6 "never
+weaken a test without asking"):**
+- `escrow_transition.sql`'s test 5 counted `select count(*) from escrow_events` with no `where`
   clause, assuming the table starts empty in this shared dev database. Earlier milestones' own
   hand-testing (curl, real `escrow_transition`/`fund_escrow`/`mark_dispatched`/`record_pod` calls
-  against `cropket-dev`) left 8 real committed rows behind, so the test now sees `21` instead of the
-  `13` it expects. Confirmed pre-existing: the 8 rows' timestamps predate this session. Fix is a test
-  change (scope the count to the escrow ids this file itself creates), not a schema/function change
-  - flagged here rather than touched, per AGENTS.md §6 "never weaken a test without asking".
-- `rls_crop_photos.sql`'s test 5 (`lives_ok` on an upsert) fails with `42P10: there is no unique or
-  exclusion constraint matching the ON CONFLICT specification` against `storage.objects` -
-  unrelated to escrow/storage entirely; looks like a Supabase-platform-side change to that table's
-  constraints since the test was written. Also pre-existing, also not touched.
+  against `cropket-dev`) left 8 real committed rows behind (their timestamps predate this session),
+  so the test saw `21` instead of the `13` it expects. Ruled out a real bug first:
+  `group by escrow_id, from_state, to_state, reason having count(*) > 1` on the live table returned
+  zero rows, and `escrows`/`escrow_events`/`deals` have no triggers that could double-fire an
+  insert - the 8 rows are exactly one per real transition, not duplicates. **Fixed** by scoping the
+  count to the 13 escrows this test itself creates (`deal_id like 'e4000000-...%'`), the same
+  scoping `fund_escrow.sql`/`mark_dispatched.sql` already use instead of counting a whole table.
+- `rls_crop_photos.sql`'s test 5 (`lives_ok` on an upsert) failed with `42P10: there is no unique or
+  exclusion constraint matching the ON CONFLICT specification` against `storage.objects` - that
+  table no longer has a plain unique constraint on `(bucket_id, name)`, only partial ones
+  (`idx_objects_null_version ... where not is_versioned`, `idx_objects_current_version ... where
+  archived_at is null`), a Supabase Storage schema change since the test was written. Because the
+  real app (`app/src/services/photos.ts`) also relies on `upload(..., { upsert: true })` for
+  retry-safety, checked the real Storage HTTP API before touching anything: uploaded the same path
+  twice with `x-upsert: true` against `cropket-dev` (via curl, farmer `9090910001`), both returned
+  `200` - production retries work fine, since the hosted storage-api doesn't use the same raw SQL
+  the test hand-rolled. **Fixed** by adding the matching predicate:
+  `on conflict (bucket_id, name) where not is_versioned do update ...`.
 **Next / known gaps:**
 - Mega-lot release isn't built - unchanged gap, see "Mocked" above.
 - No push notification when money is released - out of prototype scope (push is skipped everywhere).
 - No admin view of a release event - Phase 5/P1, same as 4.7's own "no admin view of the driver
   link" note.
-- The two pre-existing SQL test failures above need their own fix (or at least a triage) before
-  they're mistaken for a regression by someone who didn't read this note.
 - **Next item: 4.9** `cron-auto-settle` + pg_cron schedule + admin skip-timer (`escrow-skip-timer`)
   + `Countdown` - the 24h timer path to the same `releaseEscrow()` this item built.
 
