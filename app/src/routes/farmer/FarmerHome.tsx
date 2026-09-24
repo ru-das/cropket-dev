@@ -93,11 +93,7 @@ export default function FarmerHome() {
       <div className="relative overflow-hidden rounded-2xl border border-leaf/30 bg-gradient-to-br from-leaf-light via-surface to-surface p-5 shadow-card transition-all hover:border-leaf/50">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="max-w-md">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-leaf px-3 py-0.5 font-display text-xs font-bold text-white shadow-xs">
-              <Camera aria-hidden="true" size={13} />
-              {t("home.scanCrop")}
-            </span>
-            <h2 className="mt-2 font-display text-2xl font-black text-ink leading-tight">
+            <h2 className="font-display text-2xl font-black text-ink leading-tight">
               {t("home.scanCropHero")}
             </h2>
             <p className="mt-1 font-display text-sm font-semibold text-ink-muted leading-snug">
