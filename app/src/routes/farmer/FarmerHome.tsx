@@ -23,7 +23,6 @@ import { useMarketData, pickHeroMandi } from "@/services/prices";
 import { formatRupees } from "@shared/money.ts";
 import type { Crop } from "@shared/crops.ts";
 import type { LatLng } from "@shared/geo.ts";
-import logoSrc from "@/assets/cropket-logo.png";
 
 export default function FarmerHome() {
   const { t } = useTranslation();
@@ -65,12 +64,12 @@ export default function FarmerHome() {
       {/* ── 1. Top Greeting & Context Bar ── */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <img
-            src={logoSrc}
-            alt=""
+          <span
             aria-hidden
-            className="h-12 w-12 shrink-0 object-contain"
-          />
+            className="flex h-12 w-12 shrink-0 items-center justify-center text-4xl leading-none"
+          >
+            🙏
+          </span>
           <div>
             <h1 className="font-display text-2xl font-black tracking-tight text-ink sm:text-3xl">
               {t("home.greeting", { name })}
