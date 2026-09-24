@@ -88,10 +88,19 @@ function toPendingLotView(input: LotInput, createdAtMs: number, syncFailed: bool
   };
 }
 
-async function listMyLots(): Promise<LotView[]> {
+export async function listMyLots(): Promise<LotView[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new AppError("NOT_SIGNED_IN");
+
+  // `farmer_id` must be filtered here, not left to RLS alone: `lots_select_listed`
+  // (buyer marketplace, 20260922150000_lots_marketplace.sql) lets any
+  // signed-in user - farmers included - read every listed/in_mega lot, not
+  // just their own. Without this filter "My Lots" showed every farmer's
+  // listed lots, on every account (found 2026-09-24).
   const { data, error } = await supabase
     .from("lots")
     .select("*")
+    .eq("farmer_id", auth.user.id)
     .order("created_at", { ascending: false });
   if (error) throw toAppError(error);
   return (data ?? []).map(toServerLotView);

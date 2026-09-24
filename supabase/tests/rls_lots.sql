@@ -11,7 +11,7 @@
 -- raises an error, same as the missing quantity_kg column grant.
 -- Everything here rolls back.
 begin;
-select plan(15);
+select plan(16);
 
 insert into auth.users (id, phone) values
   ('11111111-1111-1111-1111-111111111111', '0000000001'),
@@ -51,8 +51,15 @@ insert into lots (id, farmer_id, crop, quantity_kg, qr_code) values
 set local role authenticated;
 set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","phone":"0000000001","role":"authenticated"}';
 
+-- Scoped to this test's own two lots, not a raw count(*) - cropket-dev is
+-- shared between dev and the demo (CLAUDE.md "Simple setup"), and any real
+-- listed/in_mega lot left behind elsewhere is also visible here through
+-- lots_select_listed, so an unscoped count(*) would fail the moment such a
+-- lot exists (as demo-data.sql's seed does - this is the same trap that let
+-- the 2026-09-24 "My Lots" bug through unnoticed).
 select is(
-  (select count(*)::int from lots),
+  (select count(*)::int from lots
+   where id in ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'cccccccc-cccc-cccc-cccc-cccccccccccc')),
   1,
   'a farmer selects only their own lots, not the other farmer''s'
 );
@@ -85,6 +92,25 @@ select is(
   'listed',
   'the listed lot really is listed'
 );
+
+-- lots_select_listed is not scoped to "own rows" - once a lot is listed,
+-- ANY signed-in user can read it, a different farmer included, not just
+-- buyers. This is the trap the app itself fell into (found 2026-09-24:
+-- listMyLots() relied on this select alone and "My Lots" showed every
+-- farmer's listed lots) - recorded here so RLS is never "tightened" back
+-- to fix it (that would break the buyer marketplace instead); the client
+-- must filter by farmer_id itself, see app/src/services/lots.ts.
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"22222222-2222-2222-2222-222222222222","phone":"0000000002","role":"authenticated"}';
+
+select is(
+  (select count(*)::int from lots where id = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'),
+  1,
+  'a different farmer can also read another farmer''s listed lot - RLS alone does not scope "my own lots"'
+);
+
+set local role authenticated;
+set local request.jwt.claims to '{"sub":"11111111-1111-1111-1111-111111111111","phone":"0000000001","role":"authenticated"}';
 
 -- already listed, not draft - USING no longer matches, so this is 0 rows,
 -- not an error (there is no "un-list" or "mark sold" grant in 3.2).

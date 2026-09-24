@@ -3204,3 +3204,55 @@ dequeue()" note above) `&& pnpm build` all pass. No SQL/migration/AI-service fil
 - Not in `ci.yml` - it needs `cropket-dev` + test OTPs + `scripts/.env`, same reason the SQL tests
   aren't in CI either (SPEC §8.4 "prototype").
 - **Next item: 5.3** Deploy: functions + secrets, AI service to Hugging Face Spaces, web to Vercel.
+
+---
+
+## Bug fix — 2026-09-24: "My Lots" showed other farmers' lots
+
+**What was wrong:** every farmer account (even a brand-new one) saw lots under "My Lots" it never
+created - reported after yesterday's `demo-data.sql` seed went into `cropket-dev`.
+
+**Root cause:** `listMyLots()` (`app/src/services/lots.ts`) ran `select * from lots` with no
+`farmer_id` filter, relying on RLS alone to scope it to the caller's own rows. That was true when
+this file was first written in 1.6 (the only `lots` select policy back then was own-row-only), but
+3.2b's buyer marketplace later added `lots_select_listed` (any signed-in user can read a
+`listed`/`in_mega` lot, not just buyers), widened to `in_mega` too in 3.3's `mega_lots` migration.
+Postgres ORs select policies together, so once real listed/in_mega lots existed (yesterday's seed:
+8 marketplace lots across 5 farmers, plus the 500 kg mega lot from 4 of them), every farmer's own
+"My Lots" query picked up every other farmer's listed lots too - the seed didn't cause the bug, it
+just made an existing gap visible for the first time. No data leak: listed lots carry no phone
+number and are meant to be buyer-visible (§4.10); `lots_update_own_list` still stops writing
+someone else's row.
+
+**A second, related gap found while fixing this:** `supabase/tests/rls_lots.sql`'s own "a farmer
+selects only their own lots" check used a raw `count(*)` over the whole table, so it silently
+started failing against the live `cropket-dev` the moment real listed lots existed elsewhere -
+exactly the same shared-DB trap the file's *later* buyer-read check already had a comment warning
+about, just not applied here. Scoped it to this test's own two lot ids, matching that later check's
+pattern.
+
+**Fix:**
+- `listMyLots()` now reads the caller's id (`supabase.auth.getUser()`, same pattern `insertLot()`/
+  `createMyProfile()` already use) and adds `.eq("farmer_id", ...)`, exactly like the marketplace's
+  own `status = 'listed'` filter does for its query.
+- New regression test `app/tests/unit/services/lots.test.ts` locks the filter in.
+- New `rls_lots.sql` check: a different farmer's session really can read another farmer's listed lot
+  (`lots_select_listed` is intentionally not scoped to "own rows") - recorded so nobody "fixes" this
+  bug again by tightening RLS instead, which would break the buyer marketplace.
+
+**Mocked:** nothing.
+
+**Test by hand:** `pnpm dev`, sign in as any farmer test account → My Lots shows only that farmer's
+own lots, not the wider seed/marketplace data.
+
+**Files touched:**
+- `app/src/services/lots.ts` (`listMyLots` filter + export)
+- `app/tests/unit/services/lots.test.ts` (new)
+- `supabase/tests/rls_lots.sql` (new check + scoped the pre-existing fragile `count(*)` check;
+  `plan(15)` → `plan(16)`)
+
+**Verification:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (346 tests) all pass;
+`bash scripts/test-sql.sh rls_lots` passes (16/16). This same fix was also applied on `main`, which
+was reset to the deployed M2 build - it hits the same live `cropket-dev` database and showed the
+same bug, even without 3.2b's migration in that branch's own history (the RLS policy lives in the
+shared database, not in either branch's checked-out files).
