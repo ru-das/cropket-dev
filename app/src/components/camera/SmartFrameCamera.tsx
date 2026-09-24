@@ -185,7 +185,7 @@ export default function SmartFrameCamera({
         </span>
       </div>
 
-      {/* ── CENTER HUD: Framing Reticle & ₹10 Reference Coin ── */}
+      {/* ── CENTER HUD: Framing Reticle (₹10 coin guide commented out) ── */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
         <div
           className={cn(
@@ -195,15 +195,21 @@ export default function SmartFrameCamera({
               : "border-pass/80 shadow-[0_0_24px_rgba(5,150,105,0.35)]",
           )}
         >
-          {/* Target reticle for ₹10 coin */}
-          <div className="flex flex-col items-center justify-center p-4">
-            <div className="mb-2.5 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/25 backdrop-blur-xs">
-              ₹10
+          {/*
+            Coin-based size reference — out of prototype scope (M2-M5): the AI
+            service never looks for a coin (ai-service/app/grading/onion.py -
+            mmAvg is always null), so asking for one here does nothing yet.
+            Uncomment when coin detection ships (SPEC.md size step 2).
+            Target reticle for a 10 coin.
+            <div className="flex flex-col items-center justify-center p-4">
+              <div className="mb-2.5 flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/95 bg-black/40 font-display text-xl font-black text-white shadow-float ring-4 ring-white/25 backdrop-blur-xs">
+                10
+              </div>
+              <span className="rounded-full border border-white/20 bg-black/60 px-3.5 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
+                {t("scan.coinHint")}
+              </span>
             </div>
-            <span className="rounded-full border border-white/20 bg-black/60 px-3.5 py-1.5 text-center font-display text-meta font-bold text-white shadow-float backdrop-blur-md">
-              {t("scan.coinHint")}
-            </span>
-          </div>
+          */}
         </div>
       </div>
 

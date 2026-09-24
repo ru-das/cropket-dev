@@ -100,7 +100,7 @@ Fonts are bundled locally (no Google CDN): **Baloo 2 Variable** for headlines an
 ### 5.3 SmartFrame Camera HUD (`SmartFrameCamera`)
 - Futuristic agro-tech viewfinder overlay:
   - 4 sharp corner brackets (`border-white/90`) framing the target area.
-  - Dashed guide reticle sized for a ₹10 reference coin.
+  - Dashed guide reticle sized for a ₹10 reference coin (commented out for the prototype — no coin detection in the AI service yet).
   - Glowing ambient light sensor pill (`bg-black/60 backdrop-blur-md rounded-full`) indicating lighting status in real-time.
   - 80px concentric tactile shutter button with white ring and emerald center.
 

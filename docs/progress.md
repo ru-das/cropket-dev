@@ -1805,3 +1805,19 @@ the changed files: no findings.
 
 **Follow-up — same day, after deploying the fix:** testers still saw the demo lots after the redeploy. Checked the live bundle (`cropket-dev.vercel.app`) — it had the fix and served the right data; a fresh incognito load showed 0 lots, correctly. The stale list was a persisted TanStack Query cache: devices that had the app open before the deploy had already saved the old, wrong `["lots","mine"]` result to IndexedDB (`offline/persist.ts`), and with `staleTime` 5 min + `refetchOnWindowFocus: false` it kept being treated as fresh after the service worker updated to the fixed code. **Fixed** by bumping `persistOptions.buster` `"1"` → `"2"` in `app/src/offline/persist.ts` — TanStack discards any persisted cache with a different buster, so the next load refetches instead of restoring the old list. One-time side effect: every device drops its whole offline read cache once (prices, profile, etc. all refetch); the outbox (unsent lots/photos) is untouched. Added a Learned Rule (AGENTS.md §7): bump `buster` whenever a fix changes what an already-cached query *means*, not only when its shape changes.
 
+## Scope trim — 2026-09-24: ₹10 coin guide hidden on the scan screen
+
+**What it does:** The scan camera's center HUD showed a dashed "₹10" circle and a "Put a ₹10 coin here" hint, asking the farmer to place a coin in frame for size reference. Coin-based sizing was never in scope for the prototype (M2–M5) and the AI service never looks for one — `ai-service/app/grading/onion.py` always returns `mmAvg: null` and treats "no coin" as the normal path (size falls back to relative small/medium/large). So the prompt asked farmers to do something that had no effect. Commented the coin block out — the code stays in the file so a future coin-detection pass can just uncomment it, it isn't deleted.
+
+**What's kept for later:** the `scan.coinHint` locale key (`en`/`hi`/`mr.json`) is left in place (JSON has no comments, and keeping it means the commented-out JSX still compiles once uncommented, and the locales-parity test doesn't need touching). `SPEC.md`'s coin-detection description is untouched — it's the target design, not a mock to remove.
+
+**Files touched:**
+- `app/src/components/camera/SmartFrameCamera.tsx` — coin reticle block wrapped in one JSX comment, with a note on why and when to bring it back; the outer guide frame (light-status border) is untouched.
+- `DESIGN.md` §5.3 — one line noting the reticle is commented out for the prototype.
+
+**Test by hand:** `pnpm dev` → farmer → Scan a crop: the light-status frame still shows and turns green/red, but no ₹10 circle or hint appears; capture and grading still work the same.
+
+**Verification:** `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass (244 tests — no test named the coin hint directly, so the count is unchanged).
+
+**Next:** unchanged — M3 buyer marketplace. Same change carried to `feat/insider-preview` via cherry-pick (that branch's `SmartFrameCamera.tsx` and `DESIGN.md` were byte-identical to main's).
+
