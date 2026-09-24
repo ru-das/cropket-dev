@@ -1781,3 +1781,25 @@ the changed files: no findings.
 
 **Next:** M3 buyer marketplace.
 
+---
+
+## Bug fix — 2026-09-24: "My Lots" showed other farmers' lots
+
+**What was wrong:** every farmer account (even a brand-new one) saw lots under "My Lots" it never created. Reported after seed data went into the shared `cropket-dev` database.
+
+**Root cause:** `listMyLots()` (`app/src/services/lots.ts`) ran `select * from lots` with no `farmer_id` filter, relying on RLS alone to scope it to the caller's own rows. That was true when this file was first written (M1's only `lots` select policy was own-row-only), but `cropket-dev` is one shared database for dev + demo — later work (M3's buyer marketplace, not yet on this branch) added a second `lots` select policy that lets any signed-in user read a `listed`/`in_mega` lot. Postgres ORs select policies together, so once that policy existed in the live database, every farmer's own "My Lots" query also picked up everyone else's listed lots — regardless of which app code/branch was deployed, because the policies live in the database, not in a branch. No data leak: listed lots carry no phone number and are meant to be buyer-visible; `lots_update_own_list` still stops writing someone else's row.
+
+**Fix:** `listMyLots()` now reads the caller's id (`supabase.auth.getUser()`, same pattern as `insertLot()`/`createMyProfile()`) and adds `.eq("farmer_id", ...)` before the query runs, exactly like the buyer marketplace's own `status = 'listed'` filter does for its query. RLS still keeps drafts private; this filter is what makes "my own rows" actually mean "my own rows" once RLS widens for a shared read case.
+
+**Mocked:** nothing.
+
+**Test by hand:** `pnpm dev`, sign in as any farmer test account → My Lots shows only that farmer's own lots, not the wider seed data.
+
+**Files touched:**
+- `app/src/services/lots.ts` (`listMyLots` filter + export)
+- `app/tests/unit/services/lots.test.ts` (new — locks the `farmer_id` filter in)
+
+**Verification:** `pnpm lint`, `pnpm typecheck`, `pnpm test` all pass (245 tests).
+
+**Next:** unchanged — M3 buyer marketplace. This same fix was also applied on `feat/insider-preview` (which already has the M3+ code and the actual `lots_select_listed` migration).
+

@@ -85,10 +85,21 @@ function toPendingLotView(input: LotInput, createdAtMs: number, syncFailed: bool
   };
 }
 
-async function listMyLots(): Promise<LotView[]> {
+export async function listMyLots(): Promise<LotView[]> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new AppError("NOT_SIGNED_IN");
+
+  // `farmer_id` must be filtered here, not left to RLS alone: `lots` also
+  // carries a buyer-marketplace read policy (any signed-in user can read a
+  // listed/in_mega lot, not just its own farmer) added after this file was
+  // first written. Without this filter "My Lots" showed every farmer's
+  // listed lots, on every account (found 2026-09-24) - RLS alone was never
+  // meant to scope "my own rows", only to stop reading someone else's
+  // private (draft) ones.
   const { data, error } = await supabase
     .from("lots")
     .select("*")
+    .eq("farmer_id", auth.user.id)
     .order("created_at", { ascending: false });
   if (error) throw toAppError(error);
   return (data ?? []).map(toServerLotView);
