@@ -30,7 +30,12 @@ export const persister: Persister = createAsyncStoragePersister({ storage });
 export const persistOptions = {
   persister,
   maxAge: SEVEN_DAYS_MS,
-  // Bump when a cached query's shape changes, so old shapes are discarded
-  // instead of crashing a component that reads the new shape.
-  buster: "1",
+  // Bump when a cached query's shape *or meaning* changes, so old results
+  // are discarded instead of a stale one being restored and treated as
+  // fresh (staleTime is 5 min, refetchOnWindowFocus is off - see
+  // AGENTS.md §7). "2": the 2026-09-24 "My Lots" fix changed what
+  // ["lots","mine"] means (own lots only, not RLS's wider read) - without
+  // this bump, a device that had already cached the wrong list under the
+  // old code would go on showing it after updating to the fixed build.
+  buster: "2",
 };
