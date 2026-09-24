@@ -6,8 +6,6 @@
 // arrivals call has no key of its own to be "set", data.gov.in simply never
 // promised arrivals, so a failed or empty arrivals lookup is a normal
 // `null`, not an outage.
-import type { Crop } from "../../domain/crops.ts";
-import type { DailyPrice } from "../../domain/schemas/prices.ts";
 import { requireEnv } from "../../env.ts";
 import { AppError } from "../../http.ts";
 import {
@@ -18,7 +16,8 @@ import {
   parseAgmarknetArrivalResponse,
   parseDataGovResponse,
 } from "./parse.ts";
-import type { FetchPricesInput } from "./types.ts";
+import type { Crop } from "../../domain/crops.ts";
+import type { FetchPricesInput, FetchPricesResult } from "./types.ts";
 
 const DATA_GOV_BASE = "https://api.data.gov.in/resource";
 const AGMARKNET_DASHBOARD_URL = "https://api.agmarknet.gov.in/v1/dashboard-data/";
@@ -67,7 +66,7 @@ async function fetchAgmarknetArrival(marketId: number, date: string, crop: Crop)
   return await res.json();
 }
 
-export async function fetchPrices(input: FetchPricesInput): Promise<DailyPrice[]> {
+export async function fetchPrices(input: FetchPricesInput): Promise<FetchPricesResult> {
   const drafts = [];
   for (const crop of input.crops) {
     drafts.push(...parseDataGovResponse(await fetchDataGovPrices(crop), crop, input.mandis));

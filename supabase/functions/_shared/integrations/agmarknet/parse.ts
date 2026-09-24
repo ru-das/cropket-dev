@@ -19,7 +19,7 @@ import { z } from "zod";
 import type { Crop } from "../../domain/crops.ts";
 import { toPaise } from "../../domain/money.ts";
 import { DailyPrice } from "../../domain/schemas/prices.ts";
-import type { MandiInput } from "./types.ts";
+import type { FetchPricesResult, LateArrival, MandiInput } from "./types.ts";
 
 type PriceDraft = {
   mandiId: string;
@@ -121,17 +121,33 @@ export function parseAgmarknetArrivalResponse(json: unknown, crop: Crop): { date
  * exact same calendar day as the price row - a price for "today" paired
  * with an arrivals figure from two days ago would be a wrong number wearing
  * a real number's badge, worse than admitting we don't know.
+ *
+ * An arrivals answer for a *different* day (the normal case - the Agmarknet
+ * dashboard runs about a day behind data.gov.in's prices) is not thrown
+ * away: it comes back as a `lateArrival`, for the caller to write onto
+ * whatever price row already exists for that earlier date.
  */
 export function mergePricesWithArrivals(
   drafts: PriceDraft[],
   arrivalsByKey: Map<string, { date: string; tonnes: number } | null>,
-): DailyPrice[] {
-  const result: DailyPrice[] = [];
+): FetchPricesResult {
+  const prices: DailyPrice[] = [];
+  const lateArrivals: LateArrival[] = [];
+  const seenLate = new Set<string>();
+
   for (const draft of drafts) {
     const found = arrivalsByKey.get(arrivalKey(draft.mandiId, draft.crop));
     const arrivalsTonnes = found && found.date === draft.date ? found.tonnes : null;
     const parsed = DailyPrice.safeParse({ ...draft, arrivalsTonnes, source: "agmarknet" });
-    if (parsed.success) result.push(parsed.data);
+    if (parsed.success) prices.push(parsed.data);
+
+    if (found && found.date !== draft.date) {
+      const lateKey = `${draft.mandiId}:${draft.crop}:${found.date}`;
+      if (!seenLate.has(lateKey)) {
+        seenLate.add(lateKey);
+        lateArrivals.push({ mandiId: draft.mandiId, crop: draft.crop, date: found.date, tonnes: found.tonnes });
+      }
+    }
   }
-  return result;
+  return { prices, lateArrivals };
 }

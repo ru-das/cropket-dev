@@ -6,7 +6,7 @@
 // instead of one fixed value, because a frozen mandi price would look
 // broken on a screen whose whole point is "today's price, ⬆ ₹60".
 import type { DailyPrice } from "../../domain/schemas/prices.ts";
-import type { FetchPricesInput } from "./types.ts";
+import type { FetchPricesInput, FetchPricesResult } from "./types.ts";
 
 // Used the first time a mandi/crop has no stored price yet to walk from.
 const FALLBACK_MODAL_PAISE = 200_000; // ₹2,000/quintal
@@ -17,7 +17,7 @@ function walk(value: number, maxPct: number): number {
   return Math.max(0, Math.round(value * (1 + pct / 100)));
 }
 
-export function fetchPrices(input: FetchPricesInput): Promise<DailyPrice[]> {
+export function fetchPrices(input: FetchPricesInput): Promise<FetchPricesResult> {
   const rows: DailyPrice[] = [];
   for (const mandi of input.mandis) {
     for (const crop of input.crops) {
@@ -35,5 +35,5 @@ export function fetchPrices(input: FetchPricesInput): Promise<DailyPrice[]> {
       });
     }
   }
-  return Promise.resolve(rows);
+  return Promise.resolve({ prices: rows, lateArrivals: [] });
 }

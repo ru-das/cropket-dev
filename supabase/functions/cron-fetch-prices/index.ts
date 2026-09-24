@@ -49,7 +49,7 @@ Deno.serve(
     });
 
     const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); // en-CA = YYYY-MM-DD
-    const rows = await fetchPrices({ date: today, crops: CROPS, mandis: mandiInputs });
+    const { prices: rows, lateArrivals } = await fetchPrices({ date: today, crops: CROPS, mandis: mandiInputs });
 
     if (rows.length > 0) {
       const { error: upsertError } = await db.from("mandi_prices").upsert(
@@ -68,9 +68,28 @@ Deno.serve(
       if (upsertError) throw new AppError("INTERNAL", 500, upsertError.message);
     }
 
-    // Recompute heat for every distinct date just written - usually just
-    // today, but a market that only reported yesterday can add an older date.
-    const dates = [...new Set(rows.map((row) => row.date))];
+    // The Agmarknet dashboard runs about a day behind data.gov.in's prices,
+    // so its arrivals figure is almost always for yesterday, not today's
+    // price row (see parse.ts mergePricesWithArrivals). That row is already
+    // in the DB with `arrivals_tonnes: null` from yesterday's run - fill it
+    // in now instead of losing the number. `.is(...)` guards against ever
+    // overwriting a value that's already there, and `source: 'agmarknet'`
+    // keeps this away from seed/mock rows (CLAUDE.md §5 honesty rule).
+    for (const late of lateArrivals) {
+      const { error: lateError } = await db
+        .from("mandi_prices")
+        .update({ arrivals_tonnes: late.tonnes })
+        .eq("mandi_id", late.mandiId)
+        .eq("crop", late.crop)
+        .eq("date", late.date)
+        .eq("source", "agmarknet")
+        .is("arrivals_tonnes", null);
+      if (lateError) throw new AppError("INTERNAL", 500, lateError.message);
+    }
+
+    // Recompute heat for every distinct date just written or filled in -
+    // usually just today, but a late arrival can add an older date too.
+    const dates = [...new Set([...rows.map((row) => row.date), ...lateArrivals.map((late) => late.date)])];
     let heatRowsWritten = 0;
     for (const date of dates) {
       const { data: inputs, error: inputsError } = await db.rpc("mandi_heat_inputs", { p_date: date });

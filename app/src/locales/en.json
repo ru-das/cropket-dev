@@ -204,7 +204,8 @@
   "heat": {
     "red": "Too much crop",
     "yellow": "Normal",
-    "green": "Crop needed"
+    "green": "Crop needed",
+    "noData": "No data today"
   },
   "me": {
     "signOut": "Sign out"

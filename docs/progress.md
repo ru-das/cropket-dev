@@ -1308,6 +1308,37 @@ mandi/crop is left out entirely; `authenticated` can't call the function directl
   needs a per-mandi lookup if a second district is ever onboarded.
 - Next item: **2.4** Prices screen (`PriceHero`, `AdviceCard`, `FloorWarning`,
   `MandiList`, `MandiHeatmap`, `DataAge`) - the first screen that actually reads what
+
+### 2.3 fix: mandi heatmap stuck on white pins — 2026-09-24
+**Bug report:** "Today's Price" map showed one green pin (Niphad, still on seeded data)
+and white pins for every other mandi - no red/yellow ever appeared.
+**Root cause:** the note above ("no new heat row was written... not a bug") was true
+for day one, but wrong as a permanent assumption. Checked live: the Agmarknet arrivals
+dashboard always answers with `reported_date` one-or-more days behind the date it's
+asked about (asked for 24-09, got `reported_date: 22-09`) - it's never going to report
+today's arrivals same-day. `mergePricesWithArrivals`'s same-day rule (correct, keeps
+the honesty guarantee) meant every real arrivals figure was silently thrown away,
+forever, so `mandi_heat` for the 4 real mandis never got past their last seeded date.
+**Fix:** `mergePricesWithArrivals` now also returns the arrivals that *didn't* match
+today's price row, as `lateArrivals` (`{mandiId, crop, date, tonnes}`), instead of
+dropping them. `cron-fetch-prices` writes each one onto the price row that's already
+in the DB for that earlier date (`update ... where source = 'agmarknet' and
+arrivals_tonnes is null` - never touches seed/mock rows), then recomputes `mandi_heat`
+for those dates too, not just today's.
+**Files:** `supabase/functions/_shared/integrations/agmarknet/{types,parse,real,mock,index}.ts`,
+`supabase/functions/cron-fetch-prices/index.ts`, `app/tests/unit/integrations/agmarknet.test.ts`
+(rewrote the merge tests for the new `{prices, lateArrivals}` return shape, added a
+late-arrival case), `app/src/components/market/MandiList.tsx` + `en/hi/mr.json` (added
+a "No data today" ⚪ legend chip and per-row label, so a white pin isn't a mystery).
+**Test by hand:** deployed `cron-fetch-prices`, ran it once against `cropket-dev`:
+`{"ok":true,"data":{"rows":2,"heatRows":14,"source":"agmarknet"}}`. Checked
+`mandi_heat`/`mandi_prices` with read-only `psql`: Lasalgaon's 22-09 onion row went
+from `arrivals_tonnes: null` to `400.9`, Pimpalgaon's to `1104.8`, and both got real
+`mandi_heat` colours (yellow, red) for the first time since seed day.
+**Known gap:** Chandvad still had no arrivals answer at all after this run (real-world
+gap in what that mandi's own Agmarknet market reports, not a code bug) - its pin stays
+white until a day it does report. No migration, no new dependency.
+- Learned Rule added to `AGENTS.md` §7.
   this item writes.
 
 ### 2.4 Prices screen — 2026-09-17

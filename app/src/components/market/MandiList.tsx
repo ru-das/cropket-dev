@@ -32,11 +32,9 @@ export default function MandiList({ mandiPrices }: { mandiPrices: MandiPrice[] }
               <span className="block truncate font-display text-base font-bold text-ink leading-snug">
                 {m.mandi.name}
               </span>
-              {m.heat && (
-                <span className="font-display text-xs font-semibold text-ink-muted">
-                  {t(`heat.${m.heat.colour}`)}
-                </span>
-              )}
+              <span className="font-display text-xs font-semibold text-ink-muted">
+                {m.heat ? t(`heat.${m.heat.colour}`) : t("heat.noData")}
+              </span>
               {m.isStale && (
                 <span className="block font-display text-xs text-amber-600">
                   {t("prices.staleDate", {
@@ -63,6 +61,9 @@ export default function MandiList({ mandiPrices }: { mandiPrices: MandiPrice[] }
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface-subtle px-2.5 py-1 font-display font-bold">
           <span aria-hidden="true">🟢</span> {t("heat.green")}
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface-subtle px-2.5 py-1 font-display font-bold">
+          <span aria-hidden="true">⚪</span> {t("heat.noData")}
         </span>
       </div>
     </div>

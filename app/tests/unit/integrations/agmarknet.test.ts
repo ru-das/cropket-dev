@@ -25,14 +25,15 @@ const mandi: MandiInput = {
 
 describe("integrations/agmarknet mock", () => {
   it("returns rows that pass DailyPrice, the same schema real.ts must pass", async () => {
-    const rows = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [mandi] });
-    expect(rows).toHaveLength(1);
-    expect(DailyPrice.safeParse(rows[0]).success).toBe(true);
+    const { prices, lateArrivals } = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [mandi] });
+    expect(prices).toHaveLength(1);
+    expect(DailyPrice.safeParse(prices[0]).success).toBe(true);
+    expect(lateArrivals).toEqual([]);
   });
 
   it("marks itself as a mock", async () => {
-    const [row] = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [mandi] });
-    expect(row.source).toBe("mock");
+    const { prices } = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [mandi] });
+    expect(prices[0].source).toBe("mock");
   });
 
   it("walks from the mandi's last known price instead of a fixed number", async () => {
@@ -40,10 +41,10 @@ describe("integrations/agmarknet mock", () => {
       ...mandi,
       lastByCrop: { onion: { modalPricePaise: 500_000, arrivalsTonnes: 40 } },
     };
-    const [row] = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [withHistory] });
+    const { prices } = await fetchMockPrices({ date: "2026-09-17", crops: ["onion"], mandis: [withHistory] });
     // +-5% walk from 500,000 paise
-    expect(row.modalPricePaise).toBeGreaterThanOrEqual(475_000);
-    expect(row.modalPricePaise).toBeLessThanOrEqual(525_000);
+    expect(prices[0].modalPricePaise).toBeGreaterThanOrEqual(475_000);
+    expect(prices[0].modalPricePaise).toBeLessThanOrEqual(525_000);
   });
 });
 
@@ -123,23 +124,29 @@ describe("integrations/agmarknet mergePricesWithArrivals", () => {
 
   it("attaches arrivals when the arrivals answer is for the same day as the price", () => {
     const map = new Map([[`${mandi.id}:onion`, { date: "2026-09-17", tonnes: 42 }]]);
-    const [row] = mergePricesWithArrivals([draft], map);
-    expect(row.arrivalsTonnes).toBe(42);
+    const { prices, lateArrivals } = mergePricesWithArrivals([draft], map);
+    expect(prices[0].arrivalsTonnes).toBe(42);
+    expect(lateArrivals).toEqual([]);
   });
 
-  it("leaves arrivals null when the arrivals answer is for a different day", () => {
-    const map = new Map([[`${mandi.id}:onion`, { date: "2026-09-15", tonnes: 42 }]]);
-    const [row] = mergePricesWithArrivals([draft], map);
-    expect(row.arrivalsTonnes).toBeNull();
+  it("leaves arrivals null and reports a late arrival when the answer is for an earlier day", () => {
+    // The real-world case: the Agmarknet dashboard is asked about today
+    // (2026-09-17) but answers for yesterday - the price row it was asked
+    // about stays honest (null), and the arrival isn't thrown away.
+    const map = new Map([[`${mandi.id}:onion`, { date: "2026-09-16", tonnes: 42 }]]);
+    const { prices, lateArrivals } = mergePricesWithArrivals([draft], map);
+    expect(prices[0].arrivalsTonnes).toBeNull();
+    expect(lateArrivals).toEqual([{ mandiId: mandi.id, crop: "onion", date: "2026-09-16", tonnes: 42 }]);
   });
 
   it("leaves arrivals null when there is no arrivals answer at all", () => {
-    const [row] = mergePricesWithArrivals([draft], new Map());
-    expect(row.arrivalsTonnes).toBeNull();
+    const { prices, lateArrivals } = mergePricesWithArrivals([draft], new Map());
+    expect(prices[0].arrivalsTonnes).toBeNull();
+    expect(lateArrivals).toEqual([]);
   });
 
   it("drops a row where min_price ended up above modal_price", () => {
     const broken = { ...draft, minPricePaise: 999_999 };
-    expect(mergePricesWithArrivals([broken], new Map())).toEqual([]);
+    expect(mergePricesWithArrivals([broken], new Map()).prices).toEqual([]);
   });
 });
